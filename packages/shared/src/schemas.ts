@@ -17,6 +17,7 @@ export const SnapshotSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   totalAmount: z.number().nonnegative(),
   availableBalance: z.number().nonnegative().optional(),
+  profitLoss: z.number().optional(),
   memo: z.string().max(500).optional(),
   createdAt: z.string().datetime(),
 });
@@ -39,6 +40,7 @@ export const CreateSnapshotSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   totalAmount: z.number().nonnegative(),
   availableBalance: z.number().nonnegative().optional(),
+  profitLoss: z.number().optional(),
   memo: z.string().max(500).optional(),
 });
 
@@ -46,6 +48,7 @@ export const UpdateSnapshotSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   totalAmount: z.number().nonnegative().optional(),
   availableBalance: z.number().nonnegative().optional().nullable(),
+  profitLoss: z.number().optional().nullable(),
   memo: z.string().max(500).optional().nullable(),
 });
 

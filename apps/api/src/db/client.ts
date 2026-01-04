@@ -139,6 +139,7 @@ export class DBClient {
       date: row.date,
       totalAmount: row.total_amount,
       availableBalance: row.available_balance,
+      profitLoss: row.profit_loss,
       memo: row.memo,
       createdAt: row.created_at,
     };
@@ -151,7 +152,7 @@ export class DBClient {
     try {
       await this.db
         .prepare(
-          'INSERT INTO gk_snapshots (id, granary_id, date, total_amount, available_balance, memo, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+          'INSERT INTO gk_snapshots (id, granary_id, date, total_amount, available_balance, profit_loss, memo, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         )
         .bind(
           id,
@@ -159,6 +160,7 @@ export class DBClient {
           data.date,
           data.totalAmount,
           data.availableBalance ?? null,
+          data.profitLoss ?? null,
           data.memo ?? null,
           now
         )
@@ -211,6 +213,10 @@ export class DBClient {
     if (data.availableBalance !== undefined) {
       updates.push('available_balance = ?');
       values.push(data.availableBalance ?? null);
+    }
+    if (data.profitLoss !== undefined) {
+      updates.push('profit_loss = ?');
+      values.push(data.profitLoss ?? null);
     }
     if (data.memo !== undefined) {
       updates.push('memo = ?');

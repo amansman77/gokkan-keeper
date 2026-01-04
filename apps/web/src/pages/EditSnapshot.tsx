@@ -13,6 +13,7 @@ export default function EditSnapshot() {
     date: '',
     totalAmount: 0,
     availableBalance: undefined,
+    profitLoss: undefined,
     memo: '',
   });
   const [loading, setLoading] = useState(true);
@@ -38,6 +39,7 @@ export default function EditSnapshot() {
           date: snapshotData.date,
           totalAmount: snapshotData.totalAmount,
           availableBalance: snapshotData.availableBalance,
+          profitLoss: snapshotData.profitLoss,
           memo: snapshotData.memo || '',
         });
         setGranaries(granariesData);
@@ -163,6 +165,28 @@ export default function EditSnapshot() {
             className="mt-2 text-sm text-gray-600 hover:text-gray-900"
           >
             예수금 제거
+          </button>
+        </div>
+
+        <div>
+          <label htmlFor="profitLoss" className="block text-sm font-medium text-gray-700 mb-2">
+            평가 손익 (선택)
+          </label>
+          <input
+            type="number"
+            id="profitLoss"
+            step="0.01"
+            value={formData.profitLoss ?? ''}
+            onChange={(e) => setFormData({ ...formData, profitLoss: e.target.value ? parseFloat(e.target.value) : undefined })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="양수: 수익, 음수: 손실"
+          />
+          <button
+            type="button"
+            onClick={() => setFormData({ ...formData, profitLoss: null })}
+            className="mt-2 text-sm text-gray-600 hover:text-gray-900"
+          >
+            평가 손익 제거
           </button>
         </div>
 
