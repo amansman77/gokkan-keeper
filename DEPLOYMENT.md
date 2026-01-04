@@ -155,40 +155,23 @@ netlify deploy --prod
 
 **상세 가이드**: `apps/web/CLOUDFLARE_PAGES_DEPLOY.md` 참고
 
-**빠른 배포 (CLI)**:
-```bash
-cd apps/web
-
-# Shared 패키지 빌드
-pnpm --filter shared build
-
-# 프론트엔드 빌드
-pnpm build
-
-# 환경 변수 설정 (최초 1회)
-pnpm wrangler pages secret put VITE_API_BASE_URL \
-  --project-name=gokkan-keeper-web \
-  --value="https://gokkan-keeper-api-production.amansman77.workers.dev"
-
-pnpm wrangler pages secret put VITE_API_SECRET \
-  --project-name=gokkan-keeper-web \
-  --value="your-api-secret"
-
-# 배포
-pnpm wrangler pages deploy dist \
-  --project-name=gokkan-keeper-web \
-  --branch=main
-```
-
 **Git 연동 배포 (권장)**:
-1. Cloudflare Dashboard → Pages → Create a project
-2. Connect to Git → Repository 선택
-3. Build settings:
-   - Build command: `pnpm install && pnpm --filter shared build && pnpm build`
-   - Build output directory: `apps/web/dist`
-   - Root directory: `apps/web`
-4. Environment variables 설정 (Settings → Environment variables)
-5. Save and Deploy
+
+1. **Cloudflare Dashboard → Pages → Create a project**
+2. **Connect to Git → Repository 선택**
+3. **Build settings**:
+   - Framework preset: None (또는 Vite)
+   - **Build command**: `pnpm install && pnpm --filter shared build && pnpm --filter web build`
+   - **Build output directory**: `apps/web/dist`
+   - **Root directory**: `apps/web`
+   - **Deploy command**: `echo "Deploy completed"` (또는 빈 문자열 - 필수 필드이지만 실제로는 사용되지 않음)
+4. **Environment variables 설정** (Settings → Environment variables):
+   - `VITE_API_BASE_URL`: `https://gokkan-keeper-api-production.amansman77.workers.dev`
+   - `VITE_API_SECRET`: (백엔드와 동일한 값)
+   - Environment: Production, Preview, Branch preview 모두 선택
+5. **Save and Deploy**
+
+**중요**: Deploy command를 설정하지 마세요! 빌드만 하면 자동으로 배포됩니다.
 
 ## 배포 후 확인사항
 
