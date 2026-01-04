@@ -2,11 +2,12 @@ name = "gokkan-keeper-api"
 main = "src/index.ts"
 compatibility_date = "2024-01-15"
 
-# Local development D1 database binding
+# D1 database binding (for migrations - uses production database_id)
+# Note: wrangler dev will use local SQLite file automatically
 [[d1_databases]]
 binding = "DB"
 database_name = "shared-db"
-database_id = "local"  # Local development uses local SQLite file
+database_id = "894124e2-8236-4647-a3a0-bc8674865889"
 migrations_dir = "../../migrations"
 
 # Production environment
