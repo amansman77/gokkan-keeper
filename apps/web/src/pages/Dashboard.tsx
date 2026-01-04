@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getGranaries, getStatus } from '../lib/api';
+import { API_BASE_URL, API_SECRET } from '../lib/config';
 import type { Granary, Snapshot, StatusSummary } from '../lib/types';
 import GranaryCard from '../components/GranaryCard';
 import StatusSummaryComponent from '../components/StatusSummary';
@@ -46,8 +47,9 @@ export default function Dashboard() {
         <p className="text-red-800 font-semibold mb-2">오류 발생</p>
         <p className="text-red-700 text-sm">{error}</p>
         <div className="mt-4 text-xs text-red-600">
-          <p>API URL: {import.meta.env.VITE_API_BASE_URL || 'http://localhost:8787'}</p>
-          <p>API Secret: {import.meta.env.VITE_API_SECRET ? '설정됨' : '설정되지 않음'}</p>
+          <p>API URL: {API_BASE_URL}</p>
+          <p>API Secret: {API_SECRET ? '설정됨' : '설정되지 않음'}</p>
+          <p>Raw env: {import.meta.env.VITE_API_BASE_URL || '(undefined)'}</p>
         </div>
         <button
           onClick={() => window.location.reload()}
