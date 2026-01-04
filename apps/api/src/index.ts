@@ -10,7 +10,22 @@ const app = new Hono<{ Bindings: Env }>();
 
 // CORS configuration
 app.use('/*', cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'capacitor://localhost'],
+  origin: (origin) => {
+    // Allow localhost for development
+    if (!origin || origin.startsWith('http://localhost:') || origin.startsWith('capacitor://')) {
+      return origin;
+    }
+    // Allow all Cloudflare Pages domains
+    if (origin.endsWith('.pages.dev')) {
+      return origin;
+    }
+    // Allow custom domains
+    if (origin === 'https://gokkan-keeper.yetimates.com') {
+      return origin;
+    }
+    // Deny all other origins (return null to reject)
+    return null;
+  },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'X-API-Secret'],
   credentials: true,
