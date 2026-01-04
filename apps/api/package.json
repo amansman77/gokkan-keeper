@@ -1,0 +1,23 @@
+{
+  "name": "@gokkan-keeper/api",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --env production",
+    "deploy:preview": "wrangler deploy",
+    "migrate": "wrangler d1 migrations apply shared-db --remote",
+    "migrate:local": "wrangler d1 migrations apply shared-db --local",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gokkan-keeper/shared": "workspace:*",
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.19.0"
+  }
+}
+

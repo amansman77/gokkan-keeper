@@ -1,0 +1,23 @@
+{
+  "name": "gokkan-keeper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal asset tracking service organized by purpose (granaries)",
+  "scripts": {
+    "dev": "pnpm --filter web dev & pnpm --filter api dev",
+    "build": "pnpm --filter shared build && pnpm --filter web build && pnpm --filter api build",
+    "typecheck": "pnpm --filter shared typecheck && pnpm --filter web typecheck && pnpm --filter api typecheck",
+    "setup": "nvm install 18.20.0 && nvm use && corepack enable && corepack prepare pnpm@latest --activate && pnpm install && pnpm --filter shared build",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist packages/*/dist",
+    "migrate:local": "cd apps/api && pnpm migrate:local"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
+
