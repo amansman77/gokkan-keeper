@@ -2,7 +2,14 @@ name = "gokkan-keeper-api"
 main = "src/index.ts"
 compatibility_date = "2024-01-15"
 
-# Production environment (기본 환경은 삭제하고 프로덕션만 사용)
+# Local development D1 database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "shared-db"
+database_id = "local"  # Local development uses local SQLite file
+migrations_dir = "../../migrations"
+
+# Production environment
 [env.production]
 # 커스텀 도메인을 사용하려면 아래 주석을 해제하고 Cloudflare에 도메인을 설정하세요
 # routes = [
