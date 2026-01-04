@@ -1,5 +1,8 @@
 # 배포 가이드 (Deployment Guide)
 
+> 프로덕션 환경 배포를 위한 상세 가이드입니다.  
+> 개발 환경 설정은 [DEVELOPMENT.md](DEVELOPMENT.md)를 참고하세요.
+
 ## 배포 전 준비사항
 
 ### 1. 빌드 확인
