@@ -11,14 +11,18 @@ export class DBClient {
     return (result.results || []).map(this.transformGranary);
   }
 
-  async getAllGranariesWithLatestSnapshot(): Promise<(Granary & { latestSnapshot?: Snapshot })[]> {
+  async getAllGranariesWithLatestSnapshot(): Promise<(Granary & { latestSnapshot?: Snapshot; previousSnapshot?: Snapshot })[]> {
     const granaries = await this.getAllGranaries();
     const granariesWithSnapshots = await Promise.all(
       granaries.map(async (granary) => {
-        const latestSnapshot = await this.getLatestSnapshotByGranaryId(granary.id);
+        const [latestSnapshot, previousSnapshot] = await Promise.all([
+          this.getLatestSnapshotByGranaryId(granary.id),
+          this.getPreviousSnapshotByGranaryId(granary.id),
+        ]);
         return {
           ...granary,
           latestSnapshot: latestSnapshot || undefined,
+          previousSnapshot: previousSnapshot || undefined,
         };
       })
     );
@@ -111,6 +115,14 @@ export class DBClient {
   async getLatestSnapshotByGranaryId(granaryId: string): Promise<Snapshot | null> {
     const result = await this.db
       .prepare('SELECT * FROM gk_snapshots WHERE granary_id = ? ORDER BY date DESC LIMIT 1')
+      .bind(granaryId)
+      .first<any>();
+    return result ? this.transformSnapshot(result) : null;
+  }
+
+  async getPreviousSnapshotByGranaryId(granaryId: string): Promise<Snapshot | null> {
+    const result = await this.db
+      .prepare('SELECT * FROM gk_snapshots WHERE granary_id = ? ORDER BY date DESC LIMIT 1 OFFSET 1')
       .bind(granaryId)
       .first<any>();
     return result ? this.transformSnapshot(result) : null;

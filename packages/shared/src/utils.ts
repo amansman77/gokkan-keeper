@@ -23,3 +23,24 @@ export function daysSince(dateString: string): number {
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 }
 
+export interface ComparisonResult {
+  amountDiff: number;
+  percentDiff: number;
+  isPositive: boolean;
+}
+
+export function calculateComparison(current: number, previous: number): ComparisonResult | null {
+  if (previous === 0) {
+    return null;
+  }
+  
+  const amountDiff = current - previous;
+  const percentDiff = (amountDiff / previous) * 100;
+  const isPositive = amountDiff >= 0;
+  
+  return {
+    amountDiff,
+    percentDiff,
+    isPositive,
+  };
+}

@@ -29,8 +29,8 @@ async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise
   }
 }
 
-export async function getGranaries(): Promise<(Granary & { latestSnapshot?: Snapshot })[]> {
-  return fetchAPI<(Granary & { latestSnapshot?: Snapshot })[]>('/granaries');
+export async function getGranaries(): Promise<(Granary & { latestSnapshot?: Snapshot; previousSnapshot?: Snapshot })[]> {
+  return fetchAPI<(Granary & { latestSnapshot?: Snapshot; previousSnapshot?: Snapshot })[]>('/granaries');
 }
 
 export async function getGranary(id: string): Promise<GranaryWithLatestSnapshot> {

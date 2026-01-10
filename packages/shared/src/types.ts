@@ -6,6 +6,7 @@ export type { Granary, Snapshot, CreateGranary, CreateSnapshot } from './schemas
 
 export interface GranaryWithLatestSnapshot extends Granary {
   latestSnapshot?: Snapshot;
+  previousSnapshot?: Snapshot;
 }
 
 export interface StatusSummary {

@@ -1,12 +1,19 @@
 import { Link } from 'react-router-dom';
 import type { Granary, Snapshot } from '../lib/types';
-import { formatCurrency, formatDate } from '@gokkan-keeper/shared';
+import { formatCurrency, formatDate, calculateComparison } from '@gokkan-keeper/shared';
 
 interface GranaryCardProps {
-  granary: Granary & { latestSnapshot?: Snapshot };
+  granary: Granary & { latestSnapshot?: Snapshot; previousSnapshot?: Snapshot };
 }
 
 export default function GranaryCard({ granary }: GranaryCardProps) {
+  const comparison = granary.latestSnapshot && granary.previousSnapshot
+    ? calculateComparison(
+        granary.latestSnapshot.totalAmount,
+        granary.previousSnapshot.totalAmount
+      )
+    : null;
+
   return (
     <Link
       to={`/granaries/${granary.id}`}
@@ -30,6 +37,11 @@ export default function GranaryCard({ granary }: GranaryCardProps) {
               {formatCurrency(granary.latestSnapshot.totalAmount, granary.currency)}
             </span>
           </div>
+          {comparison && (
+            <div className={`text-sm font-medium ${comparison.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              {comparison.isPositive ? '+' : ''}{formatCurrency(comparison.amountDiff, granary.currency)} ({comparison.isPositive ? '+' : ''}{comparison.percentDiff.toFixed(1)}%)
+            </div>
+          )}
           <p className="text-xs text-gray-500">
             {formatDate(granary.latestSnapshot.date)}
           </p>

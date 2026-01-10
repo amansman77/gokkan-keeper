@@ -7,7 +7,7 @@ import GranaryCard from '../components/GranaryCard';
 import StatusSummaryComponent from '../components/StatusSummary';
 
 export default function Dashboard() {
-  const [granaries, setGranaries] = useState<(Granary & { latestSnapshot?: Snapshot })[]>([]);
+  const [granaries, setGranaries] = useState<(Granary & { latestSnapshot?: Snapshot; previousSnapshot?: Snapshot })[]>([]);
   const [status, setStatus] = useState<StatusSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
