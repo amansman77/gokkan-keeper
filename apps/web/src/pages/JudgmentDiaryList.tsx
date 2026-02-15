@@ -10,15 +10,16 @@ export default function JudgmentDiaryList() {
   const [entries, setEntries] = useState<JudgmentDiaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [action, setAction] = useState('');
+  const [action, setAction] = useState<JudgmentDiaryEntry['action'] | ''>('');
 
   useEffect(() => {
     async function loadEntries() {
       try {
         setLoading(true);
         setError(null);
+        const selectedAction = action ? (action as JudgmentDiaryEntry['action']) : undefined;
         const data = await getJudgmentDiaryEntries({
-          action: action || undefined,
+          action: selectedAction,
         });
         setEntries(data);
       } catch (err: any) {
@@ -63,7 +64,7 @@ export default function JudgmentDiaryList() {
           <label className="block text-xs font-medium text-gray-500 mb-1">Action</label>
           <select
             value={action}
-            onChange={(e) => setAction(e.target.value)}
+            onChange={(e) => setAction(e.target.value as JudgmentDiaryEntry['action'] | '')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           >
             <option value="">전체</option>
