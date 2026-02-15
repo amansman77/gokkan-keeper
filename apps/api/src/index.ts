@@ -5,6 +5,7 @@ import { authMiddleware } from './middleware/auth';
 import { granariesRouter } from './routes/granaries';
 import { snapshotsRouter } from './routes/snapshots';
 import { statusRouter } from './routes/status';
+import { judgmentDiaryRouter } from './routes/judgment-diary';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -43,6 +44,6 @@ app.use('/*', authMiddleware);
 app.route('/granaries', granariesRouter);
 app.route('/snapshots', snapshotsRouter);
 app.route('/status', statusRouter);
+app.route('/judgment-diary', judgmentDiaryRouter);
 
 export default app;
-

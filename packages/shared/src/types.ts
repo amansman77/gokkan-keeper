@@ -1,8 +1,21 @@
 // Import types from schemas.ts
-import type { Granary, Snapshot } from './schemas';
+import type { Granary, Snapshot, JudgmentDiaryEntry } from './schemas';
 
 // Re-export types from schemas.ts
-export type { Granary, Snapshot, CreateGranary, CreateSnapshot } from './schemas';
+export type {
+  Granary,
+  Snapshot,
+  CreateGranary,
+  CreateSnapshot,
+  UpdateGranary,
+  UpdateSnapshot,
+  JudgmentDiaryEntry,
+  CreateJudgmentDiaryEntry,
+  UpdateJudgmentDiaryEntry,
+  JudgmentDiaryAsset,
+  JudgmentDiaryPositionChange,
+  JudgmentDiaryRef,
+} from './schemas';
 
 export interface GranaryWithLatestSnapshot extends Granary {
   latestSnapshot?: Snapshot;
@@ -19,3 +32,11 @@ export interface StatusSummary {
   recentSnapshots: Snapshot[];
 }
 
+export interface JudgmentDiaryListFilters {
+  from?: string;
+  to?: string;
+  action?: JudgmentDiaryEntry['action'];
+  asset?: string;
+  strategyTag?: string;
+  limit?: number;
+}

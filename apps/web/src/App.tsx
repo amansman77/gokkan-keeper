@@ -5,6 +5,14 @@ import NewGranary from './pages/NewGranary';
 import EditGranary from './pages/EditGranary';
 import NewSnapshot from './pages/NewSnapshot';
 import EditSnapshot from './pages/EditSnapshot';
+import JudgmentDiaryList from './pages/JudgmentDiaryList';
+import JudgmentDiaryDetail from './pages/JudgmentDiaryDetail';
+import NewJudgmentDiary from './pages/NewJudgmentDiary';
+import EditJudgmentDiary from './pages/EditJudgmentDiary';
+import JudgmentDiaryActionArchive from './pages/JudgmentDiaryActionArchive';
+import JudgmentDiaryStrategyArchive from './pages/JudgmentDiaryStrategyArchive';
+import JudgmentDiaryPrinciples from './pages/JudgmentDiaryPrinciples';
+import JudgmentDiaryReport from './pages/JudgmentDiaryReport';
 
 function App() {
   return (
@@ -26,6 +34,12 @@ function App() {
                   대시보드
                 </Link>
                 <Link
+                  to="/judgment-diary"
+                  className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  판단일지
+                </Link>
+                <Link
                   to="/granaries/new"
                   className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
                 >
@@ -44,6 +58,14 @@ function App() {
             <Route path="/granaries/new" element={<NewGranary />} />
             <Route path="/snapshots/new" element={<NewSnapshot />} />
             <Route path="/snapshots/:id/edit" element={<EditSnapshot />} />
+            <Route path="/judgment-diary" element={<JudgmentDiaryList />} />
+            <Route path="/judgment-diary/new" element={<NewJudgmentDiary />} />
+            <Route path="/judgment-diary/:id/edit" element={<EditJudgmentDiary />} />
+            <Route path="/judgment-diary/action/:action" element={<JudgmentDiaryActionArchive />} />
+            <Route path="/judgment-diary/strategy/:strategy" element={<JudgmentDiaryStrategyArchive />} />
+            <Route path="/judgment-diary/principles" element={<JudgmentDiaryPrinciples />} />
+            <Route path="/judgment-diary/reports/:month" element={<JudgmentDiaryReport />} />
+            <Route path="/judgment-diary/:slug" element={<JudgmentDiaryDetail />} />
           </Routes>
         </main>
       </div>
@@ -52,4 +74,3 @@ function App() {
 }
 
 export default App;
-

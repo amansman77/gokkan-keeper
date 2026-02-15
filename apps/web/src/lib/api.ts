@@ -1,5 +1,18 @@
 import { API_BASE_URL, API_SECRET } from './config';
-import type { Granary, Snapshot, CreateGranary, CreateSnapshot, UpdateGranary, UpdateSnapshot, StatusSummary, GranaryWithLatestSnapshot } from '@gokkan-keeper/shared';
+import type {
+  Granary,
+  Snapshot,
+  CreateGranary,
+  CreateSnapshot,
+  UpdateGranary,
+  UpdateSnapshot,
+  StatusSummary,
+  GranaryWithLatestSnapshot,
+  JudgmentDiaryEntry,
+  CreateJudgmentDiaryEntry,
+  UpdateJudgmentDiaryEntry,
+  JudgmentDiaryListFilters,
+} from '@gokkan-keeper/shared';
 
 async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -78,3 +91,33 @@ export async function getStatus(): Promise<StatusSummary> {
   return fetchAPI<StatusSummary>('/status');
 }
 
+export async function getJudgmentDiaryEntries(filters: JudgmentDiaryListFilters = {}): Promise<JudgmentDiaryEntry[]> {
+  const params = new URLSearchParams();
+  if (filters.from) params.set('from', filters.from);
+  if (filters.to) params.set('to', filters.to);
+  if (filters.action) params.set('action', filters.action);
+  if (filters.asset) params.set('asset', filters.asset);
+  if (filters.strategyTag) params.set('strategyTag', filters.strategyTag);
+  if (filters.limit) params.set('limit', String(filters.limit));
+  const query = params.toString();
+  const endpoint = query ? `/judgment-diary?${query}` : '/judgment-diary';
+  return fetchAPI<JudgmentDiaryEntry[]>(endpoint);
+}
+
+export async function getJudgmentDiaryEntry(id: string): Promise<JudgmentDiaryEntry> {
+  return fetchAPI<JudgmentDiaryEntry>(`/judgment-diary/${id}`);
+}
+
+export async function createJudgmentDiaryEntry(data: CreateJudgmentDiaryEntry): Promise<JudgmentDiaryEntry> {
+  return fetchAPI<JudgmentDiaryEntry>('/judgment-diary', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateJudgmentDiaryEntry(id: string, data: UpdateJudgmentDiaryEntry): Promise<JudgmentDiaryEntry> {
+  return fetchAPI<JudgmentDiaryEntry>(`/judgment-diary/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
