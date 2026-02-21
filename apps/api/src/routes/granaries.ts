@@ -11,6 +11,28 @@ granariesRouter.get('/', async (c) => {
   return c.json(granaries);
 });
 
+granariesRouter.get('/:id/export', async (c) => {
+  const id = c.req.param('id');
+  const db = new DBClient(c.env.DB);
+
+  const granary = await db.getGranaryById(id);
+  if (!granary) {
+    return c.json({ error: 'Granary not found' }, 404);
+  }
+
+  const [latestSnapshot, positions] = await Promise.all([
+    db.getLatestSnapshotByGranaryId(id),
+    db.getPositions(id),
+  ]);
+
+  return c.json({
+    exportedAt: new Date().toISOString(),
+    granary,
+    latestSnapshot,
+    positions,
+  });
+});
+
 granariesRouter.get('/:id', async (c) => {
   const id = c.req.param('id');
   const db = new DBClient(c.env.DB);
@@ -65,4 +87,3 @@ granariesRouter.put('/:id', async (c) => {
     return c.json({ error: error.message || 'Internal server error' }, 500);
   }
 });
-

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { deletePosition, getGranary, getPositions, getSnapshots } from '../lib/api';
+import { deletePosition, getGranary, getGranaryExport, getPositions, getSnapshots } from '../lib/api';
 import type { GranaryWithLatestSnapshot, Snapshot, Position } from '../lib/types';
 import { formatCurrency, formatDate } from '@gokkan-keeper/shared';
 
@@ -11,6 +11,7 @@ export default function GranaryDetail() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -60,6 +61,29 @@ export default function GranaryDetail() {
     );
   }
 
+  const handleDownloadJson = async () => {
+    if (!granary) return;
+    try {
+      setDownloading(true);
+      const payload = await getGranaryExport(granary.id);
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const safeName = granary.name.replace(/\s+/g, '-').toLowerCase();
+      const date = new Date().toISOString().slice(0, 10);
+      link.href = url;
+      link.download = `granary-${safeName}-${date}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err.message || 'JSON 다운로드에 실패했습니다.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -71,12 +95,21 @@ export default function GranaryDetail() {
             <h1 className="text-3xl font-bold text-gray-900">{granary.name}</h1>
             <p className="text-gray-600 mt-1">{granary.purpose} · {granary.currency}</p>
           </div>
-          <Link
-            to={`/granaries/${granary.id}/edit`}
-            className="px-4 py-2 text-sm text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
-          >
-            수정
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadJson}
+              disabled={downloading}
+              className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-60"
+            >
+              {downloading ? '다운로드 중...' : 'JSON 다운로드'}
+            </button>
+            <Link
+              to={`/granaries/${granary.id}/edit`}
+              className="px-4 py-2 text-sm text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
+            >
+              수정
+            </Link>
+          </div>
         </div>
       </div>
 

@@ -75,6 +75,17 @@ export async function getGranary(id: string): Promise<GranaryWithLatestSnapshot>
   return fetchAPI<GranaryWithLatestSnapshot>(`/granaries/${id}`);
 }
 
+export interface GranaryExportPayload {
+  exportedAt: string;
+  granary: Granary;
+  latestSnapshot: Snapshot | null;
+  positions: Position[];
+}
+
+export async function getGranaryExport(id: string): Promise<GranaryExportPayload> {
+  return fetchAPI<GranaryExportPayload>(`/granaries/${id}/export`);
+}
+
 export async function createGranary(data: CreateGranary): Promise<Granary> {
   return fetchAPI<Granary>('/granaries', {
     method: 'POST',
