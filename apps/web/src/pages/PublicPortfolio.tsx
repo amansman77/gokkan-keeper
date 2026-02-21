@@ -174,7 +174,7 @@ export default function PublicPortfolio() {
                   <td className="py-3 text-sm text-gray-800">{item.allocationPercent !== null ? `${item.allocationPercent.toFixed(2)}%` : '—'}</td>
                   <td className={`py-3 text-sm font-medium ${item.returnPercent !== null && item.returnPercent < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
                     {formatPercent(item.returnPercent)}
-                    {item.isEstimatedReturn ? <span className="text-xs text-gray-500 ml-1" title="profit_loss와 cost basis로 추정된 값">* </span> : null}
+                    {item.isEstimatedReturn ? <span className="text-xs text-gray-500 ml-1" title="avgCost와 currentValue로 추정된 값">* </span> : null}
                   </td>
                   <td className="py-3 text-sm text-gray-700">{item.thesis || '-'}</td>
                   <td className="py-3 text-sm text-gray-600">{item.lastUpdated ? new Date(item.lastUpdated).toLocaleDateString() : '-'}</td>

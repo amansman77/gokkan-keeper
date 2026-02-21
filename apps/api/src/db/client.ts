@@ -524,10 +524,15 @@ export class DBClient {
     const evaluated = rows.map((row) => {
       const quantity = row.quantity === null || row.quantity === undefined ? null : Number(row.quantity);
       const avgCost = row.avg_cost === null || row.avg_cost === undefined ? null : Number(row.avg_cost);
-      const currentValue =
+      const currentInputValue =
         row.current_value === null || row.current_value === undefined
-          ? (quantity !== null && avgCost !== null ? quantity * avgCost : null)
+          ? null
           : Number(row.current_value);
+      // If quantity exists, treat current_value as unit price and derive position market value.
+      // If quantity is absent, treat current_value as already total value.
+      const positionMarketValue = currentInputValue === null
+        ? null
+        : (quantity !== null ? quantity * currentInputValue : currentInputValue);
       const weightPercent =
         row.weight_percent === null || row.weight_percent === undefined
           ? null
@@ -539,30 +544,30 @@ export class DBClient {
       if (row.profit_loss_percent !== null && row.profit_loss_percent !== undefined) {
         returnPercent = Number(row.profit_loss_percent);
       } else if (
-        quantity !== null &&
         avgCost !== null &&
-        quantity * avgCost !== 0 &&
-        currentValue !== null
+        avgCost !== 0 &&
+        currentInputValue !== null
       ) {
-        returnPercent = ((currentValue - (quantity * avgCost)) / (quantity * avgCost)) * 100;
+        // Compare current vs average unit price for intuitive return display.
+        returnPercent = ((currentInputValue - avgCost) / avgCost) * 100;
         isEstimatedReturn = true;
       } else {
         warnings.push({
           positionId: row.id,
           symbol: row.symbol,
-          message: 'Missing return inputs. Set profitLossPercent or profitLoss with quantity+avgCost.',
+          message: 'Missing return inputs. Set profitLossPercent or provide avgCost and currentValue.',
         });
       }
 
       return {
         row,
-        currentValue,
+        positionMarketValue,
         weightPercent,
         returnPercent,
         isEstimatedReturn,
       };
     });
-    const totalAllocationBasis = evaluated.reduce((acc, item) => acc + (item.currentValue ?? 0), 0);
+    const totalAllocationBasis = evaluated.reduce((acc, item) => acc + (item.positionMarketValue ?? 0), 0);
 
     for (const item of evaluated) {
       if (hasAnyWeight && item.weightPercent === null) {
@@ -572,11 +577,11 @@ export class DBClient {
           message: 'Missing weightPercent while portfolio uses weight-based allocation.',
         });
       }
-      if (!hasAnyWeight && item.currentValue === null) {
+      if (!hasAnyWeight && item.positionMarketValue === null) {
         warnings.push({
           positionId: item.row.id,
           symbol: item.row.symbol,
-          message: 'Missing current value. Set currentValue/quantity+avgCost or use weightPercent.',
+          message: 'Missing allocation inputs. Set currentValue (or quantity+currentValue) or use weightPercent.',
         });
       }
     }
@@ -589,11 +594,11 @@ export class DBClient {
       allocationPercent: (
         hasAnyWeight
           ? item.weightPercent !== null
-          : item.currentValue !== null
+          : item.positionMarketValue !== null
       ) && (hasAnyWeight || totalAllocationBasis > 0)
         ? (hasAnyWeight
           ? (item.weightPercent ?? null)
-          : ((item.currentValue ?? 0) / totalAllocationBasis) * 100)
+          : ((item.positionMarketValue ?? 0) / totalAllocationBasis) * 100)
         : null,
       returnPercent: item.returnPercent,
       thesis: item.row.public_thesis ?? null,
