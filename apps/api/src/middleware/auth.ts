@@ -2,6 +2,12 @@ import type { Context, Next } from 'hono';
 import type { Env } from '../types';
 
 export async function authMiddleware(c: Context<{ Bindings: Env }>, next: Next) {
+  // Let CORS preflight pass without auth check.
+  if (c.req.method === 'OPTIONS') {
+    await next();
+    return;
+  }
+
   const apiSecret = c.env.API_SECRET;
   const providedSecret = c.req.header('X-API-Secret');
 
@@ -15,4 +21,3 @@ export async function authMiddleware(c: Context<{ Bindings: Env }>, next: Next) 
 
   await next();
 }
-

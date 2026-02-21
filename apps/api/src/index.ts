@@ -6,6 +6,8 @@ import { granariesRouter } from './routes/granaries';
 import { snapshotsRouter } from './routes/snapshots';
 import { statusRouter } from './routes/status';
 import { judgmentDiaryRouter } from './routes/judgment-diary';
+import { publicRouter } from './routes/public';
+import { positionsRouter } from './routes/positions';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -27,7 +29,7 @@ app.use('/*', cors({
     // Deny all other origins (return null to reject)
     return null;
   },
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'X-API-Secret'],
   credentials: true,
 }));
@@ -37,6 +39,10 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok' });
 });
 
+// Public read-only routes (no auth required)
+app.route('/public', publicRouter);
+app.route('/api/public', publicRouter);
+
 // Auth middleware for all other routes
 app.use('/*', authMiddleware);
 
@@ -45,5 +51,7 @@ app.route('/granaries', granariesRouter);
 app.route('/snapshots', snapshotsRouter);
 app.route('/status', statusRouter);
 app.route('/judgment-diary', judgmentDiaryRouter);
+app.route('/positions', positionsRouter);
+app.route('/api/positions', positionsRouter);
 
 export default app;

@@ -11,6 +11,7 @@ export default function NewGranary() {
     purpose: '비상금',
     currency: 'KRW',
     owner: DEFAULT_OWNER,
+    isPublic: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,4 +115,3 @@ export default function NewGranary() {
     </div>
   );
 }
-

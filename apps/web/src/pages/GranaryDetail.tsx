@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getGranary, getSnapshots } from '../lib/api';
-import type { GranaryWithLatestSnapshot, Snapshot } from '../lib/types';
+import { deletePosition, getGranary, getPositions, getSnapshots } from '../lib/api';
+import type { GranaryWithLatestSnapshot, Snapshot, Position } from '../lib/types';
 import { formatCurrency, formatDate } from '@gokkan-keeper/shared';
 
 export default function GranaryDetail() {
   const { id } = useParams<{ id: string }>();
   const [granary, setGranary] = useState<GranaryWithLatestSnapshot | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,12 +24,14 @@ export default function GranaryDetail() {
     async function loadData() {
       try {
         setLoading(true);
-        const [granaryData, snapshotsData] = await Promise.all([
+        const [granaryData, snapshotsData, positionsData] = await Promise.all([
           getGranary(granaryId),
           getSnapshots(granaryId),
+          getPositions(granaryId),
         ]);
         setGranary(granaryData);
         setSnapshots(snapshotsData);
+        setPositions(positionsData);
       } catch (err: any) {
         setError(err.message || '데이터를 불러오는데 실패했습니다.');
       } finally {
@@ -75,6 +78,58 @@ export default function GranaryDetail() {
             수정
           </Link>
         </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">포지션</h2>
+          <Link
+            to={`/positions/new?granaryId=${granary.id}`}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+          >
+            새 포지션 추가
+          </Link>
+        </div>
+
+        {positions.length === 0 ? (
+          <p className="text-gray-500 text-center py-8">등록된 포지션이 없습니다.</p>
+        ) : (
+          <div className="space-y-3">
+            {positions.map((position) => (
+              <div key={position.id} className="border rounded-md p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-semibold text-gray-900">{position.name} ({position.symbol})</p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      현재가치: {position.currentValue !== null && position.currentValue !== undefined
+                        ? formatCurrency(position.currentValue, granary.currency)
+                        : '-'}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      공개: {position.isPublic ? 'ON' : 'OFF'}
+                      {position.isPublic && position.publicThesis ? ` · ${position.publicThesis}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Link to={`/positions/${position.id}/edit`} className="text-blue-600 hover:underline text-sm">
+                      수정
+                    </Link>
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm('포지션을 삭제하시겠습니까?')) return;
+                        await deletePosition(position.id);
+                        setPositions((prev) => prev.filter((p) => p.id !== position.id));
+                      }}
+                      className="text-red-600 hover:underline text-sm"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {granary.latestSnapshot && (
@@ -150,4 +205,3 @@ export default function GranaryDetail() {
     </div>
   );
 }
-

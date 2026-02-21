@@ -4,5 +4,5 @@ export interface Env {
   DB: D1Database;
   // STORAGE: R2Bucket; // 미래 사용을 위해 주석 처리
   API_SECRET: string;
+  DISCORD_WEBHOOK_URL?: string;
 }
-

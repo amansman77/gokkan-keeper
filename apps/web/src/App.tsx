@@ -13,6 +13,9 @@ import JudgmentDiaryActionArchive from './pages/JudgmentDiaryActionArchive';
 import JudgmentDiaryStrategyArchive from './pages/JudgmentDiaryStrategyArchive';
 import JudgmentDiaryPrinciples from './pages/JudgmentDiaryPrinciples';
 import JudgmentDiaryReport from './pages/JudgmentDiaryReport';
+import PublicPortfolio from './pages/PublicPortfolio';
+import NewPosition from './pages/NewPosition';
+import EditPosition from './pages/EditPosition';
 
 function App() {
   return (
@@ -40,6 +43,12 @@ function App() {
                   판단일지
                 </Link>
                 <Link
+                  to="/public"
+                  className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  공개 아카이브
+                </Link>
+                <Link
                   to="/granaries/new"
                   className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
                 >
@@ -58,6 +67,8 @@ function App() {
             <Route path="/granaries/new" element={<NewGranary />} />
             <Route path="/snapshots/new" element={<NewSnapshot />} />
             <Route path="/snapshots/:id/edit" element={<EditSnapshot />} />
+            <Route path="/positions/new" element={<NewPosition />} />
+            <Route path="/positions/:id/edit" element={<EditPosition />} />
             <Route path="/judgment-diary" element={<JudgmentDiaryList />} />
             <Route path="/judgment-diary/new" element={<NewJudgmentDiary />} />
             <Route path="/judgment-diary/:id/edit" element={<EditJudgmentDiary />} />
@@ -66,6 +77,7 @@ function App() {
             <Route path="/judgment-diary/principles" element={<JudgmentDiaryPrinciples />} />
             <Route path="/judgment-diary/reports/:month" element={<JudgmentDiaryReport />} />
             <Route path="/judgment-diary/:slug" element={<JudgmentDiaryDetail />} />
+            <Route path="/public" element={<PublicPortfolio />} />
           </Routes>
         </main>
       </div>

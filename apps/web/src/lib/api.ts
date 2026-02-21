@@ -12,6 +12,12 @@ import type {
   CreateJudgmentDiaryEntry,
   UpdateJudgmentDiaryEntry,
   JudgmentDiaryListFilters,
+  PublicPortfolioResponse,
+  ConsultingRequest,
+  ConsultingRequestResult,
+  Position,
+  CreatePosition,
+  UpdatePosition,
 } from '@gokkan-keeper/shared';
 
 async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -22,7 +28,7 @@ async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Secret': API_SECRET,
+        ...(API_SECRET ? { 'X-API-Secret': API_SECRET } : {}),
         ...options.headers,
       },
     });
@@ -40,6 +46,25 @@ async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise
     }
     throw error;
   }
+}
+
+async function fetchPublicAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
 }
 
 export async function getGranaries(): Promise<(Granary & { latestSnapshot?: Snapshot; previousSnapshot?: Snapshot })[]> {
@@ -119,5 +144,45 @@ export async function updateJudgmentDiaryEntry(id: string, data: UpdateJudgmentD
   return fetchAPI<JudgmentDiaryEntry>(`/judgment-diary/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
+  });
+}
+
+export async function getPublicPortfolio(): Promise<PublicPortfolioResponse> {
+  return fetchPublicAPI<PublicPortfolioResponse>('/public/portfolio');
+}
+
+export async function submitConsultingRequest(data: ConsultingRequest): Promise<ConsultingRequestResult> {
+  return fetchPublicAPI<ConsultingRequestResult>('/public/consulting-request', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getPositions(granaryId?: string): Promise<Position[]> {
+  const endpoint = granaryId ? `/positions?granary_id=${granaryId}` : '/positions';
+  return fetchAPI<Position[]>(endpoint);
+}
+
+export async function getPosition(id: string): Promise<Position> {
+  return fetchAPI<Position>(`/positions/${id}`);
+}
+
+export async function createPosition(data: CreatePosition): Promise<Position> {
+  return fetchAPI<Position>('/positions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updatePosition(id: string, data: UpdatePosition): Promise<Position> {
+  return fetchAPI<Position>(`/positions/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deletePosition(id: string): Promise<{ ok: boolean }> {
+  return fetchAPI<{ ok: boolean }>(`/positions/${id}`, {
+    method: 'DELETE',
   });
 }

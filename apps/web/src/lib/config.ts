@@ -10,4 +10,3 @@ console.log('API Configuration:', {
   PROD: import.meta.env.PROD,
   DEV: import.meta.env.DEV,
 });
-

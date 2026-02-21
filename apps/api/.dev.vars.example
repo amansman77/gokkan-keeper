@@ -1,4 +1,4 @@
 # Copy this file to .dev.vars and set your secret
 # .dev.vars is used for local development with wrangler dev
 API_SECRET=your-secret-key-here-change-in-production
-
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxx/yyy

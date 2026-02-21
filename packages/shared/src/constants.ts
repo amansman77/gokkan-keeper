@@ -47,3 +47,26 @@ export const JUDGMENT_STRATEGY_TAGS = [
 ] as const;
 
 export const JUDGMENT_REF_TYPES = ['CHART', 'NEWS', 'NOTE', 'LINK'] as const;
+
+export const POSITION_MARKETS = [
+  'KRX',
+  'KOSDAQ',
+  'NASDAQ',
+  'NYSE',
+  'AMEX',
+  'TSE',
+  'HKEX',
+  'SSE',
+  'SZSE',
+  'CRYPTO',
+] as const;
+
+export const POSITION_ASSET_TYPES = [
+  'STOCK',
+  'ETF',
+  'CRYPTO',
+  'CASH',
+  'BOND',
+  'COMMODITY',
+  'FX',
+] as const;

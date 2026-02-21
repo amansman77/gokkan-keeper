@@ -15,6 +15,14 @@ export type {
   JudgmentDiaryAsset,
   JudgmentDiaryPositionChange,
   JudgmentDiaryRef,
+  PublicPortfolioEntry,
+  PublicPortfolioWarning,
+  PublicPortfolioResponse,
+  ConsultingRequest,
+  ConsultingRequestResult,
+  Position,
+  CreatePosition,
+  UpdatePosition,
 } from './schemas';
 
 export interface GranaryWithLatestSnapshot extends Granary {

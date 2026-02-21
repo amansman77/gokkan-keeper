@@ -17,6 +17,10 @@ export const GranarySchema = z.object({
   purpose: z.enum(GRANARY_PURPOSES),
   currency: z.enum(CURRENCIES),
   owner: z.string().min(1),
+  isPublic: z.boolean().default(false),
+  publicThesis: z.string().max(300).nullable().optional(),
+  publicOrder: z.number().int().min(0).nullable().optional(),
+  lastPublicUpdate: z.string().datetime().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -37,13 +41,100 @@ export const CreateGranarySchema = z.object({
   purpose: z.enum(GRANARY_PURPOSES),
   currency: z.enum(CURRENCIES),
   owner: z.string().min(1).default(DEFAULT_OWNER),
+  isPublic: z.boolean().optional().default(false),
+  publicThesis: z.string().max(300).nullable().optional(),
+  publicOrder: z.number().int().min(0).nullable().optional(),
 });
 
 export const UpdateGranarySchema = z.object({
   name: z.string().min(1).max(100).optional(),
   purpose: z.enum(GRANARY_PURPOSES).optional(),
   currency: z.enum(CURRENCIES).optional(),
+  isPublic: z.boolean().optional(),
+  publicThesis: z.string().max(300).nullable().optional(),
+  publicOrder: z.number().int().min(0).nullable().optional(),
 });
+
+export const PublicPortfolioEntrySchema = z.object({
+  symbol: z.string(),
+  name: z.string(),
+  granaryId: z.string().uuid().nullable().optional(),
+  granaryName: z.string().nullable().optional(),
+  allocationPercent: z.number().nullable(),
+  returnPercent: z.number().nullable(),
+  thesis: z.string().nullable(),
+  lastUpdated: z.string().datetime().nullable(),
+  isEstimatedReturn: z.boolean().default(false),
+});
+
+export const PublicPortfolioWarningSchema = z.object({
+  positionId: z.string().uuid(),
+  symbol: z.string(),
+  message: z.string(),
+});
+
+export const PublicPortfolioResponseSchema = z.object({
+  data: z.array(PublicPortfolioEntrySchema),
+  meta: z.object({
+    warnings: z.array(PublicPortfolioWarningSchema),
+  }),
+});
+
+export const ConsultingRequestSchema = z.object({
+  email: z.string().email(),
+  portfolioSizeRange: z.string().max(100).nullable().optional(),
+  currentConcern: z.string().min(1).max(2000),
+  riskTolerance: z.string().min(1).max(200),
+  investmentHorizon: z.string().min(1).max(200),
+  discordHandle: z.string().max(100).nullable().optional(),
+});
+
+export const ConsultingRequestResultSchema = z.object({
+  ok: z.boolean(),
+  requestId: z.string(),
+});
+
+export const PositionSchema = z.object({
+  id: z.string().uuid(),
+  granaryId: z.string().uuid().nullable().optional(),
+  name: z.string().min(1).max(120),
+  symbol: z.string().min(1).max(30),
+  market: z.string().max(30).nullable().optional(),
+  assetType: z.string().max(30).nullable().optional(),
+  quantity: z.number().nullable().optional(),
+  avgCost: z.number().nullable().optional(),
+  currentValue: z.number().nullable().optional(),
+  weightPercent: z.number().min(0).max(100).nullable().optional(),
+  profitLoss: z.number().nullable().optional(),
+  profitLossPercent: z.number().nullable().optional(),
+  note: z.string().max(1000).nullable().optional(),
+  isPublic: z.boolean().default(false),
+  publicThesis: z.string().max(300).nullable().optional(),
+  publicOrder: z.number().int().min(0).default(0),
+  lastPublicUpdate: z.string().datetime().nullable().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const CreatePositionSchema = z.object({
+  granaryId: z.string().uuid().nullable().optional(),
+  name: z.string().min(1).max(120),
+  symbol: z.string().min(1).max(30),
+  market: z.string().max(30).nullable().optional(),
+  assetType: z.string().max(30).nullable().optional(),
+  quantity: z.number().nullable().optional(),
+  avgCost: z.number().nullable().optional(),
+  currentValue: z.number().nullable().optional(),
+  weightPercent: z.number().min(0).max(100).nullable().optional(),
+  profitLoss: z.number().nullable().optional(),
+  profitLossPercent: z.number().nullable().optional(),
+  note: z.string().max(1000).nullable().optional(),
+  isPublic: z.boolean().optional().default(false),
+  publicThesis: z.string().max(300).nullable().optional(),
+  publicOrder: z.number().int().min(0).optional().default(0),
+});
+
+export const UpdatePositionSchema = CreatePositionSchema.partial();
 
 export const CreateSnapshotSchema = z.object({
   granaryId: z.string().uuid(),
@@ -151,3 +242,11 @@ export type JudgmentDiaryRef = z.infer<typeof JudgmentDiaryRefSchema>;
 export type JudgmentDiaryEntry = z.infer<typeof JudgmentDiaryEntrySchema>;
 export type CreateJudgmentDiaryEntry = z.infer<typeof CreateJudgmentDiaryEntrySchema>;
 export type UpdateJudgmentDiaryEntry = z.infer<typeof UpdateJudgmentDiaryEntrySchema>;
+export type PublicPortfolioEntry = z.infer<typeof PublicPortfolioEntrySchema>;
+export type PublicPortfolioWarning = z.infer<typeof PublicPortfolioWarningSchema>;
+export type PublicPortfolioResponse = z.infer<typeof PublicPortfolioResponseSchema>;
+export type ConsultingRequest = z.infer<typeof ConsultingRequestSchema>;
+export type ConsultingRequestResult = z.infer<typeof ConsultingRequestResultSchema>;
+export type Position = z.infer<typeof PositionSchema>;
+export type CreatePosition = z.infer<typeof CreatePositionSchema>;
+export type UpdatePosition = z.infer<typeof UpdatePositionSchema>;
