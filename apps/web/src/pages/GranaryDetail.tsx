@@ -54,7 +54,7 @@ export default function GranaryDetail() {
     return (
       <div className="bg-red-50 border border-red-200 rounded-md p-4">
         <p className="text-red-800">{error || '곳간을 찾을 수 없습니다.'}</p>
-        <Link to="/" className="text-blue-600 hover:underline mt-2 inline-block">
+        <Link to="/dashboard" className="text-blue-600 hover:underline mt-2 inline-block">
           대시보드로 돌아가기
         </Link>
       </div>
@@ -87,7 +87,7 @@ export default function GranaryDetail() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/" className="text-blue-600 hover:underline mb-4 inline-block">
+        <Link to="/dashboard" className="text-blue-600 hover:underline mb-4 inline-block">
           ← 대시보드로 돌아가기
         </Link>
         <div className="flex justify-between items-start">

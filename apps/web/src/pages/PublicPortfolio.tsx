@@ -158,7 +158,6 @@ export default function PublicPortfolio() {
               <tr className="text-left text-sm text-gray-500 border-b">
                 <th className="pb-2">Symbol</th>
                 <th className="pb-2">Name</th>
-                <th className="pb-2">Granary</th>
                 <th className="pb-2">Allocation</th>
                 <th className="pb-2">Return</th>
                 <th className="pb-2">Thesis</th>
@@ -170,7 +169,6 @@ export default function PublicPortfolio() {
                 <tr key={`${item.symbol}-${item.name}`} className="border-b last:border-b-0">
                   <td className="py-3 text-sm font-medium text-gray-900">{item.symbol}</td>
                   <td className="py-3 text-sm text-gray-800">{item.name}</td>
-                  <td className="py-3 text-sm text-gray-700">{item.granaryName || '-'}</td>
                   <td className="py-3 text-sm text-gray-800">{item.allocationPercent !== null ? `${item.allocationPercent.toFixed(2)}%` : '—'}</td>
                   <td className={`py-3 text-sm font-medium ${item.returnPercent !== null && item.returnPercent < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
                     {formatPercent(item.returnPercent)}

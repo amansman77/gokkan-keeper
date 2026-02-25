@@ -3,6 +3,9 @@ import type { D1Database } from '@cloudflare/workers-types';
 export interface Env {
   DB: D1Database;
   // STORAGE: R2Bucket; // 미래 사용을 위해 주석 처리
-  API_SECRET: string;
+  GOOGLE_CLIENT_ID: string;
+  ALLOWED_EMAIL: string;
+  SESSION_SECRET: string;
+  ALLOWED_SUB?: string;
   DISCORD_WEBHOOK_URL?: string;
 }

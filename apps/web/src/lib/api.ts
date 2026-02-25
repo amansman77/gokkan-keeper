@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_SECRET } from './config';
+import { API_BASE_URL } from './config';
 import type {
   Granary,
   Snapshot,
@@ -20,15 +20,31 @@ import type {
   UpdatePosition,
 } from '@gokkan-keeper/shared';
 
+interface AuthUser {
+  email: string;
+  sub?: string;
+}
+
+interface AuthMeResponse {
+  authenticated: boolean;
+  user?: AuthUser;
+}
+
+interface GoogleLoginResponse {
+  ok: boolean;
+  next: string;
+  user: AuthUser;
+}
+
 async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
   try {
     const response = await fetch(url, {
+      credentials: 'include',
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        ...(API_SECRET ? { 'X-API-Secret': API_SECRET } : {}),
         ...options.headers,
       },
     });
@@ -52,6 +68,25 @@ async function fetchPublicAPI<T>(endpoint: string, options: RequestInit = {}): P
   const url = `${API_BASE_URL}${endpoint}`;
 
   const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function fetchAuthAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const response = await fetch(url, {
+    credentials: 'include',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -195,5 +230,24 @@ export async function updatePosition(id: string, data: UpdatePosition): Promise<
 export async function deletePosition(id: string): Promise<{ ok: boolean }> {
   return fetchAPI<{ ok: boolean }>(`/positions/${id}`, {
     method: 'DELETE',
+  });
+}
+
+export async function loginWithGoogle(credential: string, next?: string): Promise<GoogleLoginResponse> {
+  return fetchAuthAPI<GoogleLoginResponse>('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ credential, next }),
+  });
+}
+
+export async function getAuthMe(): Promise<AuthMeResponse> {
+  return fetchAuthAPI<AuthMeResponse>('/auth/me', {
+    method: 'GET',
+  });
+}
+
+export async function logoutAuth(): Promise<{ ok: boolean }> {
+  return fetchAuthAPI<{ ok: boolean }>('/auth/logout', {
+    method: 'POST',
   });
 }

@@ -5,8 +5,10 @@ import type { JudgmentDiaryEntry } from '../lib/types';
 import { JUDGMENT_ACTIONS } from '@gokkan-keeper/shared';
 import JudgmentDiaryCard from '../components/JudgmentDiaryCard';
 import { setSeo } from '../lib/seo';
+import { useAuth } from '../lib/auth-context';
 
 export default function JudgmentDiaryList() {
+  const { authenticated } = useAuth();
   const [entries, setEntries] = useState<JudgmentDiaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,12 +53,14 @@ export default function JudgmentDiaryList() {
             제목과 한 줄 판단을 중심으로 기록하여, 반복되는 원칙을 스스로 확인하고 축적하는 데 목적이 있습니다.
           </p>
         </div>
-        <Link
-          to="/judgment-diary/new"
-          className="inline-flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-        >
-          새 판단일지
-        </Link>
+        {authenticated ? (
+          <Link
+            to="/judgment-diary/new"
+            className="inline-flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            새 판단일지
+          </Link>
+        ) : null}
       </div>
 
       <div className="bg-white rounded-lg shadow p-4 grid grid-cols-1 gap-4">

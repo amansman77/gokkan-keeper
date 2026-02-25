@@ -4,8 +4,10 @@ import { getJudgmentDiaryEntries, getJudgmentDiaryEntry } from '../lib/api';
 import type { JudgmentDiaryEntry } from '../lib/types';
 import { isUuid, slugify } from '../lib/slug';
 import { setSeo } from '../lib/seo';
+import { useAuth } from '../lib/auth-context';
 
 export default function JudgmentDiaryDetail() {
+  const { authenticated } = useAuth();
   const { slug } = useParams<{ slug: string }>();
   const [entry, setEntry] = useState<JudgmentDiaryEntry | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,12 +63,14 @@ export default function JudgmentDiaryDetail() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{entry.title}</h1>
         </div>
-        <Link
-          to={`/judgment-diary/${entry.id}/edit`}
-          className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-        >
-          수정
-        </Link>
+        {authenticated ? (
+          <Link
+            to={`/judgment-diary/${entry.id}/edit`}
+            className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          >
+            수정
+          </Link>
+        ) : null}
       </div>
 
       <div className="bg-white rounded-lg shadow p-6 space-y-6">

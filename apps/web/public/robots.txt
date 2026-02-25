@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /granaries
+Disallow: /granaries/
+Disallow: /snapshots
+Disallow: /snapshots/
+Disallow: /positions
+Disallow: /positions/
+Disallow: /accounts
+Disallow: /accounts/
+Disallow: /login
+
+Sitemap: https://gokkan-keeper.yetimates.com/sitemap.xml

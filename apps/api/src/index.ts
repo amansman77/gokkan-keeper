@@ -8,6 +8,7 @@ import { statusRouter } from './routes/status';
 import { judgmentDiaryRouter } from './routes/judgment-diary';
 import { publicRouter } from './routes/public';
 import { positionsRouter } from './routes/positions';
+import { authRouter } from './routes/auth';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -30,7 +31,7 @@ app.use('/*', cors({
     return null;
   },
   allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'X-API-Secret'],
+  allowHeaders: ['Content-Type'],
   credentials: true,
 }));
 
@@ -42,6 +43,7 @@ app.get('/health', (c) => {
 // Public read-only routes (no auth required)
 app.route('/public', publicRouter);
 app.route('/api/public', publicRouter);
+app.route('/auth', authRouter);
 
 // Auth middleware for all other routes
 app.use('/*', authMiddleware);

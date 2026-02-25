@@ -98,7 +98,7 @@ export default function NewGranary() {
         <div className="flex space-x-4">
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
           >
             취소

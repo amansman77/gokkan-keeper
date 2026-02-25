@@ -8,7 +8,8 @@
     "deploy:preview": "wrangler deploy",
     "migrate": "wrangler d1 migrations apply shared-db --remote",
     "migrate:local": "wrangler d1 migrations apply shared-db --local",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:auth:integration": "bash ./scripts/auth-integration-test.sh"
   },
   "dependencies": {
     "@gokkan-keeper/shared": "workspace:*",
@@ -20,4 +21,3 @@
     "wrangler": "^3.19.0"
   }
 }
-
