@@ -30,4 +30,3 @@ migrations_dir = "../../migrations"
 
 [env.production.vars]
 NODE_ENV = "production"
-
