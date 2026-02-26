@@ -194,7 +194,7 @@ function TrackRecordSummary() {
       </div>
       {error ? <p className="mt-4 text-sm text-rose-700">{error}</p> : null}
       <div className="mt-8">
-        <SecondaryButton to="/archive">전체 기록 확인하기</SecondaryButton>
+        <SecondaryButton to="/judgment-diary">전체 기록 확인하기</SecondaryButton>
       </div>
     </section>
   );
