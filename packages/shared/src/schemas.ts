@@ -175,7 +175,7 @@ export const JudgmentDiaryEntrySchema = z.object({
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   title: z.string().min(1).max(120),
-  summary: z.string().min(1).max(500),
+  summary: z.string().min(1).max(2000),
   action: z.enum(JUDGMENT_ACTIONS),
   marketContext: z.string().max(5000).nullable(),
   decision: z.string().max(5000).nullable(),
@@ -201,7 +201,7 @@ export const JudgmentDiaryEntrySchema = z.object({
 export const CreateJudgmentDiaryEntrySchema = z.object({
   createdAt: z.string().datetime().optional(),
   title: z.string().min(1).max(120),
-  summary: z.string().min(1).max(500),
+  summary: z.string().min(1).max(2000),
   action: z.enum(JUDGMENT_ACTIONS),
   marketContext: z.string().max(5000).nullable().optional(),
   decision: z.string().max(5000).nullable().optional(),
