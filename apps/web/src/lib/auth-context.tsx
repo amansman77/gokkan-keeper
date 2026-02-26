@@ -61,8 +61,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogleCredential = useCallback(async (credential: string, next?: string) => {
     const result = await loginWithGoogle(credential, next);
+    const me = await getAuthMe();
+    if (!me.authenticated) {
+      setAuthenticated(false);
+      setUser(null);
+      throw new Error('Session cookie was not established');
+    }
     setAuthenticated(true);
-    setUser(result.user);
+    setUser(me.user ?? result.user);
     return result.next;
   }, []);
 

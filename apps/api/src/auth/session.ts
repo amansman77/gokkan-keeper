@@ -123,10 +123,11 @@ export async function readSessionFromCookie(
 
 function cookieBaseOptions(c: Context<{ Bindings: Env }>): string {
   const secure = c.req.url.startsWith('https://');
+  const sameSite = secure ? 'SameSite=None' : 'SameSite=Lax';
   return [
     'Path=/',
     'HttpOnly',
-    'SameSite=Lax',
+    sameSite,
     secure ? 'Secure' : '',
   ].filter(Boolean).join('; ');
 }
