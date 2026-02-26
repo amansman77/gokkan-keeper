@@ -5,6 +5,7 @@ import type { JudgmentDiaryEntry } from '../lib/types';
 import { isUuid, slugify } from '../lib/slug';
 import { setSeo } from '../lib/seo';
 import { useAuth } from '../lib/auth-context';
+import MarkdownContent from '../components/MarkdownContent';
 
 export default function JudgmentDiaryDetail() {
   const { authenticated } = useAuth();
@@ -76,7 +77,7 @@ export default function JudgmentDiaryDetail() {
       <div className="bg-white rounded-lg shadow p-6 space-y-6">
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-2">한 줄 판단</h2>
-          <p className="text-gray-700 whitespace-pre-line">{entry.summary}</p>
+          <MarkdownContent content={entry.summary} />
         </section>
 
         <section>

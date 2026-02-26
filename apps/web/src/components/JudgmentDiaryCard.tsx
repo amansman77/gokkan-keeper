@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { JudgmentDiaryEntry } from '../lib/types';
 import { slugify } from '../lib/slug';
+import MarkdownContent from './MarkdownContent';
 
 interface JudgmentDiaryCardProps {
   entry: JudgmentDiaryEntry;
@@ -13,11 +14,6 @@ const actionBadgeClasses: Record<JudgmentDiaryEntry['action'], string> = {
   WATCH: 'bg-[#e7f0ff] text-[#175cd3]',
   REBALANCE: 'bg-[#f3e8ff] text-[#7a5af8]',
 };
-
-function truncateSummary(text: string) {
-  if (text.length <= 120) return text;
-  return `${text.slice(0, 120)}…`;
-}
 
 function summaryClass(text: string) {
   return text.length <= 60 ? 'text-[18px]' : 'text-[17px]';
@@ -40,10 +36,15 @@ export default function JudgmentDiaryCard({ entry }: JudgmentDiaryCardProps) {
           {entry.action}
         </span>
       </div>
-      <div
-        className={`${summaryClass(entry.summary)} leading-[1.8] text-[#444] bg-[#f8f9fb] rounded-xl p-6`}
-      >
-        {truncateSummary(entry.summary)}
+      <div className={`${summaryClass(entry.summary)} relative bg-[#f8f9fb] rounded-xl p-6`}>
+        <div className="max-h-[180px] overflow-hidden">
+          <MarkdownContent
+            content={entry.summary}
+            disableLinks
+            className="[&_h1]:text-[18px] [&_h2]:text-[17px] [&_h3]:text-[16px] [&_p]:text-[#444] [&_ul]:text-[#444] [&_ol]:text-[#444]"
+          />
+        </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#f8f9fb] to-transparent" />
       </div>
     </Link>
   );
