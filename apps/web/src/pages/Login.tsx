@@ -108,8 +108,8 @@ export default function Login() {
       {error ? <p className="mt-4 text-sm text-red-700 text-center">{error}</p> : null}
 
       <div className="mt-6 text-sm">
-        <Link to="/judgment-diary" className="text-blue-600 hover:underline">
-          공개 판단일지로 돌아가기
+        <Link to="/" className="text-blue-600 hover:underline">
+          랜딩 페이지로 돌아가기
         </Link>
       </div>
     </div>

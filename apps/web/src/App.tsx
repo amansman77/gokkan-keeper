@@ -15,9 +15,11 @@ import JudgmentDiaryStrategyArchive from './pages/JudgmentDiaryStrategyArchive';
 import JudgmentDiaryPrinciples from './pages/JudgmentDiaryPrinciples';
 import JudgmentDiaryReport from './pages/JudgmentDiaryReport';
 import PublicPortfolio from './pages/PublicPortfolio';
+import LandingIntro from './pages/LandingIntro';
 import NewPosition from './pages/NewPosition';
 import EditPosition from './pages/EditPosition';
 import Login from './pages/Login';
+import Consulting from './pages/Consulting';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth } from './lib/auth-context';
 import { setRobots } from './lib/seo';
@@ -44,14 +46,6 @@ function RouteSeoController() {
   return null;
 }
 
-function RootRoute() {
-  const { authenticated, loading } = useAuth();
-  if (loading) {
-    return <div className="text-gray-600">인증 확인 중...</div>;
-  }
-  return <Navigate to={authenticated ? '/dashboard' : '/judgment-diary'} replace />;
-}
-
 function AppContent() {
   const { authenticated, logout } = useAuth();
   const location = useLocation();
@@ -60,20 +54,40 @@ function AppContent() {
   const navBaseClass = 'px-3 py-2 rounded-md text-sm font-medium';
   const navInactiveClass = 'text-gray-600 hover:text-gray-900';
   const navActiveClass = 'bg-blue-50 text-blue-700';
+  const createTrackRecordPath = authenticated ? '/dashboard' : '/login?next=/dashboard';
 
   return (
     <>
       <RouteSeoController />
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-slate-50">
         <nav className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
               <div className="flex items-center">
-                <Link to={authenticated ? '/dashboard' : '/judgment-diary'} className="text-xl font-semibold text-gray-900">
+                <Link to="/" className="text-xl font-semibold text-gray-900">
                   곳간 지기
                 </Link>
               </div>
               <div className="flex items-center space-x-4">
+                <NavLink
+                  to="/"
+                  end
+                  className={({ isActive }) => `${navBaseClass} ${isActive ? navActiveClass : navInactiveClass}`}
+                >
+                  소개
+                </NavLink>
+                <NavLink
+                  to="/judgment-diary"
+                  className={({ isActive }) => `${navBaseClass} ${isActive ? navActiveClass : navInactiveClass}`}
+                >
+                  판단일지
+                </NavLink>
+                <NavLink
+                  to="/archive"
+                  className={({ isActive }) => `${navBaseClass} ${isActive ? navActiveClass : navInactiveClass}`}
+                >
+                  공개 기록 보기
+                </NavLink>
                 {authenticated ? (
                   <NavLink
                     to="/dashboard"
@@ -82,26 +96,8 @@ function AppContent() {
                     대시보드
                   </NavLink>
                 ) : null}
-                <NavLink
-                  to="/judgment-diary"
-                  className={({ isActive }) => `${navBaseClass} ${isActive ? navActiveClass : navInactiveClass}`}
-                >
-                  판단일지
-                </NavLink>
-                <NavLink
-                  to="/public"
-                  className={({ isActive }) => `${navBaseClass} ${isActive ? navActiveClass : navInactiveClass}`}
-                >
-                  공개 아카이브
-                </NavLink>
                 {authenticated ? (
                   <>
-                    <Link
-                      to="/granaries/new"
-                      className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-                    >
-                      새 곳간
-                    </Link>
                     <button
                       onClick={() => {
                         void logout();
@@ -111,14 +107,13 @@ function AppContent() {
                       로그아웃
                     </button>
                   </>
-                ) : (
-                  <Link
-                    to="/login"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-                  >
-                    로그인
-                  </Link>
-                )}
+                ) : null}
+                <Link
+                  to={createTrackRecordPath}
+                  className="bg-slate-900 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-800"
+                >
+                  나의 트랙레코드 만들기
+                </Link>
               </div>
             </div>
           </div>
@@ -126,8 +121,9 @@ function AppContent() {
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Routes>
-            <Route path="/" element={<RootRoute />} />
+            <Route path="/" element={<LandingIntro />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/consulting" element={<Consulting />} />
 
             <Route path="/judgment-diary" element={<JudgmentDiaryList />} />
             <Route path="/judgment-diary/action/:action" element={<JudgmentDiaryActionArchive />} />
@@ -135,7 +131,8 @@ function AppContent() {
             <Route path="/judgment-diary/principles" element={<JudgmentDiaryPrinciples />} />
             <Route path="/judgment-diary/reports/:month" element={<JudgmentDiaryReport />} />
             <Route path="/judgment-diary/:slug" element={<JudgmentDiaryDetail />} />
-            <Route path="/public" element={<PublicPortfolio />} />
+            <Route path="/archive" element={<PublicPortfolio />} />
+            <Route path="/public" element={<Navigate to="/archive" replace />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
