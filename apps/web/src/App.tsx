@@ -54,7 +54,7 @@ function AppContent() {
   const navBaseClass = 'px-3 py-2 rounded-md text-sm font-medium';
   const navInactiveClass = 'text-gray-600 hover:text-gray-900';
   const navActiveClass = 'bg-blue-50 text-blue-700';
-  const createTrackRecordPath = authenticated ? '/dashboard' : '/login?next=/dashboard';
+  const createTrackRecordPath = '/login?next=/dashboard';
 
   return (
     <>
@@ -108,12 +108,14 @@ function AppContent() {
                     </button>
                   </>
                 ) : null}
-                <Link
-                  to={createTrackRecordPath}
-                  className="bg-slate-900 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-800"
-                >
-                  나의 트랙레코드 만들기
-                </Link>
+                {!authenticated ? (
+                  <Link
+                    to={createTrackRecordPath}
+                    className="bg-slate-900 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-800"
+                  >
+                    나의 트랙레코드 만들기
+                  </Link>
+                ) : null}
               </div>
             </div>
           </div>
