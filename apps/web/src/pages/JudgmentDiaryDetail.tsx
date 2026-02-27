@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { getJudgmentDiaryEntries, getJudgmentDiaryEntry } from '../lib/api';
 import type { JudgmentDiaryEntry } from '../lib/types';
 import { isUuid, slugify } from '../lib/slug';
-import { setSeo } from '../lib/seo';
+import { clearStructuredData, setSeo, setStructuredData } from '../lib/seo';
 import { useAuth } from '../lib/auth-context';
 import MarkdownContent from '../components/MarkdownContent';
+import { SITE_BASE_URL } from '../lib/config';
 
 export default function JudgmentDiaryDetail() {
   const { authenticated } = useAuth();
+  const location = useLocation();
   const { slug } = useParams<{ slug: string }>();
   const [entry, setEntry] = useState<JudgmentDiaryEntry | null>(null);
   const [relatedEntries, setRelatedEntries] = useState<JudgmentDiaryEntry[]>([]);
@@ -68,6 +70,35 @@ export default function JudgmentDiaryDetail() {
       description: `${entry.summary}. 추세 투자자가 시장을 대하는 태도를 기록한 판단일지입니다.`,
     });
   }, [entry]);
+
+  useEffect(() => {
+    if (!entry) return;
+
+    setStructuredData('judgment-diary-article', {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: entry.title,
+      description: entry.summary,
+      author: {
+        '@type': 'Person',
+        name: 'Hosung Hwang',
+      },
+      datePublished: entry.createdAt,
+      dateModified: entry.updatedAt || entry.createdAt,
+      publisher: {
+        '@type': 'Organization',
+        name: 'Gokkan Keeper',
+      },
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': `${SITE_BASE_URL}${location.pathname}`,
+      },
+    });
+
+    return () => {
+      clearStructuredData('judgment-diary-article');
+    };
+  }, [entry, location.pathname]);
 
   if (loading) {
     return <div className="text-gray-600">로딩 중...</div>;

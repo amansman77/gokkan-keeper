@@ -63,3 +63,26 @@ export function setRobots(content: 'index, follow' | 'noindex, nofollow') {
     robotsMeta.content = content;
   }
 }
+
+export function setStructuredData(key: string, data: Record<string, any>) {
+  if (typeof document === 'undefined') return;
+
+  const selector = `script[type="application/ld+json"][data-seo-key="${key}"]`;
+  let script = document.head.querySelector(selector) as HTMLScriptElement | null;
+  if (!script) {
+    script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.setAttribute('data-seo-key', key);
+    document.head.appendChild(script);
+  }
+  script.textContent = JSON.stringify(data);
+}
+
+export function clearStructuredData(key: string) {
+  if (typeof document === 'undefined') return;
+  const selector = `script[type="application/ld+json"][data-seo-key="${key}"]`;
+  const script = document.head.querySelector(selector);
+  if (script) {
+    script.remove();
+  }
+}
