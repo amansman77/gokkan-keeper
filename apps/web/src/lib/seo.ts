@@ -7,6 +7,31 @@ interface SeoOptions {
   canonicalPath?: string;
 }
 
+export function stripMarkdown(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+\.\s+/gm, '')
+    .replace(/\n+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function truncate(text: string, maxLength = 180): string {
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).trim()}...`;
+}
+
+export function sanitizeDescription(raw: string): string {
+  return truncate(stripMarkdown(raw), 180);
+}
+
 function upsertMeta(name: string): HTMLMetaElement | null {
   if (typeof document === 'undefined') return null;
   let meta = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
@@ -44,7 +69,7 @@ export function setSeo({ title, description, robots, canonicalPath }: SeoOptions
 
   const descriptionMeta = upsertMeta('description');
   if (descriptionMeta) {
-    descriptionMeta.content = description;
+    descriptionMeta.content = sanitizeDescription(description);
   }
 
   if (robots) {

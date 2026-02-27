@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { getJudgmentDiaryEntries, getJudgmentDiaryEntry } from '../lib/api';
 import type { JudgmentDiaryEntry } from '../lib/types';
 import { isUuid, slugify } from '../lib/slug';
-import { clearStructuredData, setSeo, setStructuredData } from '../lib/seo';
+import { clearStructuredData, sanitizeDescription, setSeo, setStructuredData, stripMarkdown } from '../lib/seo';
 import { useAuth } from '../lib/auth-context';
 import MarkdownContent from '../components/MarkdownContent';
 import { SITE_BASE_URL } from '../lib/config';
@@ -65,26 +65,31 @@ export default function JudgmentDiaryDetail() {
 
   useEffect(() => {
     if (!entry) return;
+    const cleanDescription = sanitizeDescription(entry.summary);
     setSeo({
       title: `${entry.title} | 추세 투자자의 판단일지`,
-      description: `${entry.summary}. 추세 투자자가 시장을 대하는 태도를 기록한 판단일지입니다.`,
+      description: cleanDescription,
     });
   }, [entry]);
 
   useEffect(() => {
     if (!entry) return;
+    const cleanDescription = sanitizeDescription(entry.summary);
 
     setStructuredData('judgment-diary-article', {
       '@context': 'https://schema.org',
       '@type': 'Article',
       headline: entry.title,
-      description: entry.summary,
+      description: cleanDescription,
+      articleBody: stripMarkdown(entry.summary),
       author: {
         '@type': 'Person',
         name: 'Hosung Hwang',
       },
       datePublished: entry.createdAt,
       dateModified: entry.updatedAt || entry.createdAt,
+      articleSection: 'Judgment Diary',
+      inLanguage: 'ko-KR',
       publisher: {
         '@type': 'Organization',
         name: 'Gokkan Keeper',
