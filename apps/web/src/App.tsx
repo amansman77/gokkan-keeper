@@ -39,8 +39,10 @@ function RouteSeoController() {
   const location = useLocation();
 
   useEffect(() => {
+    const host = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isPagesDomain = host.endsWith('.pages.dev');
     const isNoindexPath = isPrivatePath(location.pathname) || location.pathname === '/login';
-    setRobots(isNoindexPath ? 'noindex, nofollow' : 'index, follow');
+    setRobots(isPagesDomain || isNoindexPath ? 'noindex, nofollow' : 'index, follow');
     setCanonical(location.pathname);
   }, [location.pathname]);
 

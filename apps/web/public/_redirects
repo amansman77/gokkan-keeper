@@ -1,3 +1,15 @@
+https://gokkan-keeper-web.pages.dev/* https://gokkan-keeper.yetimates.com/:splat 301
+http://gokkan-keeper-web.pages.dev/* https://gokkan-keeper.yetimates.com/:splat 301
+
 /public   /archive   301
 /public/  /archive   301
+
+/archive/ /archive 301
+/consulting/ /consulting 301
+/judgment-diary/ /judgment-diary 301
+/judgment-diary/action/:action/ /judgment-diary/action/:action 301
+/judgment-diary/strategy/:strategy/ /judgment-diary/strategy/:strategy 301
+/judgment-diary/reports/:month/ /judgment-diary/reports/:month 301
+/judgment-diary/:slug/ /judgment-diary/:slug 301
+
 /*    /index.html   200

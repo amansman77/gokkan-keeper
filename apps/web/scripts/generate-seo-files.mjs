@@ -38,6 +38,12 @@ function escapeXml(value) {
     .replace(/'/g, '&apos;');
 }
 
+function toLastmod(value, fallback) {
+  const date = value ? new Date(value) : fallback;
+  if (Number.isNaN(date.getTime())) return fallback.toISOString();
+  return date.toISOString();
+}
+
 async function fetchJudgmentEntries() {
   const url = `${API_BASE_URL}/judgment-diary?limit=500`;
   const response = await fetch(url, {
@@ -58,8 +64,15 @@ async function writeRobots() {
 }
 
 async function writeSitemap() {
-  const staticPaths = ['/', '/archive', '/judgment-diary', '/consulting'];
-  const urls = new Set(staticPaths.map((value) => `${SITE_URL}${value}`));
+  const now = new Date();
+  const staticPaths = [
+    { path: '/', lastmod: now.toISOString() },
+    { path: '/archive', lastmod: now.toISOString() },
+    { path: '/judgment-diary', lastmod: now.toISOString() },
+    { path: '/consulting', lastmod: now.toISOString() },
+  ];
+
+  const urlMap = new Map(staticPaths.map((item) => [`${SITE_URL}${item.path}`, item.lastmod]));
 
   try {
     const entries = await fetchJudgmentEntries();
@@ -67,17 +80,19 @@ async function writeSitemap() {
       if (!entry?.title) continue;
       const slug = slugify(entry.title);
       if (!slug) continue;
-      urls.add(`${SITE_URL}/judgment-diary/${slug}`);
+      const url = `${SITE_URL}/judgment-diary/${slug}`;
+      const lastmod = toLastmod(entry.updatedAt || entry.createdAt, now);
+      urlMap.set(url, lastmod);
     }
   } catch (error) {
     console.warn('[generate-seo-files] Judgment entries fetch skipped:', error.message);
   }
 
-  const sortedUrls = [...urls].sort((a, b) => a.localeCompare(b));
+  const sortedUrls = [...urlMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-    ...sortedUrls.map((url) => `  <url><loc>${escapeXml(url)}</loc></url>`),
+    ...sortedUrls.map(([url, lastmod]) => `  <url><loc>${escapeXml(url)}</loc><lastmod>${escapeXml(lastmod)}</lastmod></url>`),
     '</urlset>',
     '',
   ].join('\n');
