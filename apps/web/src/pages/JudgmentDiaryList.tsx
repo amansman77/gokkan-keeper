@@ -81,6 +81,11 @@ export default function JudgmentDiaryList() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <Link to="/archive" className="text-blue-600 hover:underline">공개 기록 보기</Link>
+        <Link to="/judgment-diary/principles" className="text-blue-600 hover:underline">판단 원칙 보기</Link>
+      </div>
+
       {loading ? (
         <div className="text-gray-600">로딩 중...</div>
       ) : error ? (

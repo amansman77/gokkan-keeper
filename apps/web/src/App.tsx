@@ -22,7 +22,7 @@ import Login from './pages/Login';
 import Consulting from './pages/Consulting';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth } from './lib/auth-context';
-import { setRobots } from './lib/seo';
+import { setCanonical, setRobots } from './lib/seo';
 
 const PRIVATE_PATH_PREFIXES = ['/dashboard', '/granaries', '/snapshots', '/positions', '/accounts'];
 
@@ -41,6 +41,7 @@ function RouteSeoController() {
   useEffect(() => {
     const isNoindexPath = isPrivatePath(location.pathname) || location.pathname === '/login';
     setRobots(isNoindexPath ? 'noindex, nofollow' : 'index, follow');
+    setCanonical(location.pathname);
   }, [location.pathname]);
 
   return null;
@@ -134,7 +135,6 @@ function AppContent() {
             <Route path="/judgment-diary/reports/:month" element={<JudgmentDiaryReport />} />
             <Route path="/judgment-diary/:slug" element={<JudgmentDiaryDetail />} />
             <Route path="/archive" element={<PublicPortfolio />} />
-            <Route path="/public" element={<Navigate to="/archive" replace />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />

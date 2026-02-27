@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
+
 Disallow: /dashboard
 Disallow: /dashboard/
 Disallow: /granaries
@@ -11,5 +12,7 @@ Disallow: /positions/
 Disallow: /accounts
 Disallow: /accounts/
 Disallow: /login
+Disallow: /judgment-diary/new
+Disallow: /judgment-diary/*/edit
 
 Sitemap: https://gokkan-keeper.yetimates.com/sitemap.xml

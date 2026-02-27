@@ -11,6 +11,7 @@ export default function JudgmentDiaryDetail() {
   const { authenticated } = useAuth();
   const { slug } = useParams<{ slug: string }>();
   const [entry, setEntry] = useState<JudgmentDiaryEntry | null>(null);
+  const [relatedEntries, setRelatedEntries] = useState<JudgmentDiaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +42,24 @@ export default function JudgmentDiaryDetail() {
     }
     loadEntry();
   }, [slug]);
+
+  useEffect(() => {
+    async function loadRelated() {
+      if (!entry) return;
+      try {
+        const data = await getJudgmentDiaryEntries({ limit: 50 });
+        const related = data
+          .filter((item) => item.id !== entry.id)
+          .filter((item) => item.action === entry.action)
+          .slice(0, 3);
+        setRelatedEntries(related);
+      } catch {
+        setRelatedEntries([]);
+      }
+    }
+
+    void loadRelated();
+  }, [entry]);
 
   useEffect(() => {
     if (!entry) return;
@@ -74,6 +93,21 @@ export default function JudgmentDiaryDetail() {
         ) : null}
       </div>
 
+      <div className="flex flex-wrap gap-3">
+        <Link
+          to="/judgment-diary"
+          className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+        >
+          전체 판단일지
+        </Link>
+        <Link
+          to="/archive"
+          className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+        >
+          공개 기록 보기
+        </Link>
+      </div>
+
       <div className="bg-white rounded-lg shadow p-6 space-y-6">
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-2">한 줄 판단</h2>
@@ -92,6 +126,21 @@ export default function JudgmentDiaryDetail() {
           </section>
         )}
       </div>
+
+      {relatedEntries.length > 0 ? (
+        <section className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">관련 판단일지</h2>
+          <ul className="space-y-2">
+            {relatedEntries.map((item) => (
+              <li key={item.id}>
+                <Link to={`/judgment-diary/${slugify(item.title)}`} className="text-sm text-gray-800 hover:text-blue-700 hover:underline">
+                  {item.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }

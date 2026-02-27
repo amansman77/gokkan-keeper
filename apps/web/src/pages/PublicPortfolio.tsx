@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getPublicPortfolio } from '../lib/api';
+import { getJudgmentDiaryEntries, getPublicPortfolio } from '../lib/api';
 import { setSeo } from '../lib/seo';
-import type { PublicPortfolioEntry, PublicPortfolioWarning } from '../lib/types';
+import type { JudgmentDiaryEntry, PublicPortfolioEntry, PublicPortfolioWarning } from '../lib/types';
+import { slugify } from '../lib/slug';
 
 function formatPercent(value: number | null): string {
   if (value === null || Number.isNaN(value)) return '-';
@@ -12,6 +13,7 @@ function formatPercent(value: number | null): string {
 export default function PublicPortfolio() {
   const [portfolio, setPortfolio] = useState<PublicPortfolioEntry[]>([]);
   const [warnings, setWarnings] = useState<PublicPortfolioWarning[]>([]);
+  const [recentEntries, setRecentEntries] = useState<JudgmentDiaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,9 +29,13 @@ export default function PublicPortfolio() {
       try {
         setLoading(true);
         setError(null);
-        const portfolioData = await getPublicPortfolio();
+        const [portfolioData, judgmentEntries] = await Promise.all([
+          getPublicPortfolio(),
+          getJudgmentDiaryEntries({ limit: 3 }),
+        ]);
         setPortfolio(portfolioData.data);
         setWarnings(portfolioData.meta.warnings);
+        setRecentEntries(judgmentEntries);
       } catch (err: any) {
         setError(err.message || '공개 포트폴리오 데이터를 불러오지 못했습니다.');
       } finally {
@@ -147,6 +153,28 @@ export default function PublicPortfolio() {
         <p className="text-sm text-amber-900 mt-2">This portfolio is shared for research transparency purposes only.</p>
         <p className="text-sm text-amber-900">This is not financial advice or investment recommendation.</p>
         <p className="text-sm text-amber-900">All investment decisions are the responsibility of the individual.</p>
+      </section>
+
+      <section className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xl font-semibold text-gray-900">최근 판단일지</h2>
+          <Link to="/judgment-diary" className="text-sm font-medium text-blue-600 hover:underline">
+            전체 판단일지 보기
+          </Link>
+        </div>
+        {recentEntries.length === 0 ? (
+          <p className="mt-4 text-sm text-gray-500">공개된 판단일지가 아직 없습니다.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {recentEntries.map((entry) => (
+              <li key={entry.id}>
+                <Link to={`/judgment-diary/${slugify(entry.title)}`} className="text-sm text-gray-800 hover:text-blue-700 hover:underline">
+                  {entry.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="bg-slate-900 rounded-lg p-6 text-white">

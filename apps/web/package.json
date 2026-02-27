@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "build:prod": "tsc && vite build --mode production",
+    "build": "node ./scripts/generate-seo-files.mjs && tsc && vite build",
+    "build:prod": "node ./scripts/generate-seo-files.mjs && tsc && vite build --mode production",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "deploy": "wrangler pages deploy dist --project-name=gokkan-keeper-web --branch=main",
