@@ -2,7 +2,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const SITE_URL = (process.env.VITE_SITE_URL || 'https://gokkan-keeper.yetimates.com').replace(/\/+$/, '');
-const API_BASE_URL = (process.env.VITE_API_BASE_URL || 'https://gokkan-keeper-api-production.amansman77.workers.dev').replace(/\/+$/, '');
+const RAW_API_BASE_URL = process.env.VITE_API_BASE_URL || 'https://gokkan-keeper-api-production.amansman77.workers.dev';
+const API_BASE_URL = RAW_API_BASE_URL.startsWith('http')
+  ? RAW_API_BASE_URL.replace(/\/+$/, '')
+  : 'https://gokkan-keeper-api-production.amansman77.workers.dev';
 const PUBLIC_DIR = path.resolve(process.cwd(), 'public');
 const PRIVATE_DISALLOW_PATHS = [
   '/dashboard',
