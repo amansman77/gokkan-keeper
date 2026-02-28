@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createSnapshot, getGranaries } from '../lib/api';
-import type { CreateSnapshot, Granary } from '../lib/types';
+import type { CreateSnapshot, GranaryWithLatestSnapshot } from '../lib/types';
 
 export default function NewSnapshot() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const granaryIdParam = searchParams.get('granaryId');
 
-  const [granaries, setGranaries] = useState<Granary[]>([]);
+  const [granaries, setGranaries] = useState<GranaryWithLatestSnapshot[]>([]);
   const [formData, setFormData] = useState<CreateSnapshot>({
     granaryId: granaryIdParam || '',
     date: new Date().toISOString().split('T')[0],
@@ -21,13 +21,27 @@ export default function NewSnapshot() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const applyLatestSnapshotDefaults = (granaryId: string, granaryList: GranaryWithLatestSnapshot[]) => {
+    const selectedGranary = granaryList.find((item) => item.id === granaryId);
+    const latestSnapshot = selectedGranary?.latestSnapshot;
+
+    setIsTotalAmountManual(false);
+    setFormData((prev) => ({
+      ...prev,
+      granaryId,
+      totalAmount: latestSnapshot?.totalAmount ?? 0,
+      availableBalance: latestSnapshot?.availableBalance,
+      profitLoss: latestSnapshot?.profitLoss,
+    }));
+  };
+
   useEffect(() => {
     async function loadGranaries() {
       try {
         const data = await getGranaries();
         setGranaries(data);
         if (granaryIdParam && data.length > 0) {
-          setFormData((prev) => ({ ...prev, granaryId: granaryIdParam }));
+          applyLatestSnapshotDefaults(granaryIdParam, data);
         }
       } catch (err: any) {
         setError(err.message || '곳간 목록을 불러오는데 실패했습니다.');
@@ -74,7 +88,7 @@ export default function NewSnapshot() {
             id="granaryId"
             required
             value={formData.granaryId}
-            onChange={(e) => setFormData({ ...formData, granaryId: e.target.value })}
+            onChange={(e) => applyLatestSnapshotDefaults(e.target.value, granaries)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={!!granaryIdParam}
           >
@@ -114,7 +128,7 @@ export default function NewSnapshot() {
             required
             min="0"
             step="0.01"
-            value={formData.totalAmount || ''}
+            value={formData.totalAmount ?? ''}
             onChange={(e) => {
               setIsTotalAmountManual(true);
               setFormData({ ...formData, totalAmount: parseFloat(e.target.value) || 0 });
@@ -149,7 +163,7 @@ export default function NewSnapshot() {
             id="availableBalance"
             min="0"
             step="0.01"
-            value={formData.availableBalance || ''}
+            value={formData.availableBalance ?? ''}
             onChange={(e) => setFormData({ ...formData, availableBalance: e.target.value ? parseFloat(e.target.value) : undefined })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -210,4 +224,3 @@ export default function NewSnapshot() {
     </div>
   );
 }
-
