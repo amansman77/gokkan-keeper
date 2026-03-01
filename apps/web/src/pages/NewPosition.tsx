@@ -65,6 +65,7 @@ export default function NewPosition() {
         loading={loading}
         error={error}
         submitLabel="추가하기"
+        enableQuoteAutoFill
         onSubmit={handleSubmit}
         onCancel={() => navigate(-1)}
       />

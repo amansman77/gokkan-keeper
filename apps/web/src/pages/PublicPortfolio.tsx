@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getJudgmentDiaryEntries, getPublicPortfolio } from '../lib/api';
 import { setSeo } from '../lib/seo';
-import type { JudgmentDiaryEntry, PublicPortfolioEntry, PublicPortfolioWarning } from '../lib/types';
+import type { JudgmentDiaryEntry, PublicPortfolioWarning } from '../lib/types';
+import type { PublicPortfolioEntryData } from '../lib/api';
 import { slugify } from '../lib/slug';
 
 function formatPercent(value: number | null): string {
@@ -11,9 +12,18 @@ function formatPercent(value: number | null): string {
 }
 
 export default function PublicPortfolio() {
-  const [portfolio, setPortfolio] = useState<PublicPortfolioEntry[]>([]);
+  const [portfolio, setPortfolio] = useState<PublicPortfolioEntryData[]>([]);
   const [warnings, setWarnings] = useState<PublicPortfolioWarning[]>([]);
   const [recentEntries, setRecentEntries] = useState<JudgmentDiaryEntry[]>([]);
+  const [pricingMeta, setPricingMeta] = useState<{
+    integratedCount: number;
+    manualCount: number;
+    latestAsOf: string | null;
+  }>({
+    integratedCount: 0,
+    manualCount: 0,
+    latestAsOf: null,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,6 +45,7 @@ export default function PublicPortfolio() {
         ]);
         setPortfolio(portfolioData.data);
         setWarnings(portfolioData.meta.warnings);
+        setPricingMeta(portfolioData.meta.pricing);
         setRecentEntries(judgmentEntries);
       } catch (err: any) {
         setError(err.message || '공개 포트폴리오 데이터를 불러오지 못했습니다.');
@@ -94,9 +105,21 @@ export default function PublicPortfolio() {
             </p>
           </div>
           <div className="rounded-md border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">기준</p>
-            <p className="text-sm text-gray-700 mt-1">최신 스냅샷 기반 비중/수익률 추정치</p>
+            <p className="text-xs text-gray-500">연동 기준</p>
+            <p className="text-sm text-gray-700 mt-1">
+              {pricingMeta.integratedCount > 0
+                ? `금융위원회 시세 ${pricingMeta.latestAsOf ? `${pricingMeta.latestAsOf} 기준` : '연동'}`
+                : '최신 스냅샷 기반 비중/수익률 추정치'}
+            </p>
           </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs text-gray-600">
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
+            자동 연동 {pricingMeta.integratedCount}건
+          </span>
+          <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-700">
+            수동 fallback {pricingMeta.manualCount}건
+          </span>
         </div>
       </section>
 
@@ -125,6 +148,7 @@ export default function PublicPortfolio() {
                 <th className="pb-2">Name</th>
                 <th className="pb-2">Allocation</th>
                 <th className="pb-2">Return</th>
+                <th className="pb-2">Pricing</th>
                 <th className="pb-2">Thesis</th>
                 <th className="pb-2">Last Updated</th>
               </tr>
@@ -138,6 +162,23 @@ export default function PublicPortfolio() {
                   <td className={`py-3 text-sm font-medium ${item.returnPercent !== null && item.returnPercent < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
                     {formatPercent(item.returnPercent)}
                     {item.isEstimatedReturn ? <span className="text-xs text-gray-500 ml-1" title="avgCost와 currentValue로 추정된 값">* </span> : null}
+                  </td>
+                  <td className="py-3 text-sm text-gray-700">
+                    {item.currentPriceSource === 'FSC_STOCK_PRICE_API' ? (
+                      <div>
+                        <p className="font-medium text-emerald-700">금융위 시세</p>
+                        <p className="text-xs text-gray-500">
+                          {item.currentPriceAsOf || '-'}
+                          {item.currentUnitPrice !== null && item.currentUnitPrice !== undefined
+                            ? ` · ${item.currentUnitPrice.toLocaleString()}`
+                            : ''}
+                        </p>
+                      </div>
+                    ) : item.currentPriceSource === 'MANUAL' ? (
+                      <span className="text-gray-500">수동 fallback</span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
                   </td>
                   <td className="py-3 text-sm text-gray-700">{item.thesis || '-'}</td>
                   <td className="py-3 text-sm text-gray-600">{item.lastUpdated ? new Date(item.lastUpdated).toLocaleDateString() : '-'}</td>

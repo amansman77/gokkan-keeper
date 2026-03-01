@@ -30,3 +30,4 @@ migrations_dir = "../../migrations"
 
 [env.production.vars]
 NODE_ENV = "production"
+FSC_STOCK_API_BASE_URL = "https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService"

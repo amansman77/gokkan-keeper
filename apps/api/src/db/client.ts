@@ -15,6 +15,8 @@ import type {
   CreatePosition,
   UpdatePosition,
 } from '@gokkan-keeper/shared';
+import type { Env } from '../types';
+import { enrichPositionWithQuote, FscStockPriceService, normalizeShortCode } from '../services/fsc-stock-price';
 
 export class DBClient {
   constructor(private db: D1Database) {}
@@ -490,7 +492,7 @@ export class DBClient {
       .run();
   }
 
-  async getPublicPortfolioEntries(): Promise<PublicPortfolioResponse> {
+  async getPublicPortfolioEntries(env?: Env): Promise<PublicPortfolioResponse> {
     const result = await this.db
       .prepare(`
         SELECT
@@ -516,6 +518,29 @@ export class DBClient {
       .all<any>();
 
     const rows = result.results || [];
+    const quoteService = env
+      ? new FscStockPriceService(env.FSC_STOCK_API_SERVICE_KEY, env.FSC_STOCK_API_BASE_URL)
+      : null;
+    const quoteMap = new Map<string, Awaited<ReturnType<FscStockPriceService['getQuoteBySymbol']>>>();
+
+    if (quoteService?.isEnabled()) {
+      const uniqueShortCodes = Array.from(
+        new Set(
+          rows
+            .map((row) => normalizeShortCode(String(row.symbol ?? '')))
+            .filter((value): value is string => !!value)
+        )
+      );
+
+      const quoteEntries = await Promise.all(
+        uniqueShortCodes.map(async (shortCode) => [shortCode, await quoteService.getQuoteBySymbol(shortCode)] as const)
+      );
+
+      for (const [shortCode, quote] of quoteEntries) {
+        quoteMap.set(shortCode, quote);
+      }
+    }
+
     const warnings: PublicPortfolioResponse['meta']['warnings'] = [];
     const hasAnyWeight = rows.some(
       (row) => row.weight_percent !== null && row.weight_percent !== undefined
@@ -528,11 +553,37 @@ export class DBClient {
         row.current_value === null || row.current_value === undefined
           ? null
           : Number(row.current_value);
+      const shortCode = normalizeShortCode(String(row.symbol ?? ''));
+      const quote = shortCode ? quoteMap.get(shortCode) ?? null : null;
+      const enrichedPosition = enrichPositionWithQuote({
+        id: row.id,
+        granaryId: row.granary_id ?? null,
+        name: row.name,
+        symbol: row.symbol,
+        market: null,
+        assetType: null,
+        quantity,
+        avgCost,
+        currentValue: currentInputValue,
+        weightPercent: row.weight_percent ?? null,
+        profitLoss: row.profit_loss ?? null,
+        profitLossPercent: row.profit_loss_percent ?? null,
+        note: null,
+        isPublic: true,
+        publicThesis: row.public_thesis ?? null,
+        publicOrder: row.public_order ?? 0,
+        lastPublicUpdate: row.last_public_update ?? null,
+        createdAt: row.last_public_update ?? new Date().toISOString(),
+        updatedAt: row.last_public_update ?? new Date().toISOString(),
+      }, quote);
       // If quantity exists, treat current_value as unit price and derive position market value.
       // If quantity is absent, treat current_value as already total value.
-      const positionMarketValue = currentInputValue === null
-        ? null
-        : (quantity !== null ? quantity * currentInputValue : currentInputValue);
+      const positionMarketValue =
+        enrichedPosition.currentMarketValue !== null && enrichedPosition.currentMarketValue !== undefined
+          ? enrichedPosition.currentMarketValue
+          : currentInputValue === null
+            ? null
+            : (quantity !== null ? quantity * currentInputValue : currentInputValue);
       const weightPercent =
         row.weight_percent === null || row.weight_percent === undefined
           ? null
@@ -546,10 +597,10 @@ export class DBClient {
       } else if (
         avgCost !== null &&
         avgCost !== 0 &&
-        currentInputValue !== null
+        (enrichedPosition.currentUnitPrice ?? currentInputValue) !== null
       ) {
         // Compare current vs average unit price for intuitive return display.
-        returnPercent = ((currentInputValue - avgCost) / avgCost) * 100;
+        returnPercent = (((enrichedPosition.currentUnitPrice ?? currentInputValue ?? 0) - avgCost) / avgCost) * 100;
         isEstimatedReturn = true;
       } else {
         warnings.push({
@@ -561,6 +612,7 @@ export class DBClient {
 
       return {
         row,
+        enrichedPosition,
         positionMarketValue,
         weightPercent,
         returnPercent,
@@ -604,14 +656,29 @@ export class DBClient {
       thesis: item.row.public_thesis ?? null,
       lastUpdated: item.row.last_public_update ?? null,
       isEstimatedReturn: item.isEstimatedReturn,
+      currentUnitPrice: item.enrichedPosition.currentUnitPrice ?? null,
+      currentPriceAsOf: item.enrichedPosition.currentPriceAsOf ?? null,
+      currentPriceSource: item.enrichedPosition.currentPriceSource ?? null,
     }));
+
+    const integratedEntries = data.filter((item) => item.currentPriceSource === 'FSC_STOCK_PRICE_API');
+    const manualEntries = data.filter((item) => item.currentPriceSource === 'MANUAL');
+    const latestAsOf = integratedEntries
+      .map((item) => item.currentPriceAsOf)
+      .filter((value): value is string => !!value)
+      .sort((a, b) => b.localeCompare(a))[0] ?? null;
 
     return {
       data,
       meta: {
         warnings,
+        pricing: {
+          integratedCount: integratedEntries.length,
+          manualCount: manualEntries.length,
+          latestAsOf,
+        },
       },
-    };
+    } as PublicPortfolioResponse;
   }
 
   private parseJSON<T>(value: string | null, fallback: T): T {

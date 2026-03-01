@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CreatePosition, Granary } from '../lib/types';
 import { POSITION_ASSET_TYPES, POSITION_MARKETS } from '@gokkan-keeper/shared';
+import { lookupPositionQuote } from '../lib/api';
 
 interface PositionFormProps {
   granaries: Granary[];
@@ -8,8 +9,19 @@ interface PositionFormProps {
   loading: boolean;
   error: string | null;
   submitLabel: string;
+  enableQuoteAutoFill?: boolean;
   onSubmit: (data: CreatePosition) => Promise<void>;
   onCancel: () => void;
+}
+
+const AUTO_PRICE_SUPPORTED_MARKETS = new Set(['KRX', 'KOSDAQ', 'KOSPI', 'KONEX']);
+
+function supportsAutoPrice(symbol: string, market: string | null | undefined) {
+  const normalizedSymbol = symbol.trim().toUpperCase();
+  const hasShortCode = /^\d{6}$/.test(normalizedSymbol) || /\d{6}/.test(normalizedSymbol);
+  if (!hasShortCode) return false;
+  if (!market) return true;
+  return AUTO_PRICE_SUPPORTED_MARKETS.has(market.toUpperCase());
 }
 
 export default function PositionForm({
@@ -18,13 +30,21 @@ export default function PositionForm({
   loading,
   error,
   submitLabel,
+  enableQuoteAutoFill = false,
   onSubmit,
   onCancel,
 }: PositionFormProps) {
   const [formData, setFormData] = useState<CreatePosition>(initialData);
   const [clientError, setClientError] = useState<string | null>(null);
+  const [showManualCurrentValue, setShowManualCurrentValue] = useState(
+    initialData.currentValue !== null && initialData.currentValue !== undefined
+  );
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteMessage, setQuoteMessage] = useState<string | null>(null);
   const hasCustomMarket = !!formData.market && !POSITION_MARKETS.includes(formData.market as any);
   const hasCustomAssetType = !!formData.assetType && !POSITION_ASSET_TYPES.includes(formData.assetType as any);
+  const canAutoPrice = supportsAutoPrice(formData.symbol, formData.market);
+  const lastLookupKeyRef = useRef<string>('');
 
   const validatePublicFields = (data: CreatePosition) => {
     if (!data.isPublic) return null;
@@ -57,6 +77,42 @@ export default function PositionForm({
     setClientError(null);
     await onSubmit(formData);
   };
+
+  useEffect(() => {
+    if (!enableQuoteAutoFill || !canAutoPrice) {
+      setQuoteLoading(false);
+      setQuoteMessage(null);
+      lastLookupKeyRef.current = '';
+      return;
+    }
+
+    const normalizedSymbol = formData.symbol.trim().toUpperCase();
+    const lookupKey = `${normalizedSymbol}:${formData.market || ''}`;
+    if (lookupKey === lastLookupKeyRef.current) return;
+
+    const timer = window.setTimeout(async () => {
+      setQuoteLoading(true);
+      setQuoteMessage(null);
+      try {
+        const quote = await lookupPositionQuote(normalizedSymbol);
+        lastLookupKeyRef.current = lookupKey;
+        setFormData((prev) => ({
+          ...prev,
+          name: prev.name.trim() ? prev.name : (quote.name ?? prev.name),
+          market: quote.market ?? prev.market,
+          assetType: prev.assetType ?? quote.assetType,
+          currentValue: quote.currentUnitPrice,
+        }));
+        setQuoteMessage(`자동 입력 완료 · ${quote.currentPriceAsOf} 종가 기준`);
+      } catch (error: any) {
+        setQuoteMessage(error.message || '현재가 자동 조회에 실패했습니다.');
+      } finally {
+        setQuoteLoading(false);
+      }
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [canAutoPrice, enableQuoteAutoFill, formData.market, formData.symbol]);
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
@@ -96,8 +152,13 @@ export default function PositionForm({
             value={formData.symbol}
             onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="AAPL"
+            placeholder="005930"
           />
+          <p className="mt-1 text-xs text-gray-500">국내 주식은 6자리 단축코드를 입력하면 저장 후 현재가를 자동 조회합니다.</p>
+          {quoteLoading && <p className="mt-1 text-xs text-blue-600">현재가 자동 조회 중...</p>}
+          {!quoteLoading && quoteMessage && (
+            <p className={`mt-1 text-xs ${quoteMessage.includes('완료') ? 'text-green-700' : 'text-amber-700'}`}>{quoteMessage}</p>
+          )}
         </div>
       </div>
 
@@ -161,16 +222,60 @@ export default function PositionForm({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <div>
-          <label htmlFor="currentValue" className="block text-sm font-medium text-gray-700 mb-2">현재가치(선택)</label>
-          <input
-            id="currentValue"
-            type="number"
-            step="0.01"
-            value={formData.currentValue ?? ''}
-            onChange={(e) => setFormData({ ...formData, currentValue: e.target.value ? parseFloat(e.target.value) : null })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        <div className="md:col-span-2">
+          {canAutoPrice ? (
+            <div className="rounded-md border border-gray-200 bg-gray-50 p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">현재가 자동 연동</p>
+                  <p className="mt-1 text-xs text-gray-600">
+                    이 포지션은 저장 후 금융위원회 주식시세정보 API 기준 현재가와 평가금액을 자동으로 계산합니다.
+                  </p>
+                </div>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={showManualCurrentValue}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setShowManualCurrentValue(checked);
+                      if (!checked) {
+                        setFormData({ ...formData, currentValue: null });
+                      }
+                    }}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  />
+                  수동 fallback 입력
+                </label>
+              </div>
+              {showManualCurrentValue && (
+                <div className="mt-4">
+                  <label htmlFor="currentValue" className="block text-sm font-medium text-gray-700 mb-2">현재 단가/현재가치(수동 fallback)</label>
+                  <input
+                    id="currentValue"
+                    type="number"
+                    step="0.01"
+                    value={formData.currentValue ?? ''}
+                    onChange={(e) => setFormData({ ...formData, currentValue: e.target.value ? parseFloat(e.target.value) : null })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <label htmlFor="currentValue" className="block text-sm font-medium text-gray-700 mb-2">현재 단가/현재가치(수동 입력)</label>
+              <input
+                id="currentValue"
+                type="number"
+                step="0.01"
+                value={formData.currentValue ?? ''}
+                onChange={(e) => setFormData({ ...formData, currentValue: e.target.value ? parseFloat(e.target.value) : null })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">자동 시세 연동이 없는 자산은 이 값을 기준으로 평가금액이 계산됩니다.</p>
+            </div>
+          )}
         </div>
         <div>
           <label htmlFor="weightPercent" className="block text-sm font-medium text-gray-700 mb-2">비중 %(선택)</label>

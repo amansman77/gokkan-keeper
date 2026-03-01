@@ -65,6 +65,9 @@ export const PublicPortfolioEntrySchema = z.object({
   thesis: z.string().nullable(),
   lastUpdated: z.string().datetime().nullable(),
   isEstimatedReturn: z.boolean().default(false),
+  currentUnitPrice: z.number().nullable().optional(),
+  currentPriceAsOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  currentPriceSource: z.enum(['MANUAL', 'FSC_STOCK_PRICE_API']).nullable().optional(),
 });
 
 export const PublicPortfolioWarningSchema = z.object({
@@ -77,6 +80,11 @@ export const PublicPortfolioResponseSchema = z.object({
   data: z.array(PublicPortfolioEntrySchema),
   meta: z.object({
     warnings: z.array(PublicPortfolioWarningSchema),
+    pricing: z.object({
+      integratedCount: z.number().int().nonnegative(),
+      manualCount: z.number().int().nonnegative(),
+      latestAsOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+    }),
   }),
 });
 
@@ -112,6 +120,12 @@ export const PositionSchema = z.object({
   publicThesis: z.string().max(300).nullable().optional(),
   publicOrder: z.number().int().min(0).default(0),
   lastPublicUpdate: z.string().datetime().nullable().optional(),
+  currentUnitPrice: z.number().nullable().optional(),
+  currentMarketValue: z.number().nullable().optional(),
+  currentPriceAsOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  currentPriceChange: z.number().nullable().optional(),
+  currentPriceChangeRate: z.number().nullable().optional(),
+  currentPriceSource: z.enum(['MANUAL', 'FSC_STOCK_PRICE_API']).nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

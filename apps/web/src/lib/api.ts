@@ -12,7 +12,8 @@ import type {
   CreateJudgmentDiaryEntry,
   UpdateJudgmentDiaryEntry,
   JudgmentDiaryListFilters,
-  PublicPortfolioResponse,
+  PublicPortfolioEntry,
+  PublicPortfolioWarning,
   ConsultingRequest,
   ConsultingRequestResult,
   Position,
@@ -34,6 +35,38 @@ interface GoogleLoginResponse {
   ok: boolean;
   next: string;
   user: AuthUser;
+}
+
+export interface PositionQuoteLookupResult {
+  symbol: string;
+  shortCode: string;
+  name: string | null;
+  market: string | null;
+  assetType: string | null;
+  currentValue: number;
+  currentUnitPrice: number;
+  currentPriceAsOf: string;
+  currentPriceChange: number | null;
+  currentPriceChangeRate: number | null;
+  currentPriceSource: 'FSC_STOCK_PRICE_API';
+}
+
+export interface PublicPortfolioEntryData extends PublicPortfolioEntry {
+  currentUnitPrice?: number | null;
+  currentPriceAsOf?: string | null;
+  currentPriceSource?: 'MANUAL' | 'FSC_STOCK_PRICE_API' | null;
+}
+
+export interface PublicPortfolioResponseData {
+  data: PublicPortfolioEntryData[];
+  meta: {
+    warnings: PublicPortfolioWarning[];
+    pricing: {
+      integratedCount: number;
+      manualCount: number;
+      latestAsOf: string | null;
+    };
+  };
 }
 
 async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -193,8 +226,8 @@ export async function updateJudgmentDiaryEntry(id: string, data: UpdateJudgmentD
   });
 }
 
-export async function getPublicPortfolio(): Promise<PublicPortfolioResponse> {
-  return fetchPublicAPI<PublicPortfolioResponse>('/public/portfolio');
+export async function getPublicPortfolio(): Promise<PublicPortfolioResponseData> {
+  return fetchPublicAPI<PublicPortfolioResponseData>('/public/portfolio');
 }
 
 export async function submitConsultingRequest(data: ConsultingRequest): Promise<ConsultingRequestResult> {
@@ -211,6 +244,11 @@ export async function getPositions(granaryId?: string): Promise<Position[]> {
 
 export async function getPosition(id: string): Promise<Position> {
   return fetchAPI<Position>(`/positions/${id}`);
+}
+
+export async function lookupPositionQuote(symbol: string): Promise<PositionQuoteLookupResult> {
+  const params = new URLSearchParams({ symbol });
+  return fetchAPI<PositionQuoteLookupResult>(`/positions/quote?${params.toString()}`);
 }
 
 export async function createPosition(data: CreatePosition): Promise<Position> {

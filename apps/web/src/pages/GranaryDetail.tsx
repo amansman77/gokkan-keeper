@@ -84,6 +84,19 @@ export default function GranaryDetail() {
     }
   };
 
+  const getPositionMarketValue = (position: Position) => {
+    if (position.currentMarketValue !== null && position.currentMarketValue !== undefined) {
+      return position.currentMarketValue;
+    }
+    if (position.currentValue === null || position.currentValue === undefined) {
+      return null;
+    }
+    if (position.quantity !== null && position.quantity !== undefined) {
+      return position.quantity * position.currentValue;
+    }
+    return position.currentValue;
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -134,10 +147,22 @@ export default function GranaryDetail() {
                   <div>
                     <p className="font-semibold text-gray-900">{position.name} ({position.symbol})</p>
                     <p className="text-sm text-gray-600 mt-1">
-                      현재가치: {position.currentValue !== null && position.currentValue !== undefined
-                        ? formatCurrency(position.currentValue, granary.currency)
+                      평가금액: {getPositionMarketValue(position) !== null
+                        ? formatCurrency(getPositionMarketValue(position)!, granary.currency)
                         : '-'}
                     </p>
+                    {position.currentUnitPrice !== null && position.currentUnitPrice !== undefined && (
+                      <p className="text-sm text-gray-600">
+                        현재가: {formatCurrency(position.currentUnitPrice, granary.currency)}
+                        {position.currentPriceAsOf ? ` · ${formatDate(position.currentPriceAsOf)}` : ''}
+                        {position.currentPriceSource === 'FSC_STOCK_PRICE_API' ? ' · 금융위원회 시세' : ''}
+                      </p>
+                    )}
+                    {position.currentPriceChangeRate !== null && position.currentPriceChangeRate !== undefined && (
+                      <p className="text-sm text-gray-600">
+                        등락률: {position.currentPriceChangeRate > 0 ? '+' : ''}{position.currentPriceChangeRate.toFixed(2)}%
+                      </p>
+                    )}
                     <p className="text-sm text-gray-600">
                       공개: {position.isPublic ? 'ON' : 'OFF'}
                       {position.isPublic && position.publicThesis ? ` · ${position.publicThesis}` : ''}

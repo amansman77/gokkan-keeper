@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from '../types';
 import { DBClient } from '../db/client';
 import { CreateGranarySchema, UpdateGranarySchema } from '@gokkan-keeper/shared';
+import { enrichPositionsWithLiveQuotes } from '../services/fsc-stock-price';
 
 export const granariesRouter = new Hono<{ Bindings: Env }>();
 
@@ -25,11 +26,13 @@ granariesRouter.get('/:id/export', async (c) => {
     db.getPositions(id),
   ]);
 
+  const hydratedPositions = await enrichPositionsWithLiveQuotes(positions, c.env);
+
   return c.json({
     exportedAt: new Date().toISOString(),
     granary,
     latestSnapshot,
-    positions,
+    positions: hydratedPositions,
   });
 });
 

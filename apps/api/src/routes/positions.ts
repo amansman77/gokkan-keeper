@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from '../types';
 import { DBClient } from '../db/client';
 import { CreatePositionSchema, UpdatePositionSchema } from '@gokkan-keeper/shared';
+import { enrichPositionsWithLiveQuotes, FscStockPriceService } from '../services/fsc-stock-price';
 
 export const positionsRouter = new Hono<{ Bindings: Env }>();
 
@@ -38,7 +39,46 @@ positionsRouter.get('/', async (c) => {
   const granaryId = c.req.query('granary_id');
   const db = new DBClient(c.env.DB);
   const positions = await db.getPositions(granaryId || undefined);
-  return c.json(positions);
+  return c.json(await enrichPositionsWithLiveQuotes(positions, c.env));
+});
+
+positionsRouter.get('/quote', async (c) => {
+  const symbol = c.req.query('symbol');
+  if (!symbol) {
+    return c.json({ error: 'symbol is required' }, 400);
+  }
+
+  const service = new FscStockPriceService(
+    c.env.FSC_STOCK_API_SERVICE_KEY,
+    c.env.FSC_STOCK_API_BASE_URL,
+  );
+
+  if (!service.isEnabled()) {
+    return c.json({ error: 'FSC_STOCK_API_SERVICE_KEY is not configured' }, 503);
+  }
+
+  try {
+    const quote = await service.getQuoteBySymbol(symbol);
+    if (!quote) {
+      return c.json({ error: 'Quote not found' }, 404);
+    }
+
+    return c.json({
+      symbol,
+      shortCode: quote.shortCode,
+      name: quote.name,
+      market: quote.marketCategory ?? 'KRX',
+      assetType: 'STOCK',
+      currentValue: quote.closePrice,
+      currentUnitPrice: quote.closePrice,
+      currentPriceAsOf: quote.asOfDate,
+      currentPriceChange: quote.change,
+      currentPriceChangeRate: quote.changeRate,
+      currentPriceSource: 'FSC_STOCK_PRICE_API',
+    });
+  } catch (error: any) {
+    return c.json({ error: error.message || 'Failed to fetch quote' }, 502);
+  }
 });
 
 positionsRouter.get('/:id', async (c) => {
@@ -50,7 +90,7 @@ positionsRouter.get('/:id', async (c) => {
     return c.json({ error: 'Position not found' }, 404);
   }
 
-  return c.json(position);
+  return c.json((await enrichPositionsWithLiveQuotes([position], c.env))[0]);
 });
 
 positionsRouter.post('/', async (c) => {

@@ -7,7 +7,7 @@ export const publicRouter = new Hono<{ Bindings: Env }>();
 
 publicRouter.get('/portfolio', async (c) => {
   const db = new DBClient(c.env.DB);
-  const portfolio = await db.getPublicPortfolioEntries();
+  const portfolio = await db.getPublicPortfolioEntries(c.env);
   return c.json(portfolio);
 });
 
