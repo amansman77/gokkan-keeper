@@ -246,8 +246,9 @@ export async function getPosition(id: string): Promise<Position> {
   return fetchAPI<Position>(`/positions/${id}`);
 }
 
-export async function lookupPositionQuote(symbol: string): Promise<PositionQuoteLookupResult> {
+export async function lookupPositionQuote(symbol: string, assetType?: string | null): Promise<PositionQuoteLookupResult> {
   const params = new URLSearchParams({ symbol });
+  if (assetType) params.set('assetType', assetType);
   return fetchAPI<PositionQuoteLookupResult>(`/positions/quote?${params.toString()}`);
 }
 

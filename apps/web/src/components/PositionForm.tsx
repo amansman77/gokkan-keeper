@@ -18,7 +18,7 @@ const AUTO_PRICE_SUPPORTED_MARKETS = new Set(['KRX', 'KOSDAQ', 'KOSPI', 'KONEX']
 
 function supportsAutoPrice(symbol: string, market: string | null | undefined) {
   const normalizedSymbol = symbol.trim().toUpperCase();
-  const hasShortCode = /^\d{6}$/.test(normalizedSymbol) || /\d{6}/.test(normalizedSymbol);
+  const hasShortCode = /^\d{6}$/.test(normalizedSymbol);
   if (!hasShortCode) return false;
   if (!market) return true;
   return AUTO_PRICE_SUPPORTED_MARKETS.has(market.toUpperCase());
@@ -94,7 +94,7 @@ export default function PositionForm({
       setQuoteLoading(true);
       setQuoteMessage(null);
       try {
-        const quote = await lookupPositionQuote(normalizedSymbol);
+        const quote = await lookupPositionQuote(normalizedSymbol, formData.assetType);
         lastLookupKeyRef.current = lookupKey;
         setFormData((prev) => ({
           ...prev,
@@ -105,14 +105,18 @@ export default function PositionForm({
         }));
         setQuoteMessage(`자동 입력 완료 · ${quote.currentPriceAsOf} 종가 기준`);
       } catch (error: any) {
-        setQuoteMessage(error.message || '현재가 자동 조회에 실패했습니다.');
+        if (error.message === 'Quote not found') {
+          setQuoteMessage('자동 시세를 찾지 못해 수동 입력으로 진행합니다.');
+        } else {
+          setQuoteMessage(error.message || '현재가 자동 조회에 실패했습니다.');
+        }
       } finally {
         setQuoteLoading(false);
       }
     }, 350);
 
     return () => window.clearTimeout(timer);
-  }, [canAutoPrice, enableQuoteAutoFill, formData.market, formData.symbol]);
+  }, [canAutoPrice, enableQuoteAutoFill, formData.assetType, formData.market, formData.symbol]);
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
@@ -154,10 +158,20 @@ export default function PositionForm({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="005930"
           />
-          <p className="mt-1 text-xs text-gray-500">국내 주식은 6자리 단축코드를 입력하면 저장 후 현재가를 자동 조회합니다.</p>
+          <p className="mt-1 text-xs text-gray-500">국내 종목은 6자리 단축코드를 입력하면 저장 후 현재가를 자동 조회합니다.</p>
           {quoteLoading && <p className="mt-1 text-xs text-blue-600">현재가 자동 조회 중...</p>}
           {!quoteLoading && quoteMessage && (
-            <p className={`mt-1 text-xs ${quoteMessage.includes('완료') ? 'text-green-700' : 'text-amber-700'}`}>{quoteMessage}</p>
+            <p
+              className={`mt-1 text-xs ${
+                quoteMessage.includes('완료')
+                  ? 'text-green-700'
+                  : quoteMessage.includes('수동 입력')
+                    ? 'text-gray-500'
+                    : 'text-amber-700'
+              }`}
+            >
+              {quoteMessage}
+            </p>
           )}
         </div>
       </div>
@@ -229,7 +243,7 @@ export default function PositionForm({
                 <div>
                   <p className="text-sm font-medium text-gray-900">현재가 자동 연동</p>
                   <p className="mt-1 text-xs text-gray-600">
-                    이 포지션은 저장 후 금융위원회 주식시세정보 API 기준 현재가와 평가금액을 자동으로 계산합니다.
+                    이 포지션은 저장 후 금융위원회 시세정보 API 기준 현재가와 평가금액을 자동으로 계산합니다.
                   </p>
                 </div>
                 <label className="flex items-center gap-2 text-sm text-gray-700">

@@ -44,6 +44,7 @@ positionsRouter.get('/', async (c) => {
 
 positionsRouter.get('/quote', async (c) => {
   const symbol = c.req.query('symbol');
+  const assetType = c.req.query('assetType');
   if (!symbol) {
     return c.json({ error: 'symbol is required' }, 400);
   }
@@ -51,6 +52,7 @@ positionsRouter.get('/quote', async (c) => {
   const service = new FscStockPriceService(
     c.env.FSC_STOCK_API_SERVICE_KEY,
     c.env.FSC_STOCK_API_BASE_URL,
+    c.env.DB,
   );
 
   if (!service.isEnabled()) {
@@ -58,7 +60,7 @@ positionsRouter.get('/quote', async (c) => {
   }
 
   try {
-    const quote = await service.getQuoteBySymbol(symbol);
+    const quote = await service.getQuoteBySymbol(symbol, { assetType: assetType ?? null });
     if (!quote) {
       return c.json({ error: 'Quote not found' }, 404);
     }

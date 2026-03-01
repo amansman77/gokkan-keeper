@@ -1,8 +1,14 @@
+import type { D1Database } from '@cloudflare/workers-types';
 import type { Position } from '@gokkan-keeper/shared';
 import type { Env } from '../types';
 
 const DEFAULT_BASE_URL = 'https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService';
 const KRX_MARKETS = new Set(['KRX', 'KOSDAQ', 'KOSPI', 'KONEX']);
+const ETF_ASSET_TYPES = new Set(['ETF', 'FUND', 'REIT']);
+const QUOTE_CACHE_TTL_HOURS = 6;
+const NOT_FOUND_CACHE_TTL_MINUTES = 30;
+
+type QuoteOperation = 'getStockPriceInfo' | 'getSecuritiesPriceInfo';
 
 interface QuoteItem {
   basDt?: string;
@@ -22,6 +28,13 @@ export interface PositionQuote {
   change: number | null;
   changeRate: number | null;
   asOfDate: string;
+  operation: QuoteOperation;
+}
+
+interface CachedQuoteRow {
+  quote_json: string | null;
+  is_not_found: number;
+  expires_at: string;
 }
 
 export function normalizeShortCode(symbol: string): string | null {
@@ -42,7 +55,11 @@ function toNumber(value: string | number | undefined): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function getBeginBaseDate(daysBack = 14): string {
+function normalizeItemShortCode(value?: string): string {
+  return String(value ?? '').replace(/\D/g, '');
+}
+
+function getBeginBaseDate(daysBack = 60): string {
   const date = new Date();
   date.setUTCDate(date.getUTCDate() - daysBack);
   return date.toISOString().slice(0, 10).replace(/-/g, '');
@@ -56,10 +73,36 @@ function normalizeServiceKey(serviceKey: string): string {
   }
 }
 
+function getFutureIso(hours = 0, minutes = 0): string {
+  const now = new Date();
+  now.setUTCMinutes(now.getUTCMinutes() + minutes);
+  now.setUTCHours(now.getUTCHours() + hours);
+  return now.toISOString();
+}
+
+function getCacheKey(shortCode: string, operation: QuoteOperation): string {
+  return `${operation}:${shortCode}`;
+}
+
+function getPreferredOperations(position?: Pick<Position, 'assetType'> | null): QuoteOperation[] {
+  const assetType = position?.assetType?.toUpperCase();
+  if (assetType && ETF_ASSET_TYPES.has(assetType)) {
+    return ['getSecuritiesPriceInfo', 'getStockPriceInfo'];
+  }
+  if (assetType === 'STOCK') {
+    return ['getStockPriceInfo', 'getSecuritiesPriceInfo'];
+  }
+  return ['getStockPriceInfo', 'getSecuritiesPriceInfo'];
+}
+
 export class FscStockPriceService {
   private readonly baseUrl: string;
 
-  constructor(private readonly serviceKey?: string, baseUrl = DEFAULT_BASE_URL) {
+  constructor(
+    private readonly serviceKey?: string,
+    baseUrl = DEFAULT_BASE_URL,
+    private readonly db?: D1Database,
+  ) {
     this.baseUrl = baseUrl;
   }
 
@@ -78,34 +121,47 @@ export class FscStockPriceService {
   async getQuotesForPositions(positions: Position[]): Promise<Map<string, PositionQuote>> {
     if (!this.isEnabled()) return new Map();
 
-    const shortCodes = Array.from(
-      new Set(
-        positions
-          .filter((position) => this.supports(position))
-          .map((position) => normalizeShortCode(position.symbol))
-          .filter((value): value is string => !!value)
-      )
-    );
-
     const entries = await Promise.all(
-      shortCodes.map(async (shortCode) => [shortCode, await this.getQuote(shortCode)] as const)
+      positions
+        .filter((position) => this.supports(position))
+        .map(async (position) => {
+          const shortCode = normalizeShortCode(position.symbol);
+          if (!shortCode) return null;
+          return [shortCode, await this.getQuote(shortCode, position)] as const;
+        })
     );
 
-    return new Map(entries.filter((entry): entry is readonly [string, PositionQuote] => !!entry[1]));
+    return new Map(entries.filter((entry): entry is readonly [string, PositionQuote] => !!entry?.[1]));
   }
 
-  async getQuoteBySymbol(symbol: string): Promise<PositionQuote | null> {
+  async getQuoteBySymbol(symbol: string, position?: Pick<Position, 'assetType'> | null): Promise<PositionQuote | null> {
     const shortCode = normalizeShortCode(symbol);
     if (!shortCode || !this.isEnabled()) return null;
-    return this.getQuote(shortCode);
+    return this.getQuote(shortCode, position);
   }
 
-  private async getQuote(shortCode: string): Promise<PositionQuote | null> {
+  private async getQuote(shortCode: string, position?: Pick<Position, 'assetType'> | null): Promise<PositionQuote | null> {
     if (!this.serviceKey) return null;
 
-    const url = new URL(`${this.baseUrl}/getStockPriceInfo`);
+    const operations = getPreferredOperations(position);
+    for (const operation of operations) {
+      const quote = await this.fetchQuote(shortCode, operation);
+      if (quote) return quote;
+    }
+    return null;
+  }
+
+  private async fetchQuote(shortCode: string, operation: QuoteOperation): Promise<PositionQuote | null> {
+    if (!this.serviceKey) return null;
+
+    const cached = await this.getCachedQuote(shortCode, operation);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const url = new URL(`${this.baseUrl}/${operation}`);
     url.searchParams.set('serviceKey', normalizeServiceKey(this.serviceKey));
-    url.searchParams.set('numOfRows', '20');
+    url.searchParams.set('numOfRows', '100');
     url.searchParams.set('pageNo', '1');
     url.searchParams.set('resultType', 'json');
     url.searchParams.set('likeSrtnCd', shortCode);
@@ -128,8 +184,12 @@ export class FscStockPriceService {
 
     const rawItems = payload?.response?.body?.items?.item;
     const items: QuoteItem[] = Array.isArray(rawItems) ? rawItems : rawItems ? [rawItems] : [];
-    const matchedItems = items
-      .filter((item) => item.srtnCd === shortCode)
+    const exactItems = items.filter((item) => {
+      const normalizedCode = normalizeItemShortCode(item.srtnCd);
+      return normalizedCode === shortCode || normalizedCode.endsWith(shortCode);
+    });
+    const candidateItems = exactItems.length > 0 ? exactItems : items;
+    const matchedItems = candidateItems
       .map((item) => ({
         item,
         isoDate: toIsoDate(item.basDt),
@@ -138,13 +198,19 @@ export class FscStockPriceService {
       .sort((a, b) => b.isoDate.localeCompare(a.isoDate));
 
     const latest = matchedItems[0]?.item;
-    if (!latest) return null;
+    if (!latest) {
+      await this.setCachedQuote(shortCode, operation, null);
+      return null;
+    }
 
     const closePrice = toNumber(latest.clpr);
     const asOfDate = toIsoDate(latest.basDt);
-    if (closePrice === null || !asOfDate) return null;
+    if (closePrice === null || !asOfDate) {
+      await this.setCachedQuote(shortCode, operation, null);
+      return null;
+    }
 
-    return {
+    const quote = {
       shortCode,
       name: latest.itmsNm ?? null,
       marketCategory: latest.mrktCtg ?? null,
@@ -152,7 +218,67 @@ export class FscStockPriceService {
       change: toNumber(latest.vs),
       changeRate: toNumber(latest.fltRt),
       asOfDate,
+      operation,
     };
+
+    await this.setCachedQuote(shortCode, operation, quote);
+    return quote;
+  }
+
+  private async getCachedQuote(shortCode: string, operation: QuoteOperation): Promise<PositionQuote | null | undefined> {
+    if (!this.db) return undefined;
+
+    const now = new Date().toISOString();
+    const cacheKey = getCacheKey(shortCode, operation);
+    const row = await this.db
+      .prepare(`
+        SELECT quote_json, is_not_found, expires_at
+        FROM gk_quote_cache
+        WHERE cache_key = ? AND expires_at > ?
+      `)
+      .bind(cacheKey, now)
+      .first<CachedQuoteRow>();
+
+    if (!row) return undefined;
+    if (row.is_not_found === 1) return null;
+    if (!row.quote_json) return null;
+
+    try {
+      return JSON.parse(row.quote_json) as PositionQuote;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async setCachedQuote(shortCode: string, operation: QuoteOperation, quote: PositionQuote | null): Promise<void> {
+    if (!this.db) return;
+
+    const now = new Date().toISOString();
+    const expiresAt = quote
+      ? getFutureIso(QUOTE_CACHE_TTL_HOURS)
+      : getFutureIso(0, NOT_FOUND_CACHE_TTL_MINUTES);
+    const cacheKey = getCacheKey(shortCode, operation);
+
+    await this.db
+      .prepare(`
+        INSERT INTO gk_quote_cache (cache_key, short_code, operation, quote_json, is_not_found, fetched_at, expires_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(cache_key) DO UPDATE SET
+          quote_json = excluded.quote_json,
+          is_not_found = excluded.is_not_found,
+          fetched_at = excluded.fetched_at,
+          expires_at = excluded.expires_at
+      `)
+      .bind(
+        cacheKey,
+        shortCode,
+        operation,
+        quote ? JSON.stringify(quote) : null,
+        quote ? 0 : 1,
+        now,
+        expiresAt,
+      )
+      .run();
   }
 }
 
@@ -192,6 +318,7 @@ export async function enrichPositionsWithLiveQuotes(positions: Position[], env: 
   const quoteService = new FscStockPriceService(
     env.FSC_STOCK_API_SERVICE_KEY,
     env.FSC_STOCK_API_BASE_URL,
+    env.DB,
   );
 
   if (!quoteService.isEnabled()) {
