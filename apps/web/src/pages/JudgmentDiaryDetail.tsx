@@ -9,6 +9,14 @@ import MarkdownContent from '../components/MarkdownContent';
 import { SITE_BASE_URL } from '../lib/config';
 import { extractKeywords } from '../lib/keywords';
 
+function formatWrittenDate(value: string): string {
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date(value));
+}
+
 export default function JudgmentDiaryDetail() {
   const { authenticated } = useAuth();
   const location = useLocation();
@@ -159,7 +167,12 @@ export default function JudgmentDiaryDetail() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">메인 컨텐츠</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">작성일</h2>
+          <p className="text-gray-700">{formatWrittenDate(entry.createdAt)}</p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">본문</h2>
           <MarkdownContent content={entry.mainContent} />
         </section>
 
@@ -175,11 +188,6 @@ export default function JudgmentDiaryDetail() {
             </div>
           </section>
         ) : null}
-
-        <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Action</h2>
-          <div className="text-gray-700">{entry.action}</div>
-        </section>
 
         {entry.disclaimerVisible && (
           <section className="border-t pt-6 text-sm text-gray-500 space-y-1">

@@ -18,6 +18,14 @@ function summaryClass(text: string) {
   return text.length <= 60 ? 'text-[18px]' : 'text-[17px]';
 }
 
+function formatWrittenDate(value: string): string {
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date(value));
+}
+
 export default function JudgmentDiaryCard({ entry }: JudgmentDiaryCardProps) {
   return (
     <Link
@@ -33,6 +41,7 @@ export default function JudgmentDiaryCard({ entry }: JudgmentDiaryCardProps) {
           {entry.action}
         </span>
       </div>
+      <p className="mb-4 text-sm text-gray-500">작성일: {formatWrittenDate(entry.createdAt)}</p>
       <div className={`${summaryClass(entry.summary)} relative bg-[#f8f9fb] rounded-xl p-6`}>
         <div className="max-h-[180px] overflow-hidden">
           <MarkdownContent
