@@ -169,7 +169,7 @@ export default function JudgmentDiaryDetail() {
           <ul className="space-y-2">
             {relatedEntries.map((item) => (
               <li key={item.id}>
-                <Link to={`/judgment-diary/${slugify(item.title)}`} className="text-sm text-gray-800 hover:text-blue-700 hover:underline">
+                <Link to={`/judgment-diary/${item.id}`} className="text-sm text-gray-800 hover:text-blue-700 hover:underline">
                   {item.title}
                 </Link>
               </li>

@@ -29,6 +29,19 @@ export interface ComparisonResult {
   isPositive: boolean;
 }
 
+export type PublicPositionValidationError =
+  | 'MISSING_PUBLIC_THESIS'
+  | 'MISSING_PUBLIC_METRICS';
+
+export interface PublicPositionValidationInput {
+  isPublic?: boolean | null;
+  publicThesis?: string | null;
+  weightPercent?: number | null;
+  quantity?: number | null;
+  avgCost?: number | null;
+  currentValue?: number | null;
+}
+
 export function calculateComparison(current: number, previous: number): ComparisonResult | null {
   if (previous === 0) {
     return null;
@@ -43,4 +56,28 @@ export function calculateComparison(current: number, previous: number): Comparis
     percentDiff,
     isPositive,
   };
+}
+
+export function validatePublicPositionInput(
+  data: PublicPositionValidationInput,
+): PublicPositionValidationError | null {
+  if (!data.isPublic) return null;
+
+  if (!data.publicThesis || !data.publicThesis.trim()) {
+    return 'MISSING_PUBLIC_THESIS';
+  }
+
+  const hasCurrentValue = data.currentValue !== null && data.currentValue !== undefined;
+  const hasWeightPercent = data.weightPercent !== null && data.weightPercent !== undefined;
+  const hasCostBasis =
+    data.quantity !== null &&
+    data.quantity !== undefined &&
+    data.avgCost !== null &&
+    data.avgCost !== undefined;
+
+  if (!hasCurrentValue && !hasCostBasis && !hasWeightPercent) {
+    return 'MISSING_PUBLIC_METRICS';
+  }
+
+  return null;
 }

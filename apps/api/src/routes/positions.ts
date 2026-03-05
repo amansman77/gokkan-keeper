@@ -1,38 +1,21 @@
 import { Hono } from 'hono';
 import type { Env } from '../types';
 import { DBClient } from '../db/client';
-import { CreatePositionSchema, UpdatePositionSchema } from '@gokkan-keeper/shared';
+import {
+  CreatePositionSchema,
+  UpdatePositionSchema,
+  validatePublicPositionInput,
+  type PublicPositionValidationError,
+} from '@gokkan-keeper/shared';
 import { enrichPositionsWithLiveQuotes, FscStockPriceService } from '../services/fsc-stock-price';
 
 export const positionsRouter = new Hono<{ Bindings: Env }>();
 
-function validatePublicPositionInput(data: {
-  isPublic?: boolean;
-  publicThesis?: string | null;
-  weightPercent?: number | null;
-  quantity?: number | null;
-  avgCost?: number | null;
-  currentValue?: number | null;
-}) {
-  if (!data.isPublic) return null;
-
-  if (!data.publicThesis || !data.publicThesis.trim()) {
+function mapPublicPositionValidationError(error: PublicPositionValidationError): string {
+  if (error === 'MISSING_PUBLIC_THESIS') {
     return 'Public position requires publicThesis.';
   }
-
-  const hasCurrentValue = data.currentValue !== null && data.currentValue !== undefined;
-  const hasWeightPercent = data.weightPercent !== null && data.weightPercent !== undefined;
-  const hasCostBasis =
-    data.quantity !== null &&
-    data.quantity !== undefined &&
-    data.avgCost !== null &&
-    data.avgCost !== undefined;
-
-  if (!hasCurrentValue && !hasCostBasis && !hasWeightPercent) {
-    return 'Public position requires weightPercent, currentValue, or (quantity and avgCost).';
-  }
-
-  return null;
+  return 'Public position requires weightPercent, currentValue, or (quantity and avgCost).';
 }
 
 positionsRouter.get('/', async (c) => {
@@ -102,7 +85,7 @@ positionsRouter.post('/', async (c) => {
 
     const publicValidationError = validatePublicPositionInput(validated);
     if (publicValidationError) {
-      return c.json({ error: publicValidationError }, 400);
+      return c.json({ error: mapPublicPositionValidationError(publicValidationError) }, 400);
     }
 
     const db = new DBClient(c.env.DB);
@@ -143,7 +126,7 @@ positionsRouter.patch('/:id', async (c) => {
 
     const publicValidationError = validatePublicPositionInput(merged);
     if (publicValidationError) {
-      return c.json({ error: publicValidationError }, 400);
+      return c.json({ error: mapPublicPositionValidationError(publicValidationError) }, 400);
     }
 
     if (validated.granaryId !== undefined && validated.granaryId !== null) {

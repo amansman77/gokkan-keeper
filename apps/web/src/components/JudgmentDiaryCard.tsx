@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import type { JudgmentDiaryEntry } from '../lib/types';
-import { slugify } from '../lib/slug';
 import MarkdownContent from './MarkdownContent';
 
 interface JudgmentDiaryCardProps {
@@ -20,11 +19,9 @@ function summaryClass(text: string) {
 }
 
 export default function JudgmentDiaryCard({ entry }: JudgmentDiaryCardProps) {
-  const slug = slugify(entry.title);
-
   return (
     <Link
-      to={`/judgment-diary/${slug}`}
+      to={`/judgment-diary/${entry.id}`}
       className="block bg-white rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] hover:shadow-[0_6px_18px_rgba(0,0,0,0.08)] transition-shadow p-8 mx-auto"
     >
       <div className="flex items-start justify-between gap-4 mb-5">

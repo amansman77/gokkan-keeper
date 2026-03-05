@@ -45,6 +45,20 @@ async function sign(value: string, secret: string): Promise<string> {
   return toBase64Url(new Uint8Array(signature));
 }
 
+async function verify(value: string, signature: string, secret: string): Promise<boolean> {
+  try {
+    const key = await importHmacKey(secret);
+    return crypto.subtle.verify(
+      'HMAC',
+      key,
+      fromBase64Url(signature),
+      new TextEncoder().encode(value),
+    );
+  } catch {
+    return false;
+  }
+}
+
 function parseCookies(cookieHeader: string | undefined): Record<string, string> {
   if (!cookieHeader) return {};
   return cookieHeader
@@ -102,8 +116,8 @@ export async function readSessionFromCookie(
   const [encodedPayload, encodedSignature] = token.split('.');
   if (!encodedPayload || !encodedSignature) return null;
 
-  const expected = await sign(encodedPayload, secret);
-  if (encodedSignature !== expected) return null;
+  const isValidSignature = await verify(encodedPayload, encodedSignature, secret);
+  if (!isValidSignature) return null;
 
   let payload: SessionPayload | null = null;
   try {

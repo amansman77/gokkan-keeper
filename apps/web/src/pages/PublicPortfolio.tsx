@@ -4,7 +4,6 @@ import { getJudgmentDiaryEntries, getPublicPortfolio } from '../lib/api';
 import { setSeo } from '../lib/seo';
 import type { JudgmentDiaryEntry, PublicPortfolioWarning } from '../lib/types';
 import type { PublicPortfolioEntryData } from '../lib/api';
-import { slugify } from '../lib/slug';
 
 function formatPercent(value: number | null): string {
   if (value === null || Number.isNaN(value)) return '-';
@@ -209,7 +208,7 @@ export default function PublicPortfolio() {
           <ul className="mt-4 space-y-3">
             {recentEntries.map((entry) => (
               <li key={entry.id}>
-                <Link to={`/judgment-diary/${slugify(entry.title)}`} className="text-sm text-gray-800 hover:text-blue-700 hover:underline">
+                <Link to={`/judgment-diary/${entry.id}`} className="text-sm text-gray-800 hover:text-blue-700 hover:underline">
                   {entry.title}
                 </Link>
               </li>

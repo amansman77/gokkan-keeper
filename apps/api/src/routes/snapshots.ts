@@ -2,12 +2,13 @@ import { Hono } from 'hono';
 import type { Env } from '../types';
 import { DBClient } from '../db/client';
 import { CreateSnapshotSchema, UpdateSnapshotSchema } from '@gokkan-keeper/shared';
+import { parseLimit } from '../utils/query';
 
 export const snapshotsRouter = new Hono<{ Bindings: Env }>();
 
 snapshotsRouter.get('/', async (c) => {
   const granaryId = c.req.query('granaryId');
-  const limit = parseInt(c.req.query('limit') || '50', 10);
+  const limit = parseLimit(c.req.query('limit'), 50, 200);
   
   const db = new DBClient(c.env.DB);
   
@@ -99,4 +100,3 @@ snapshotsRouter.put('/:id', async (c) => {
     return c.json({ error: error.message || 'Internal server error' }, 500);
   }
 });
-

@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "build": "tsc --noEmit",
     "deploy": "wrangler deploy --env production",
     "deploy:preview": "wrangler deploy",
     "migrate": "wrangler d1 migrations apply shared-db --remote",

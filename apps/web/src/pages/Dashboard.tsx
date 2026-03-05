@@ -46,10 +46,12 @@ export default function Dashboard() {
       <div className="bg-red-50 border border-red-200 rounded-md p-4">
         <p className="text-red-800 font-semibold mb-2">오류 발생</p>
         <p className="text-red-700 text-sm">{error}</p>
-        <div className="mt-4 text-xs text-red-600">
-          <p>API URL: {API_BASE_URL}</p>
-          <p>Raw env: {import.meta.env.VITE_API_BASE_URL || '(undefined)'}</p>
-        </div>
+        {import.meta.env.DEV ? (
+          <div className="mt-4 text-xs text-red-600">
+            <p>API URL: {API_BASE_URL}</p>
+            <p>Raw env: {import.meta.env.VITE_API_BASE_URL || '(undefined)'}</p>
+          </div>
+        ) : null}
         <button
           onClick={() => window.location.reload()}
           className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"

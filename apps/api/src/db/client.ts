@@ -30,20 +30,42 @@ export class DBClient {
 
   async getAllGranariesWithLatestSnapshot(): Promise<(Granary & { latestSnapshot?: Snapshot; previousSnapshot?: Snapshot })[]> {
     const granaries = await this.getAllGranaries();
-    const granariesWithSnapshots = await Promise.all(
-      granaries.map(async (granary) => {
-        const [latestSnapshot, previousSnapshot] = await Promise.all([
-          this.getLatestSnapshotByGranaryId(granary.id),
-          this.getPreviousSnapshotByGranaryId(granary.id),
-        ]);
-        return {
-          ...granary,
-          latestSnapshot: latestSnapshot || undefined,
-          previousSnapshot: previousSnapshot || undefined,
-        };
-      })
-    );
-    return granariesWithSnapshots;
+    if (granaries.length === 0) return [];
+
+    const rankedSnapshots = await this.db
+      .prepare(`
+        SELECT *
+        FROM (
+          SELECT
+            s.*,
+            ROW_NUMBER() OVER (PARTITION BY s.granary_id ORDER BY s.date DESC) AS snapshot_rank
+          FROM gk_snapshots s
+        )
+        WHERE snapshot_rank <= 2
+      `)
+      .all<any>();
+
+    const snapshotsByGranary = new Map<string, { latestSnapshot?: Snapshot; previousSnapshot?: Snapshot }>();
+    for (const row of rankedSnapshots.results || []) {
+      const granaryId = row.granary_id as string;
+      const existing = snapshotsByGranary.get(granaryId) ?? {};
+      const snapshot = this.transformSnapshot(row);
+      if (row.snapshot_rank === 1) {
+        existing.latestSnapshot = snapshot;
+      } else if (row.snapshot_rank === 2) {
+        existing.previousSnapshot = snapshot;
+      }
+      snapshotsByGranary.set(granaryId, existing);
+    }
+
+    return granaries.map((granary) => {
+      const snapshots = snapshotsByGranary.get(granary.id);
+      return {
+        ...granary,
+        latestSnapshot: snapshots?.latestSnapshot,
+        previousSnapshot: snapshots?.previousSnapshot,
+      };
+    });
   }
 
   private transformGranary(row: any): Granary {
@@ -184,17 +206,19 @@ export class DBClient {
   }
 
   async getSnapshotsByGranaryId(granaryId: string, limit = 10): Promise<Snapshot[]> {
+    const safeLimit = Math.min(Math.max(limit, 1), 200);
     const result = await this.db
       .prepare('SELECT * FROM gk_snapshots WHERE granary_id = ? ORDER BY date DESC LIMIT ?')
-      .bind(granaryId, limit)
+      .bind(granaryId, safeLimit)
       .all<any>();
     return (result.results || []).map(this.transformSnapshot);
   }
 
   async getAllSnapshots(limit = 50): Promise<Snapshot[]> {
+    const safeLimit = Math.min(Math.max(limit, 1), 200);
     const result = await this.db
       .prepare('SELECT * FROM gk_snapshots ORDER BY date DESC LIMIT ?')
-      .bind(limit)
+      .bind(safeLimit)
       .all<any>();
     return (result.results || []).map(this.transformSnapshot);
   }
@@ -745,7 +769,7 @@ export class DBClient {
       values.push(`%${filters.strategyTag}%`);
     }
 
-    const limit = filters.limit ?? 50;
+    const limit = Math.min(Math.max(filters.limit ?? 50, 1), 200);
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const result = await this.db

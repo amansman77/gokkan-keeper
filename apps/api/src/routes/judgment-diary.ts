@@ -7,6 +7,7 @@ import {
   JUDGMENT_ACTIONS,
   type JudgmentDiaryEntry,
 } from '@gokkan-keeper/shared';
+import { parseLimit } from '../utils/query';
 
 export const judgmentDiaryRouter = new Hono<{ Bindings: Env }>();
 type JudgmentAction = JudgmentDiaryEntry['action'];
@@ -21,6 +22,7 @@ judgmentDiaryRouter.get('/', async (c) => {
   const action = actionQuery && isJudgmentAction(actionQuery)
     ? actionQuery
     : undefined;
+  const limit = parseLimit(c.req.query('limit'), 50, 200);
 
   const filters = {
     from: c.req.query('from') || undefined,
@@ -28,7 +30,7 @@ judgmentDiaryRouter.get('/', async (c) => {
     action,
     asset: c.req.query('asset') || undefined,
     strategyTag: c.req.query('strategyTag') || undefined,
-    limit: c.req.query('limit') ? parseInt(c.req.query('limit') || '50', 10) : undefined,
+    limit,
   };
 
   const entries = await db.getJudgmentDiaryEntries(filters);

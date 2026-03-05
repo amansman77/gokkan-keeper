@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CreatePosition, Granary } from '../lib/types';
-import { POSITION_ASSET_TYPES, POSITION_MARKETS } from '@gokkan-keeper/shared';
+import {
+  POSITION_ASSET_TYPES,
+  POSITION_MARKETS,
+  type PublicPositionValidationError,
+  validatePublicPositionInput,
+} from '@gokkan-keeper/shared';
 import { lookupPositionQuote } from '../lib/api';
 
 interface PositionFormProps {
@@ -22,6 +27,13 @@ function supportsAutoPrice(symbol: string, market: string | null | undefined) {
   if (!hasShortCode) return false;
   if (!market) return true;
   return AUTO_PRICE_SUPPORTED_MARKETS.has(market.toUpperCase());
+}
+
+function mapPublicPositionValidationError(error: PublicPositionValidationError): string {
+  if (error === 'MISSING_PUBLIC_THESIS') {
+    return '공개 포지션은 공개 한 줄 가설이 필요합니다.';
+  }
+  return '공개 포지션은 비중, 현재가치 또는 (수량 + 평균단가)가 필요합니다.';
 }
 
 export default function PositionForm({
@@ -46,32 +58,11 @@ export default function PositionForm({
   const canAutoPrice = supportsAutoPrice(formData.symbol, formData.market);
   const lastLookupKeyRef = useRef<string>('');
 
-  const validatePublicFields = (data: CreatePosition) => {
-    if (!data.isPublic) return null;
-    if (!data.publicThesis || !data.publicThesis.trim()) {
-      return '공개 포지션은 공개 한 줄 가설이 필요합니다.';
-    }
-
-    const hasCurrentValue = data.currentValue !== null && data.currentValue !== undefined;
-    const hasWeightPercent = data.weightPercent !== null && data.weightPercent !== undefined;
-    const hasCostBasis =
-      data.quantity !== null &&
-      data.quantity !== undefined &&
-      data.avgCost !== null &&
-      data.avgCost !== undefined;
-
-    if (!hasCurrentValue && !hasCostBasis && !hasWeightPercent) {
-      return '공개 포지션은 비중, 현재가치 또는 (수량 + 평균단가)가 필요합니다.';
-    }
-
-    return null;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const validationError = validatePublicFields(formData);
+    const validationError = validatePublicPositionInput(formData);
     if (validationError) {
-      setClientError(validationError);
+      setClientError(mapPublicPositionValidationError(validationError));
       return;
     }
     setClientError(null);

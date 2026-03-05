@@ -69,12 +69,21 @@ export interface PublicPortfolioResponseData {
   };
 }
 
-async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+interface FetchJsonOptions {
+  withCredentials?: boolean;
+  networkErrorMessage?: string;
+}
+
+async function fetchJson<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  config: FetchJsonOptions = {},
+): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   try {
     const response = await fetch(url, {
-      credentials: 'include',
+      ...(config.withCredentials ? { credentials: 'include' as const } : {}),
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -89,50 +98,28 @@ async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise
 
     return response.json();
   } catch (error: any) {
-    // Network error or other fetch errors
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error(`API 서버에 연결할 수 없습니다. ${API_BASE_URL}가 실행 중인지 확인하세요.`);
+    if (config.networkErrorMessage && error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error(config.networkErrorMessage);
     }
     throw error;
   }
 }
 
-async function fetchPublicAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  return fetchJson<T>(endpoint, options, {
+    withCredentials: true,
+    networkErrorMessage: `API 서버에 연결할 수 없습니다. ${API_BASE_URL}가 실행 중인지 확인하세요.`,
   });
+}
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `HTTP error! status: ${response.status}`);
-  }
-
-  return response.json();
+async function fetchPublicAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  return fetchJson<T>(endpoint, options);
 }
 
 async function fetchAuthAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const response = await fetch(url, {
-    credentials: 'include',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+  return fetchJson<T>(endpoint, options, {
+    withCredentials: true,
   });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `HTTP error! status: ${response.status}`);
-  }
-
-  return response.json();
 }
 
 export async function getGranaries(): Promise<(Granary & { latestSnapshot?: Snapshot; previousSnapshot?: Snapshot })[]> {
