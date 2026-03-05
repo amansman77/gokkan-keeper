@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { getJudgmentDiaryEntries, getJudgmentDiaryEntry } from '../lib/api';
 import type { JudgmentDiaryEntry } from '../lib/types';
@@ -7,6 +7,7 @@ import { clearStructuredData, sanitizeDescription, setSeo, setStructuredData, st
 import { useAuth } from '../lib/auth-context';
 import MarkdownContent from '../components/MarkdownContent';
 import { SITE_BASE_URL } from '../lib/config';
+import { extractKeywords } from '../lib/keywords';
 
 export default function JudgmentDiaryDetail() {
   const { authenticated } = useAuth();
@@ -16,6 +17,12 @@ export default function JudgmentDiaryDetail() {
   const [relatedEntries, setRelatedEntries] = useState<JudgmentDiaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const keywords = useMemo(
+    () => (entry
+      ? extractKeywords(`${entry.title} ${entry.action} ${entry.summary} ${entry.mainContent}`)
+      : []),
+    [entry],
+  );
 
   useEffect(() => {
     async function loadEntry() {
@@ -65,23 +72,24 @@ export default function JudgmentDiaryDetail() {
 
   useEffect(() => {
     if (!entry) return;
-    const cleanDescription = sanitizeDescription(entry.summary);
+    const cleanDescription = sanitizeDescription(`${entry.summary} ${entry.mainContent}`);
     setSeo({
       title: `${entry.title} | 추세 투자자의 판단일지`,
       description: cleanDescription,
+      keywords,
     });
-  }, [entry]);
+  }, [entry, keywords]);
 
   useEffect(() => {
     if (!entry) return;
-    const cleanDescription = sanitizeDescription(entry.summary);
+    const cleanDescription = sanitizeDescription(`${entry.summary} ${entry.mainContent}`);
 
     setStructuredData('judgment-diary-article', {
       '@context': 'https://schema.org',
       '@type': 'Article',
       headline: entry.title,
       description: cleanDescription,
-      articleBody: stripMarkdown(entry.summary),
+      articleBody: stripMarkdown(`${entry.summary}\n\n${entry.mainContent}`),
       author: {
         '@type': 'Person',
         name: 'Hosung Hwang',
@@ -149,6 +157,24 @@ export default function JudgmentDiaryDetail() {
           <h2 className="text-lg font-semibold text-gray-900 mb-2">한 줄 판단</h2>
           <MarkdownContent content={entry.summary} />
         </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">메인 컨텐츠</h2>
+          <MarkdownContent content={entry.mainContent} />
+        </section>
+
+        {keywords.length > 0 ? (
+          <section>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">핵심 키워드</h2>
+            <div className="flex flex-wrap gap-2">
+              {keywords.map((keyword) => (
+                <span key={keyword} className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">
+                  {keyword}
+                </span>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-2">Action</h2>

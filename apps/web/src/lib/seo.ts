@@ -3,6 +3,7 @@ import { SITE_BASE_URL } from './config';
 interface SeoOptions {
   title: string;
   description: string;
+  keywords?: string[];
   robots?: string;
   canonicalPath?: string;
 }
@@ -63,7 +64,7 @@ export function setCanonical(pathname?: string) {
   }
 }
 
-export function setSeo({ title, description, robots, canonicalPath }: SeoOptions) {
+export function setSeo({ title, description, keywords, robots, canonicalPath }: SeoOptions) {
   if (typeof document === 'undefined') return;
   document.title = title;
 
@@ -76,6 +77,13 @@ export function setSeo({ title, description, robots, canonicalPath }: SeoOptions
     const robotsMeta = upsertMeta('robots');
     if (robotsMeta) {
       robotsMeta.content = robots;
+    }
+  }
+
+  if (keywords && keywords.length > 0) {
+    const keywordMeta = upsertMeta('keywords');
+    if (keywordMeta) {
+      keywordMeta.content = keywords.join(', ');
     }
   }
 

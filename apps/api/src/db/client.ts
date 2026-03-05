@@ -715,12 +715,17 @@ export class DBClient {
   }
 
   private transformJudgmentDiaryEntry(row: any): JudgmentDiaryEntry {
+    const mainContent = typeof row.main_content === 'string' && row.main_content.trim()
+      ? row.main_content
+      : row.summary;
+
     return {
       id: row.id,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       title: row.title,
       summary: row.summary,
+      mainContent,
       marketContext: row.market_context ?? null,
       decision: row.decision ?? null,
       action: row.action,
@@ -796,11 +801,11 @@ export class DBClient {
     await this.db
       .prepare(
         `INSERT INTO gk_judgment_diary_entries (
-          id, created_at, updated_at, title, summary, market_context, decision, action,
+          id, created_at, updated_at, title, summary, main_content, market_context, decision, action,
           assets_json, position_change_json, risk, invalidate_conditions_json, next_check,
           emotion_state, confidence, time_horizon, strategy_tags_json, refs_json,
           disclaimer_visible, reviewed_at, outcome, what_was_right, what_was_wrong, lesson, next_action
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         id,
@@ -808,6 +813,7 @@ export class DBClient {
         now,
         data.title,
         data.summary,
+        data.mainContent,
         data.marketContext ?? null,
         data.decision ?? null,
         data.action,
@@ -854,6 +860,7 @@ export class DBClient {
 
     if (data.title !== undefined) updateField('title', data.title);
     if (data.summary !== undefined) updateField('summary', data.summary);
+    if (data.mainContent !== undefined) updateField('main_content', data.mainContent);
     if (data.marketContext !== undefined) updateField('market_context', data.marketContext ?? null);
     if (data.decision !== undefined) updateField('decision', data.decision ?? null);
     if (data.action !== undefined) updateField('action', data.action);

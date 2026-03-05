@@ -19,6 +19,7 @@ export default function JudgmentDiaryForm({
 }: JudgmentDiaryFormProps) {
   const [title, setTitle] = useState<string>(initialValue?.title || '');
   const [summary, setSummary] = useState<string>(initialValue?.summary || '');
+  const [mainContent, setMainContent] = useState<string>(initialValue?.mainContent || '');
   const [action, setAction] = useState<JudgmentDiaryEntry['action']>(initialValue?.action || 'WATCH');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,6 +33,7 @@ export default function JudgmentDiaryForm({
       const payload: CreateJudgmentDiaryEntry = {
         title: title.trim(),
         summary: summary.trim(),
+        mainContent: mainContent.trim(),
         action,
       };
 
@@ -62,6 +64,17 @@ export default function JudgmentDiaryForm({
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
           rows={2}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">메인 컨텐츠</label>
+        <textarea
+          value={mainContent}
+          onChange={(e) => setMainContent(e.target.value)}
+          rows={12}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         />
