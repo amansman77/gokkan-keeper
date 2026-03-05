@@ -11,6 +11,18 @@ import { enrichPositionsWithLiveQuotes, FscStockPriceService } from '../services
 
 export const positionsRouter = new Hono<{ Bindings: Env }>();
 
+function inferQuotedAssetType(
+  inputAssetType: string | null,
+  operation: 'getStockPriceInfo' | 'getSecuritiesPriceInfo' | 'getETFPriceInfo',
+): string {
+  if (inputAssetType && inputAssetType.trim()) {
+    return inputAssetType.trim().toUpperCase();
+  }
+  return operation === 'getETFPriceInfo' || operation === 'getSecuritiesPriceInfo'
+    ? 'ETF'
+    : 'STOCK';
+}
+
 function mapPublicPositionValidationError(error: PublicPositionValidationError): string {
   if (error === 'MISSING_PUBLIC_THESIS') {
     return 'Public position requires publicThesis.';
@@ -36,6 +48,7 @@ positionsRouter.get('/quote', async (c) => {
     c.env.FSC_STOCK_API_SERVICE_KEY,
     c.env.FSC_STOCK_API_BASE_URL,
     c.env.DB,
+    c.env.FSC_SECURITIES_PRODUCT_API_BASE_URL,
   );
 
   if (!service.isEnabled()) {
@@ -53,7 +66,7 @@ positionsRouter.get('/quote', async (c) => {
       shortCode: quote.shortCode,
       name: quote.name,
       market: quote.marketCategory ?? 'KRX',
-      assetType: 'STOCK',
+      assetType: inferQuotedAssetType(assetType ?? null, quote.operation),
       currentValue: quote.closePrice,
       currentUnitPrice: quote.closePrice,
       currentPriceAsOf: quote.asOfDate,

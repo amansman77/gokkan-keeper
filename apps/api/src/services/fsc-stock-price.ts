@@ -2,13 +2,14 @@ import type { D1Database } from '@cloudflare/workers-types';
 import type { Position } from '@gokkan-keeper/shared';
 import type { Env } from '../types';
 
-const DEFAULT_BASE_URL = 'https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService';
+const DEFAULT_STOCK_BASE_URL = 'https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService';
+const DEFAULT_SECURITIES_PRODUCT_BASE_URL = 'https://apis.data.go.kr/1160100/service/GetSecuritiesProductInfoService';
 const KRX_MARKETS = new Set(['KRX', 'KOSDAQ', 'KOSPI', 'KONEX']);
 const ETF_ASSET_TYPES = new Set(['ETF', 'FUND', 'REIT']);
 const QUOTE_CACHE_TTL_HOURS = 6;
 const NOT_FOUND_CACHE_TTL_MINUTES = 30;
 
-type QuoteOperation = 'getStockPriceInfo' | 'getSecuritiesPriceInfo';
+type QuoteOperation = 'getStockPriceInfo' | 'getSecuritiesPriceInfo' | 'getETFPriceInfo';
 
 interface QuoteItem {
   basDt?: string;
@@ -87,27 +88,32 @@ function getCacheKey(shortCode: string, operation: QuoteOperation): string {
 function getPreferredOperations(position?: Pick<Position, 'assetType'> | null): QuoteOperation[] {
   const assetType = position?.assetType?.toUpperCase();
   if (assetType && ETF_ASSET_TYPES.has(assetType)) {
-    return ['getSecuritiesPriceInfo', 'getStockPriceInfo'];
+    return ['getETFPriceInfo', 'getSecuritiesPriceInfo', 'getStockPriceInfo'];
   }
   if (assetType === 'STOCK') {
     return ['getStockPriceInfo', 'getSecuritiesPriceInfo'];
   }
-  return ['getStockPriceInfo', 'getSecuritiesPriceInfo'];
+  return ['getStockPriceInfo', 'getSecuritiesPriceInfo', 'getETFPriceInfo'];
 }
 
 export class FscStockPriceService {
-  private readonly baseUrl: string;
+  private readonly stockBaseUrl: string;
+  private readonly securitiesProductBaseUrl: string;
+  private readonly stockServiceKey?: string;
 
   constructor(
-    private readonly serviceKey?: string,
-    baseUrl = DEFAULT_BASE_URL,
+    stockServiceKey?: string,
+    stockBaseUrl = DEFAULT_STOCK_BASE_URL,
     private readonly db?: D1Database,
+    securitiesProductBaseUrl = DEFAULT_SECURITIES_PRODUCT_BASE_URL,
   ) {
-    this.baseUrl = baseUrl;
+    this.stockServiceKey = stockServiceKey;
+    this.stockBaseUrl = stockBaseUrl;
+    this.securitiesProductBaseUrl = securitiesProductBaseUrl;
   }
 
   isEnabled(): boolean {
-    return !!this.serviceKey;
+    return !!this.stockServiceKey;
   }
 
   supports(position: Position): boolean {
@@ -141,8 +147,6 @@ export class FscStockPriceService {
   }
 
   private async getQuote(shortCode: string, position?: Pick<Position, 'assetType'> | null): Promise<PositionQuote | null> {
-    if (!this.serviceKey) return null;
-
     const operations = getPreferredOperations(position);
     for (const operation of operations) {
       const quote = await this.fetchQuote(shortCode, operation);
@@ -152,15 +156,19 @@ export class FscStockPriceService {
   }
 
   private async fetchQuote(shortCode: string, operation: QuoteOperation): Promise<PositionQuote | null> {
-    if (!this.serviceKey) return null;
+    const serviceKey = this.getServiceKey(operation);
+    if (!serviceKey) return null;
 
     const cached = await this.getCachedQuote(shortCode, operation);
     if (cached !== undefined) {
       return cached;
     }
 
-    const url = new URL(`${this.baseUrl}/${operation}`);
-    url.searchParams.set('serviceKey', normalizeServiceKey(this.serviceKey));
+    const baseUrl = operation === 'getETFPriceInfo'
+      ? this.securitiesProductBaseUrl
+      : this.stockBaseUrl;
+    const url = new URL(`${baseUrl}/${operation}`);
+    url.searchParams.set('serviceKey', normalizeServiceKey(serviceKey));
     url.searchParams.set('numOfRows', '100');
     url.searchParams.set('pageNo', '1');
     url.searchParams.set('resultType', 'json');
@@ -171,7 +179,7 @@ export class FscStockPriceService {
     if (!response.ok) {
       throw new Error(
         response.status === 401
-          ? 'FSC stock API request failed with 401. Check whether FSC_STOCK_API_SERVICE_KEY is the decoded key from data.go.kr.'
+          ? this.getUnauthorizedMessage(operation)
           : `FSC stock API request failed with ${response.status}`
       );
     }
@@ -280,6 +288,17 @@ export class FscStockPriceService {
       )
       .run();
   }
+
+  private getServiceKey(operation: QuoteOperation): string | undefined {
+    return this.stockServiceKey;
+  }
+
+  private getUnauthorizedMessage(operation: QuoteOperation): string {
+    if (operation === 'getETFPriceInfo') {
+      return 'FSC ETF API request failed with 401. Check whether FSC_STOCK_API_SERVICE_KEY is the decoded key from data.go.kr.';
+    }
+    return 'FSC stock API request failed with 401. Check whether FSC_STOCK_API_SERVICE_KEY is the decoded key from data.go.kr.';
+  }
 }
 
 export function enrichPositionWithQuote(position: Position, quote?: PositionQuote | null): Position {
@@ -319,6 +338,7 @@ export async function enrichPositionsWithLiveQuotes(positions: Position[], env: 
     env.FSC_STOCK_API_SERVICE_KEY,
     env.FSC_STOCK_API_BASE_URL,
     env.DB,
+    env.FSC_SECURITIES_PRODUCT_API_BASE_URL,
   );
 
   if (!quoteService.isEnabled()) {

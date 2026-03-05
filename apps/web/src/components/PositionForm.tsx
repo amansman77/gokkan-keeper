@@ -78,7 +78,7 @@ export default function PositionForm({
     }
 
     const normalizedSymbol = formData.symbol.trim().toUpperCase();
-    const lookupKey = `${normalizedSymbol}:${formData.market || ''}`;
+    const lookupKey = `${normalizedSymbol}:${formData.market || ''}:${formData.assetType || ''}`;
     if (lookupKey === lastLookupKeyRef.current) return;
 
     const timer = window.setTimeout(async () => {
@@ -149,7 +149,7 @@ export default function PositionForm({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="005930"
           />
-          <p className="mt-1 text-xs text-gray-500">국내 종목은 6자리 단축코드를 입력하면 저장 후 현재가를 자동 조회합니다.</p>
+          <p className="mt-1 text-xs text-gray-500">국내 주식/ETF는 6자리 단축코드를 입력하면 저장 후 현재가를 자동 조회합니다.</p>
           {quoteLoading && <p className="mt-1 text-xs text-blue-600">현재가 자동 조회 중...</p>}
           {!quoteLoading && quoteMessage && (
             <p

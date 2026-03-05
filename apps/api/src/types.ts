@@ -10,4 +10,5 @@ export interface Env {
   DISCORD_WEBHOOK_URL?: string;
   FSC_STOCK_API_SERVICE_KEY?: string;
   FSC_STOCK_API_BASE_URL?: string;
+  FSC_SECURITIES_PRODUCT_API_BASE_URL?: string;
 }

@@ -524,6 +524,7 @@ export class DBClient {
           p.granary_id,
           p.name,
           p.symbol,
+          p.asset_type,
           p.quantity,
           p.avg_cost,
           p.current_value,
@@ -543,21 +544,27 @@ export class DBClient {
 
     const rows = result.results || [];
     const quoteService = env
-      ? new FscStockPriceService(env.FSC_STOCK_API_SERVICE_KEY, env.FSC_STOCK_API_BASE_URL)
+      ? new FscStockPriceService(
+          env.FSC_STOCK_API_SERVICE_KEY,
+          env.FSC_STOCK_API_BASE_URL,
+          undefined,
+          env.FSC_SECURITIES_PRODUCT_API_BASE_URL,
+        )
       : null;
     const quoteMap = new Map<string, Awaited<ReturnType<FscStockPriceService['getQuoteBySymbol']>>>();
 
     if (quoteService?.isEnabled()) {
-      const uniqueShortCodes = Array.from(
-        new Set(
-          rows
-            .map((row) => normalizeShortCode(String(row.symbol ?? '')))
-            .filter((value): value is string => !!value)
-        )
-      );
+      const shortCodeAssetTypeMap = new Map<string, string | null>();
+      for (const row of rows) {
+        const shortCode = normalizeShortCode(String(row.symbol ?? ''));
+        if (!shortCode || shortCodeAssetTypeMap.has(shortCode)) continue;
+        shortCodeAssetTypeMap.set(shortCode, row.asset_type ?? null);
+      }
 
       const quoteEntries = await Promise.all(
-        uniqueShortCodes.map(async (shortCode) => [shortCode, await quoteService.getQuoteBySymbol(shortCode)] as const)
+        Array.from(shortCodeAssetTypeMap.entries()).map(async ([shortCode, assetType]) => (
+          [shortCode, await quoteService.getQuoteBySymbol(shortCode, { assetType })] as const
+        ))
       );
 
       for (const [shortCode, quote] of quoteEntries) {
@@ -585,7 +592,7 @@ export class DBClient {
         name: row.name,
         symbol: row.symbol,
         market: null,
-        assetType: null,
+        assetType: row.asset_type ?? null,
         quantity,
         avgCost,
         currentValue: currentInputValue,
