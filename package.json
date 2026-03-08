@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "pnpm --filter web dev & pnpm --filter api dev",
     "build": "pnpm --filter shared build && pnpm --filter web build && pnpm --filter api build",
-    "typecheck": "pnpm --filter shared typecheck && pnpm --filter web typecheck && pnpm --filter api typecheck",
+    "typecheck": "pnpm --filter shared build && pnpm --filter shared typecheck && pnpm --filter web typecheck && pnpm --filter api typecheck",
     "setup": "nvm install 18.20.0 && nvm use && corepack enable && corepack prepare pnpm@latest --activate && pnpm install && pnpm --filter shared build",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist packages/*/dist",
     "migrate:local": "cd apps/api && pnpm migrate:local"
@@ -20,4 +20,3 @@
     "pnpm": ">=8.0.0"
   }
 }
-

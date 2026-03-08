@@ -523,6 +523,7 @@ export class DBClient {
         SELECT
           p.id,
           p.granary_id,
+          p.market,
           p.name,
           p.symbol,
           p.asset_type,

@@ -1,12 +1,13 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type { PublicPortfolioResponse, Position } from '@gokkan-keeper/shared';
 import type { Env } from '../types';
-import { enrichPositionWithQuote, FscStockPriceService, normalizeShortCode } from './fsc-stock-price';
+import { enrichPositionWithQuote, MarketQuoteService } from './market-price';
 
 interface PublicPortfolioRow {
   id: string;
   granary_id: string | null;
   granary_name: string | null;
+  market: string | null;
   name: string;
   symbol: string;
   asset_type: string | null;
@@ -35,7 +36,7 @@ function toPublicPosition(row: PublicPortfolioRow): Position {
     granaryId: row.granary_id,
     name: row.name,
     symbol: row.symbol,
-    market: null,
+    market: row.market,
     assetType: row.asset_type,
     quantity: toNullableNumber(row.quantity),
     avgCost: toNullableNumber(row.avg_cost),
@@ -70,39 +71,32 @@ async function loadQuoteMap(
   rows: PublicPortfolioRow[],
   env?: Env,
   db?: D1Database,
-): Promise<Map<string, Awaited<ReturnType<FscStockPriceService['getQuoteBySymbol']>>>> {
-  const quoteMap = new Map<string, Awaited<ReturnType<FscStockPriceService['getQuoteBySymbol']>>>();
+): Promise<Map<string, Awaited<ReturnType<MarketQuoteService['getQuoteBySymbol']>>>> {
+  const quoteMap = new Map<string, Awaited<ReturnType<MarketQuoteService['getQuoteBySymbol']>>>();
 
-  if (!env) {
+  if (!env || !db) {
     return quoteMap;
   }
 
-  const quoteService = new FscStockPriceService(
-    env.FSC_STOCK_API_SERVICE_KEY,
-    env.FSC_STOCK_API_BASE_URL,
-    db,
-    env.FSC_SECURITIES_PRODUCT_API_BASE_URL,
-  );
-
-  if (!quoteService.isEnabled()) {
-    return quoteMap;
-  }
-
-  const shortCodeAssetTypeMap = new Map<string, string | null>();
-  for (const row of rows) {
-    const shortCode = normalizeShortCode(String(row.symbol ?? ''));
-    if (!shortCode || shortCodeAssetTypeMap.has(shortCode)) continue;
-    shortCodeAssetTypeMap.set(shortCode, row.asset_type ?? null);
-  }
+  const quoteService = new MarketQuoteService({
+    ...env,
+    DB: db,
+  });
 
   const quoteEntries = await Promise.all(
-    Array.from(shortCodeAssetTypeMap.entries()).map(async ([shortCode, assetType]) => (
-      [shortCode, await quoteService.getQuoteBySymbol(shortCode, { assetType })] as const
+    rows.map(async (row) => (
+      [
+        row.id,
+        await quoteService.getQuoteBySymbol(row.symbol, {
+          market: row.market,
+          assetType: row.asset_type ?? null,
+        }),
+      ] as const
     )),
   );
 
-  for (const [shortCode, quote] of quoteEntries) {
-    quoteMap.set(shortCode, quote);
+  for (const [rowId, quote] of quoteEntries) {
+    quoteMap.set(rowId, quote);
   }
 
   return quoteMap;
@@ -121,8 +115,7 @@ export async function buildPublicPortfolioResponse(
 
   const evaluated = rows.map((row) => {
     const basePosition = toPublicPosition(row);
-    const shortCode = normalizeShortCode(String(row.symbol ?? ''));
-    const quote = shortCode ? quoteMap.get(shortCode) ?? null : null;
+    const quote = quoteMap.get(row.id) ?? null;
     const enrichedPosition = enrichPositionWithQuote(basePosition, quote);
     const positionMarketValue = resolvePositionMarketValue(enrichedPosition);
     const weightPercent = toNullableNumber(row.weight_percent);
@@ -205,7 +198,7 @@ export async function buildPublicPortfolioResponse(
     currentPriceSource: item.enrichedPosition.currentPriceSource ?? null,
   }));
 
-  const integratedEntries = data.filter((item) => item.currentPriceSource === 'FSC_STOCK_PRICE_API');
+  const integratedEntries = data.filter((item) => item.currentPriceSource && item.currentPriceSource !== 'MANUAL');
   const manualEntries = data.filter((item) => item.currentPriceSource === 'MANUAL');
   const latestAsOf = integratedEntries
     .map((item) => item.currentPriceAsOf)

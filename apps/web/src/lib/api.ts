@@ -48,13 +48,13 @@ export interface PositionQuoteLookupResult {
   currentPriceAsOf: string;
   currentPriceChange: number | null;
   currentPriceChangeRate: number | null;
-  currentPriceSource: 'FSC_STOCK_PRICE_API';
+  currentPriceSource: 'FSC_STOCK_PRICE_API' | 'YAHOO_FINANCE';
 }
 
 export interface PublicPortfolioEntryData extends PublicPortfolioEntry {
   currentUnitPrice?: number | null;
   currentPriceAsOf?: string | null;
-  currentPriceSource?: 'MANUAL' | 'FSC_STOCK_PRICE_API' | null;
+  currentPriceSource?: 'MANUAL' | 'FSC_STOCK_PRICE_API' | 'YAHOO_FINANCE' | null;
 }
 
 export interface PublicPortfolioResponseData {
@@ -233,8 +233,13 @@ export async function getPosition(id: string): Promise<Position> {
   return fetchAPI<Position>(`/positions/${id}`);
 }
 
-export async function lookupPositionQuote(symbol: string, assetType?: string | null): Promise<PositionQuoteLookupResult> {
+export async function lookupPositionQuote(
+  symbol: string,
+  market?: string | null,
+  assetType?: string | null,
+): Promise<PositionQuoteLookupResult> {
   const params = new URLSearchParams({ symbol });
+  if (market) params.set('market', market);
   if (assetType) params.set('assetType', assetType);
   return fetchAPI<PositionQuoteLookupResult>(`/positions/quote?${params.toString()}`);
 }

@@ -10,6 +10,12 @@ function formatPercent(value: number | null): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
 }
 
+function formatPriceSourceLabel(source: PublicPortfolioEntryData['currentPriceSource']): string | null {
+  if (source === 'FSC_STOCK_PRICE_API') return '금융위 시세';
+  if (source === 'YAHOO_FINANCE') return 'Yahoo Finance';
+  return null;
+}
+
 export default function PublicPortfolio() {
   const [portfolio, setPortfolio] = useState<PublicPortfolioEntryData[]>([]);
   const [warnings, setWarnings] = useState<PublicPortfolioWarning[]>([]);
@@ -107,7 +113,7 @@ export default function PublicPortfolio() {
             <p className="text-xs text-gray-500">연동 기준</p>
             <p className="text-sm text-gray-700 mt-1">
               {pricingMeta.integratedCount > 0
-                ? `금융위원회 시세 ${pricingMeta.latestAsOf ? `${pricingMeta.latestAsOf} 기준` : '연동'}`
+                ? `${pricingMeta.latestAsOf ? `${pricingMeta.latestAsOf} 기준 ` : ''}금융위/Yahoo Finance 시세 연동`
                 : '최신 스냅샷 기반 비중/수익률 추정치'}
             </p>
           </div>
@@ -163,9 +169,9 @@ export default function PublicPortfolio() {
                     {item.isEstimatedReturn ? <span className="text-xs text-gray-500 ml-1" title="avgCost와 currentValue로 추정된 값">* </span> : null}
                   </td>
                   <td className="py-3 text-sm text-gray-700">
-                    {item.currentPriceSource === 'FSC_STOCK_PRICE_API' ? (
+                    {item.currentPriceSource === 'FSC_STOCK_PRICE_API' || item.currentPriceSource === 'YAHOO_FINANCE' ? (
                       <div>
-                        <p className="font-medium text-emerald-700">금융위 시세</p>
+                        <p className="font-medium text-emerald-700">{formatPriceSourceLabel(item.currentPriceSource)}</p>
                         <p className="text-xs text-gray-500">
                           {item.currentPriceAsOf || '-'}
                           {item.currentUnitPrice !== null && item.currentUnitPrice !== undefined

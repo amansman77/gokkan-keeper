@@ -97,6 +97,12 @@ export default function GranaryDetail() {
     return position.currentValue;
   };
 
+  const getPriceSourceLabel = (source: Position['currentPriceSource']) => {
+    if (source === 'FSC_STOCK_PRICE_API') return '금융위원회 시세';
+    if (source === 'YAHOO_FINANCE') return 'Yahoo Finance';
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -155,7 +161,7 @@ export default function GranaryDetail() {
                       <p className="text-sm text-gray-600">
                         현재가: {formatCurrency(position.currentUnitPrice, granary.currency)}
                         {position.currentPriceAsOf ? ` · ${formatDate(position.currentPriceAsOf)}` : ''}
-                        {position.currentPriceSource === 'FSC_STOCK_PRICE_API' ? ' · 금융위원회 시세' : ''}
+                        {getPriceSourceLabel(position.currentPriceSource) ? ` · ${getPriceSourceLabel(position.currentPriceSource)}` : ''}
                       </p>
                     )}
                     {position.currentPriceChangeRate !== null && position.currentPriceChangeRate !== undefined && (

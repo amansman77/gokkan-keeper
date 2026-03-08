@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from '../types';
 import { DBClient } from '../db/client';
 import { CreateGranarySchema, UpdateGranarySchema } from '@gokkan-keeper/shared';
-import { enrichPositionsWithLiveQuotes } from '../services/fsc-stock-price';
+import { enrichPositionsWithLiveQuotes } from '../services/market-price';
 
 export const granariesRouter = new Hono<{ Bindings: Env }>();
 

@@ -7,21 +7,9 @@ import {
   validatePublicPositionInput,
   type PublicPositionValidationError,
 } from '@gokkan-keeper/shared';
-import { enrichPositionsWithLiveQuotes, FscStockPriceService } from '../services/fsc-stock-price';
+import { enrichPositionsWithLiveQuotes, inferQuotedAssetType, MarketQuoteService } from '../services/market-price';
 
 export const positionsRouter = new Hono<{ Bindings: Env }>();
-
-function inferQuotedAssetType(
-  inputAssetType: string | null,
-  operation: 'getStockPriceInfo' | 'getSecuritiesPriceInfo' | 'getETFPriceInfo',
-): string {
-  if (inputAssetType && inputAssetType.trim()) {
-    return inputAssetType.trim().toUpperCase();
-  }
-  return operation === 'getETFPriceInfo' || operation === 'getSecuritiesPriceInfo'
-    ? 'ETF'
-    : 'STOCK';
-}
 
 function mapPublicPositionValidationError(error: PublicPositionValidationError): string {
   if (error === 'MISSING_PUBLIC_THESIS') {
@@ -39,24 +27,32 @@ positionsRouter.get('/', async (c) => {
 
 positionsRouter.get('/quote', async (c) => {
   const symbol = c.req.query('symbol');
+  const market = c.req.query('market');
   const assetType = c.req.query('assetType');
   if (!symbol) {
     return c.json({ error: 'symbol is required' }, 400);
   }
 
-  const service = new FscStockPriceService(
-    c.env.FSC_STOCK_API_SERVICE_KEY,
-    c.env.FSC_STOCK_API_BASE_URL,
-    c.env.DB,
-    c.env.FSC_SECURITIES_PRODUCT_API_BASE_URL,
-  );
+  const service = new MarketQuoteService(c.env);
+  const lookup = {
+    symbol,
+    market: market ?? null,
+    assetType: assetType ?? null,
+  };
 
-  if (!service.isEnabled()) {
-    return c.json({ error: 'FSC_STOCK_API_SERVICE_KEY is not configured' }, 503);
+  if (!service.hasAvailableProvider(lookup)) {
+    const reason = service.getUnavailableReason(lookup) ?? 'Automatic quote lookup is not supported for this symbol/market yet';
+    return c.json(
+      { error: reason },
+      reason.includes('not configured') ? 503 : 400,
+    );
   }
 
   try {
-    const quote = await service.getQuoteBySymbol(symbol, { assetType: assetType ?? null });
+    const quote = await service.getQuoteBySymbol(symbol, {
+      market: market ?? null,
+      assetType: assetType ?? null,
+    });
     if (!quote) {
       return c.json({ error: 'Quote not found' }, 404);
     }
@@ -65,14 +61,14 @@ positionsRouter.get('/quote', async (c) => {
       symbol,
       shortCode: quote.shortCode,
       name: quote.name,
-      market: quote.marketCategory ?? 'KRX',
-      assetType: inferQuotedAssetType(assetType ?? null, quote.operation),
+      market: quote.marketCategory ?? market ?? null,
+      assetType: inferQuotedAssetType(assetType ?? null, quote),
       currentValue: quote.closePrice,
       currentUnitPrice: quote.closePrice,
       currentPriceAsOf: quote.asOfDate,
       currentPriceChange: quote.change,
       currentPriceChangeRate: quote.changeRate,
-      currentPriceSource: 'FSC_STOCK_PRICE_API',
+      currentPriceSource: quote.source,
     });
   } catch (error: any) {
     return c.json({ error: error.message || 'Failed to fetch quote' }, 502);

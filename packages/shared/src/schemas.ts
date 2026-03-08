@@ -67,7 +67,7 @@ export const PublicPortfolioEntrySchema = z.object({
   isEstimatedReturn: z.boolean().default(false),
   currentUnitPrice: z.number().nullable().optional(),
   currentPriceAsOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  currentPriceSource: z.enum(['MANUAL', 'FSC_STOCK_PRICE_API']).nullable().optional(),
+  currentPriceSource: z.enum(['MANUAL', 'FSC_STOCK_PRICE_API', 'YAHOO_FINANCE']).nullable().optional(),
 });
 
 export const PublicPortfolioWarningSchema = z.object({
@@ -125,7 +125,7 @@ export const PositionSchema = z.object({
   currentPriceAsOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   currentPriceChange: z.number().nullable().optional(),
   currentPriceChangeRate: z.number().nullable().optional(),
-  currentPriceSource: z.enum(['MANUAL', 'FSC_STOCK_PRICE_API']).nullable().optional(),
+  currentPriceSource: z.enum(['MANUAL', 'FSC_STOCK_PRICE_API', 'YAHOO_FINANCE']).nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

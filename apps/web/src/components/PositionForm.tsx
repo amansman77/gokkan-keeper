@@ -19,14 +19,35 @@ interface PositionFormProps {
   onCancel: () => void;
 }
 
-const AUTO_PRICE_SUPPORTED_MARKETS = new Set(['KRX', 'KOSDAQ', 'KOSPI', 'KONEX']);
+const AUTO_PRICE_SUPPORTED_MARKETS = new Set([
+  'KRX',
+  'KOSDAQ',
+  'KOSPI',
+  'KONEX',
+  'NASDAQ',
+  'NYSE',
+  'AMEX',
+  'TSE',
+  'HKEX',
+  'SSE',
+  'SZSE',
+]);
+const AUTO_PRICE_SUPPORTED_ASSET_TYPES = new Set(['STOCK', 'ETF']);
 
-function supportsAutoPrice(symbol: string, market: string | null | undefined) {
+function supportsAutoPrice(symbol: string, market: string | null | undefined, assetType: string | null | undefined) {
   const normalizedSymbol = symbol.trim().toUpperCase();
-  const hasShortCode = /^\d{6}$/.test(normalizedSymbol);
-  if (!hasShortCode) return false;
-  if (!market) return true;
-  return AUTO_PRICE_SUPPORTED_MARKETS.has(market.toUpperCase());
+  if (!normalizedSymbol) return false;
+
+  const normalizedAssetType = assetType?.trim().toUpperCase();
+  if (normalizedAssetType && !AUTO_PRICE_SUPPORTED_ASSET_TYPES.has(normalizedAssetType)) {
+    return false;
+  }
+
+  if (market) {
+    return AUTO_PRICE_SUPPORTED_MARKETS.has(market.toUpperCase());
+  }
+
+  return /^\d{6}$/.test(normalizedSymbol) || /^[A-Z][A-Z0-9.\-=/^]{0,14}$/.test(normalizedSymbol);
 }
 
 function mapPublicPositionValidationError(error: PublicPositionValidationError): string {
@@ -55,7 +76,7 @@ export default function PositionForm({
   const [quoteMessage, setQuoteMessage] = useState<string | null>(null);
   const hasCustomMarket = !!formData.market && !POSITION_MARKETS.includes(formData.market as any);
   const hasCustomAssetType = !!formData.assetType && !POSITION_ASSET_TYPES.includes(formData.assetType as any);
-  const canAutoPrice = supportsAutoPrice(formData.symbol, formData.market);
+  const canAutoPrice = supportsAutoPrice(formData.symbol, formData.market, formData.assetType);
   const lastLookupKeyRef = useRef<string>('');
   const lookupSequenceRef = useRef(0);
 
@@ -89,7 +110,7 @@ export default function PositionForm({
       setQuoteLoading(true);
       setQuoteMessage(null);
       try {
-        const quote = await lookupPositionQuote(normalizedSymbol, formData.assetType);
+        const quote = await lookupPositionQuote(normalizedSymbol, formData.market, formData.assetType);
         if (cancelled || lookupSequence !== lookupSequenceRef.current) {
           return;
         }
@@ -162,9 +183,9 @@ export default function PositionForm({
             value={formData.symbol}
             onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="005930"
+            placeholder="005930 / AAPL / 7203.T"
           />
-          <p className="mt-1 text-xs text-gray-500">국내 주식/ETF는 6자리 단축코드를 입력하면 저장 후 현재가를 자동 조회합니다.</p>
+          <p className="mt-1 text-xs text-gray-500">국내 6자리 코드 또는 해외 Yahoo Finance 심볼을 입력하면 저장 후 현재가를 자동 조회합니다.</p>
           {quoteLoading && <p className="mt-1 text-xs text-blue-600">현재가 자동 조회 중...</p>}
           {!quoteLoading && quoteMessage && (
             <p
@@ -249,7 +270,7 @@ export default function PositionForm({
                 <div>
                   <p className="text-sm font-medium text-gray-900">현재가 자동 연동</p>
                   <p className="mt-1 text-xs text-gray-600">
-                    이 포지션은 저장 후 금융위원회 시세정보 API 기준 현재가와 평가금액을 자동으로 계산합니다.
+                    이 포지션은 저장 후 금융위원회 또는 Yahoo Finance 시세 기준 현재가와 평가금액을 자동으로 계산합니다.
                   </p>
                 </div>
                 <label className="flex items-center gap-2 text-sm text-gray-700">
