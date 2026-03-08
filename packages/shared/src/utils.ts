@@ -23,6 +23,22 @@ export function daysSince(dateString: string): number {
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 }
 
+export function normalizeInternalPath(raw: string | null | undefined, fallback = '/dashboard'): string {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) {
+    return fallback;
+  }
+
+  if (/[\r\n]/.test(raw)) {
+    return fallback;
+  }
+
+  if (raw.startsWith('/login')) {
+    return fallback;
+  }
+
+  return raw;
+}
+
 export interface ComparisonResult {
   amountDiff: number;
   percentDiff: number;

@@ -1,20 +1,15 @@
 import { Hono } from 'hono';
 import type { Env } from '../types';
+import { normalizeInternalPath } from '@gokkan-keeper/shared';
 import { clearSessionCookie, createSessionToken, readSessionFromCookie, setSessionCookie } from '../auth/session';
 
 export const authRouter = new Hono<{ Bindings: Env }>();
-
-function normalizeNextPath(next?: string): string {
-  if (!next || !next.startsWith('/')) return '/dashboard';
-  if (next.startsWith('/login')) return '/dashboard';
-  return next;
-}
 
 authRouter.post('/google', async (c) => {
   try {
     const body = await c.req.json();
     const credential = typeof body?.credential === 'string' ? body.credential : '';
-    const next = normalizeNextPath(typeof body?.next === 'string' ? body.next : undefined);
+    const next = normalizeInternalPath(typeof body?.next === 'string' ? body.next : undefined);
 
     if (!credential) {
       return c.json({ error: 'Missing credential' }, 400);

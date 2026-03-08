@@ -1,7 +1,7 @@
+import { normalizeInternalPath } from '@gokkan-keeper/shared';
+
 export function normalizeNextPath(raw: string | null): string {
-  if (!raw || !raw.startsWith('/')) return '/dashboard';
-  if (raw.startsWith('/login')) return '/dashboard';
-  return raw;
+  return normalizeInternalPath(raw);
 }
 
 export function loadGoogleIdentityScript(): Promise<void> {

@@ -57,6 +57,7 @@ export default function PositionForm({
   const hasCustomAssetType = !!formData.assetType && !POSITION_ASSET_TYPES.includes(formData.assetType as any);
   const canAutoPrice = supportsAutoPrice(formData.symbol, formData.market);
   const lastLookupKeyRef = useRef<string>('');
+  const lookupSequenceRef = useRef(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,15 +78,21 @@ export default function PositionForm({
       return;
     }
 
+    let cancelled = false;
     const normalizedSymbol = formData.symbol.trim().toUpperCase();
     const lookupKey = `${normalizedSymbol}:${formData.market || ''}:${formData.assetType || ''}`;
     if (lookupKey === lastLookupKeyRef.current) return;
+    const lookupSequence = lookupSequenceRef.current + 1;
+    lookupSequenceRef.current = lookupSequence;
 
     const timer = window.setTimeout(async () => {
       setQuoteLoading(true);
       setQuoteMessage(null);
       try {
         const quote = await lookupPositionQuote(normalizedSymbol, formData.assetType);
+        if (cancelled || lookupSequence !== lookupSequenceRef.current) {
+          return;
+        }
         lastLookupKeyRef.current = lookupKey;
         setFormData((prev) => ({
           ...prev,
@@ -96,17 +103,25 @@ export default function PositionForm({
         }));
         setQuoteMessage(`자동 입력 완료 · ${quote.currentPriceAsOf} 종가 기준`);
       } catch (error: any) {
+        if (cancelled || lookupSequence !== lookupSequenceRef.current) {
+          return;
+        }
         if (error.message === 'Quote not found') {
           setQuoteMessage('자동 시세를 찾지 못해 수동 입력으로 진행합니다.');
         } else {
           setQuoteMessage(error.message || '현재가 자동 조회에 실패했습니다.');
         }
       } finally {
-        setQuoteLoading(false);
+        if (!cancelled && lookupSequence === lookupSequenceRef.current) {
+          setQuoteLoading(false);
+        }
       }
     }, 350);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [canAutoPrice, enableQuoteAutoFill, formData.assetType, formData.market, formData.symbol]);
 
   return (
