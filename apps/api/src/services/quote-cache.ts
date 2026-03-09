@@ -21,6 +21,40 @@ export function getCacheKey(symbol: string, operation: PositionQuoteOperation): 
   return `${operation}:${symbol}`;
 }
 
+function normalizeCachedQuote(
+  cacheKey: string,
+  parsed: Partial<PositionQuote>,
+): PositionQuote | undefined {
+  const [operation, ...symbolParts] = cacheKey.split(':');
+  const lookupSymbol = symbolParts.join(':');
+
+  if (!lookupSymbol || typeof parsed.closePrice !== 'number' || typeof parsed.asOfDate !== 'string') {
+    return undefined;
+  }
+
+  const normalizedOperation = (parsed.operation ?? operation) as PositionQuoteOperation;
+  const source = parsed.source
+    ?? (normalizedOperation === 'YAHOO_CHART' ? 'YAHOO_FINANCE' : 'FSC_STOCK_PRICE_API');
+  const assetType = parsed.assetType
+    ?? (normalizedOperation === 'getETFPriceInfo' || normalizedOperation === 'getSecuritiesPriceInfo'
+      ? 'ETF'
+      : 'STOCK');
+
+  return {
+    shortCode: parsed.shortCode ?? lookupSymbol,
+    resolvedSymbol: parsed.resolvedSymbol ?? parsed.shortCode ?? lookupSymbol,
+    name: parsed.name ?? null,
+    marketCategory: parsed.marketCategory ?? null,
+    closePrice: parsed.closePrice,
+    change: parsed.change ?? null,
+    changeRate: parsed.changeRate ?? null,
+    asOfDate: parsed.asOfDate,
+    operation: normalizedOperation,
+    source,
+    assetType,
+  };
+}
+
 export async function getCachedQuote(
   db: D1Database | undefined,
   cacheKey: string,
@@ -42,7 +76,7 @@ export async function getCachedQuote(
   if (!row.quote_json) return null;
 
   try {
-    return JSON.parse(row.quote_json) as PositionQuote;
+    return normalizeCachedQuote(cacheKey, JSON.parse(row.quote_json) as Partial<PositionQuote>);
   } catch {
     return undefined;
   }
