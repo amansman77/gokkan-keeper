@@ -5,6 +5,35 @@
 
 ## 배포 전 준비사항
 
+### 0. Cloudflare 토큰 자동 로드 설정
+
+반복 배포용으로는 `direnv`를 권장합니다. 한 번만 설정하면 이 레포에 들어올 때마다 `CLOUDFLARE_API_TOKEN`이 자동으로 로드됩니다.
+
+```bash
+# macOS
+brew install direnv
+
+# zsh 설정 (최초 1회)
+echo 'eval "$(direnv hook zsh)"' >> ~/.zshrc
+
+# 쉘 재시작 후
+cd /path/to/gokkan-keeper
+cp .envrc.example .envrc
+
+# .envrc 안의 토큰 값을 실제 값으로 수정
+$EDITOR .envrc
+
+# 이 레포에 대해 허용
+direnv allow
+```
+
+이후에는 레포 루트에서 별도 `export` 없이 배포할 수 있습니다.
+
+```bash
+pnpm deploy:prod:api
+pnpm deploy:prod:web
+```
+
 ### 1. 빌드 확인
 
 ```bash
@@ -83,14 +112,12 @@ pnpm wrangler secret list --env production
 ### Backend 배포
 
 ```bash
-cd apps/api
+# 레포 루트에서
+pnpm deploy:prod:api
 
-# 프로덕션 환경으로 배포
+# 또는 apps/api 에서 직접
+cd apps/api
 pnpm run deploy
-# 또는
-pnpm wrangler deploy --env production
-# 또는
-npx wrangler deploy --env production
 ```
 
 **참고**: 
@@ -176,6 +203,18 @@ netlify deploy --prod
 
 **중요**: Deploy command를 설정하지 마세요! 빌드만 하면 자동으로 배포됩니다.
 
+CLI로 직접 배포할 때는 레포 루트에서 아래 명령을 사용할 수 있습니다.
+
+```bash
+pnpm deploy:prod:web
+```
+
+API와 Web을 한 번에 배포하려면:
+
+```bash
+pnpm deploy:prod
+```
+
 ## 배포 후 확인사항
 
 ### 1. Health Check
@@ -237,6 +276,8 @@ curl -H "X-API-Secret: wrong-secret" https://your-api-domain.com/granaries
 ### Backend 배포 실패
 
 - `wrangler.toml`의 `database_id` 확인
+- `CLOUDFLARE_API_TOKEN`이 현재 셸에 로드되어 있는지 확인: `echo $CLOUDFLARE_API_TOKEN`
+- `direnv allow`를 다시 실행해 로컬 환경 변수가 적용됐는지 확인
 - Cloudflare 계정 로그인 확인: `wrangler login`
 - 빌드 오류 확인: `pnpm --filter shared build` 실행
 
@@ -280,4 +321,3 @@ rm -rf apps/api/.wrangler
 cd apps/api
 pnpm migrate:local
 ```
-

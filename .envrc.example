@@ -1,0 +1,4 @@
+export CLOUDFLARE_API_TOKEN="replace-with-your-cloudflare-api-token"
+
+# Optional:
+# export CLOUDFLARE_ACCOUNT_ID="replace-with-your-cloudflare-account-id"
