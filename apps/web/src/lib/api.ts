@@ -14,7 +14,6 @@ import type {
   JudgmentDiaryListFilters,
   PublicPortfolioEntry,
   PublicPortfolioWarning,
-  ConsultingRequest,
   ConsultingRequestResult,
   Position,
   CreatePosition,
@@ -82,11 +81,12 @@ async function fetchJson<T>(
   const url = `${API_BASE_URL}${endpoint}`;
 
   try {
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
     const response = await fetch(url, {
       ...(config.withCredentials ? { credentials: 'include' as const } : {}),
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...options.headers,
       },
     });
@@ -217,10 +217,10 @@ export async function getPublicPortfolio(): Promise<PublicPortfolioResponseData>
   return fetchPublicAPI<PublicPortfolioResponseData>('/public/portfolio');
 }
 
-export async function submitConsultingRequest(data: ConsultingRequest): Promise<ConsultingRequestResult> {
+export async function submitConsultingRequest(data: FormData): Promise<ConsultingRequestResult> {
   return fetchPublicAPI<ConsultingRequestResult>('/public/consulting-request', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: data,
   });
 }
 

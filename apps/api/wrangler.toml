@@ -23,11 +23,6 @@ database_name = "shared-db"
 database_id = "894124e2-8236-4647-a3a0-bc8674865889"
 migrations_dir = "../../migrations"
 
-# R2 bucket (미래 사용을 위해 주석 처리)
-# [[env.production.r2_buckets]]
-# binding = "STORAGE"
-# bucket_name = "gokkan-keeper-storage"
-
 [env.production.vars]
 NODE_ENV = "production"
 FSC_STOCK_API_BASE_URL = "https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService"

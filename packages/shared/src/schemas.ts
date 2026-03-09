@@ -89,12 +89,9 @@ export const PublicPortfolioResponseSchema = z.object({
 });
 
 export const ConsultingRequestSchema = z.object({
-  email: z.string().email(),
-  portfolioSizeRange: z.string().max(100).nullable().optional(),
-  currentConcern: z.string().min(1).max(2000),
-  riskTolerance: z.string().min(1).max(200),
-  investmentHorizon: z.string().min(1).max(200),
-  discordHandle: z.string().max(100).nullable().optional(),
+  email: z.string().trim().email(),
+  concern: z.string().trim().min(1).max(2000),
+  sourcePage: z.string().trim().max(300).optional(),
 });
 
 export const ConsultingRequestResultSchema = z.object({
