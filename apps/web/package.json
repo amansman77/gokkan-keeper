@@ -8,7 +8,7 @@
     "build:prod": "node ./scripts/generate-seo-files.mjs && tsc && vite build --mode production",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "deploy": "wrangler pages deploy dist --project-name=gokkan-keeper-web --branch=main",
+    "deploy": "wrangler pages deploy",
     "deploy:prod": "pnpm build:prod && pnpm deploy",
     "cap:sync": "cap sync",
     "cap:ios": "cap open ios",
