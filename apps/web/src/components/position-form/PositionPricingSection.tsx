@@ -22,7 +22,7 @@ export function PositionPricingSection({
 }: PositionPricingSectionProps) {
   return (
     <>
-      <div className="md:col-span-2">
+      <div className="md:col-span-3">
         {canAutoPrice ? (
           <div className="rounded-md border border-gray-200 bg-gray-50 p-4">
             <div className="flex items-start justify-between gap-4">
@@ -76,19 +76,6 @@ export function PositionPricingSection({
             <p className="mt-1 text-xs text-gray-500">자동 시세 연동이 없는 자산은 이 값을 기준으로 평가금액이 계산됩니다.</p>
           </div>
         )}
-      </div>
-      <div>
-        <label htmlFor="weightPercent" className="block text-sm font-medium text-gray-700 mb-2">비중 %(선택)</label>
-        <input
-          id="weightPercent"
-          type="number"
-          step="0.01"
-          min={0}
-          max={100}
-          value={formData.weightPercent ?? ''}
-          onChange={(e) => setFormData((prev) => ({ ...prev, weightPercent: parseNullableNumber(e.target.value) }))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
       </div>
     </>
   );

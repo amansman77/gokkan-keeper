@@ -14,7 +14,6 @@ interface PublicPortfolioRow {
   quantity: number | null;
   avg_cost: number | null;
   current_value: number | null;
-  weight_percent: number | null;
   profit_loss: number | null;
   profit_loss_percent: number | null;
   public_thesis: string | null;
@@ -41,7 +40,6 @@ function toPublicPosition(row: PublicPortfolioRow): Position {
     quantity: toNullableNumber(row.quantity),
     avgCost: toNullableNumber(row.avg_cost),
     currentValue: toNullableNumber(row.current_value),
-    weightPercent: toNullableNumber(row.weight_percent),
     profitLoss: toNullableNumber(row.profit_loss),
     profitLossPercent: toNullableNumber(row.profit_loss_percent),
     note: null,
@@ -86,16 +84,12 @@ export async function buildPublicPortfolioResponse(
 ): Promise<PublicPortfolioResponse> {
   const quoteMap = await loadQuoteMap(rows, env, db);
   const warnings: PublicPortfolioResponse['meta']['warnings'] = [];
-  const hasAnyWeight = rows.some(
-    (row) => row.weight_percent !== null && row.weight_percent !== undefined,
-  );
 
   const evaluated = rows.map((row) => {
     const basePosition = toPublicPosition(row);
     const quote = quoteMap.get(row.id) ?? null;
     const enrichedPosition = enrichPositionWithQuote(basePosition, quote);
     const positionMarketValue = getPositionMarketValue(enrichedPosition);
-    const weightPercent = toNullableNumber(row.weight_percent);
     const avgCost = enrichedPosition.avgCost ?? null;
 
     let returnPercent: number | null = null;
@@ -125,7 +119,6 @@ export async function buildPublicPortfolioResponse(
       row,
       enrichedPosition,
       positionMarketValue,
-      weightPercent,
       returnPercent,
       isEstimatedReturn,
     };
@@ -134,18 +127,11 @@ export async function buildPublicPortfolioResponse(
   const totalAllocationBasis = evaluated.reduce((acc, item) => acc + (item.positionMarketValue ?? 0), 0);
 
   for (const item of evaluated) {
-    if (hasAnyWeight && item.weightPercent === null) {
+    if (item.positionMarketValue === null) {
       warnings.push({
         positionId: item.row.id,
         symbol: item.row.symbol,
-        message: 'Missing weightPercent while portfolio uses weight-based allocation.',
-      });
-    }
-    if (!hasAnyWeight && item.positionMarketValue === null) {
-      warnings.push({
-        positionId: item.row.id,
-        symbol: item.row.symbol,
-        message: 'Missing allocation inputs. Set currentValue (or quantity+currentValue) or use weightPercent.',
+        message: 'Missing allocation inputs. Set currentValue or provide quantity with a usable price.',
       });
     }
   }
@@ -155,16 +141,8 @@ export async function buildPublicPortfolioResponse(
     name: item.row.name,
     granaryId: item.row.granary_id ?? null,
     granaryName: item.row.granary_name ?? null,
-    allocationPercent: (
-      hasAnyWeight
-        ? item.weightPercent !== null
-        : item.positionMarketValue !== null
-    ) && (hasAnyWeight || totalAllocationBasis > 0)
-      ? (
-        hasAnyWeight
-          ? (item.weightPercent ?? null)
-          : ((item.positionMarketValue ?? 0) / totalAllocationBasis) * 100
-      )
+    allocationPercent: item.positionMarketValue !== null && totalAllocationBasis > 0
+      ? ((item.positionMarketValue ?? 0) / totalAllocationBasis) * 100
       : null,
     returnPercent: item.returnPercent,
     thesis: item.row.public_thesis ?? null,

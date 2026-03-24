@@ -114,7 +114,7 @@ export default function PublicPortfolio() {
             <p className="text-sm text-gray-700 mt-1">
               {pricingMeta.integratedCount > 0
                 ? `${pricingMeta.latestAsOf ? `${pricingMeta.latestAsOf} 기준 ` : ''}금융위/Yahoo Finance 시세 연동`
-                : '최신 스냅샷 기반 비중/수익률 추정치'}
+                : '입력된 포트폴리오 평가금액 기준 자동 계산'}
             </p>
           </div>
         </div>

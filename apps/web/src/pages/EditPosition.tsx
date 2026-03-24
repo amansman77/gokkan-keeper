@@ -64,7 +64,6 @@ export default function EditPosition() {
     quantity: position.quantity ?? null,
     avgCost: position.avgCost ?? null,
     currentValue: position.currentValue ?? null,
-    weightPercent: position.weightPercent ?? null,
     profitLoss: position.profitLoss ?? null,
     profitLossPercent: position.profitLossPercent ?? null,
     note: position.note ?? null,

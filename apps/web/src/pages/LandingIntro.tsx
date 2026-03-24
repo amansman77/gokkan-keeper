@@ -148,7 +148,7 @@ function TrackRecordSummary() {
         setData({
           publicPositionCount: result.data.length,
           weightedAverageReturn,
-          snapshotReferenceText: '최신 스냅샷 기반 비중/수익률 추정치',
+          snapshotReferenceText: '입력된 포트폴리오 평가금액 기준 자동 계산',
         });
       } catch (err: any) {
         if (cancelled) return;
@@ -188,7 +188,7 @@ function TrackRecordSummary() {
         />
         <StatCard
           label="기준"
-          value={loading ? '로딩 중...' : '스냅샷 기반'}
+          value={loading ? '로딩 중...' : '포트폴리오 기반'}
           description={data?.snapshotReferenceText}
         />
       </div>

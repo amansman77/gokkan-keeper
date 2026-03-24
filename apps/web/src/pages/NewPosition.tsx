@@ -34,7 +34,6 @@ export default function NewPosition() {
     quantity: null,
     avgCost: null,
     currentValue: null,
-    weightPercent: null,
     profitLoss: null,
     profitLossPercent: null,
     note: null,

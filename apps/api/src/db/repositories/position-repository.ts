@@ -55,7 +55,7 @@ export class PositionRepository {
         data.quantity ?? null,
         data.avgCost ?? null,
         data.currentValue ?? null,
-        data.weightPercent ?? null,
+        null,
         data.profitLoss ?? null,
         data.profitLossPercent ?? null,
         data.note ?? null,
@@ -94,7 +94,6 @@ export class PositionRepository {
     if (data.quantity !== undefined) updateField('quantity', data.quantity ?? null);
     if (data.avgCost !== undefined) updateField('avg_cost', data.avgCost ?? null);
     if (data.currentValue !== undefined) updateField('current_value', data.currentValue ?? null);
-    if (data.weightPercent !== undefined) updateField('weight_percent', data.weightPercent ?? null);
     if (data.profitLoss !== undefined) updateField('profit_loss', data.profitLoss ?? null);
     if (data.profitLossPercent !== undefined) updateField('profit_loss_percent', data.profitLossPercent ?? null);
     if (data.note !== undefined) updateField('note', data.note ?? null);
@@ -143,7 +142,6 @@ export class PositionRepository {
           p.quantity,
           p.avg_cost,
           p.current_value,
-          p.weight_percent,
           p.profit_loss,
           p.profit_loss_percent,
           p.public_thesis,

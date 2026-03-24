@@ -54,7 +54,6 @@ export type PublicPositionValidationError =
 export interface PublicPositionValidationInput {
   isPublic?: boolean | null;
   publicThesis?: string | null;
-  weightPercent?: number | null;
   quantity?: number | null;
   avgCost?: number | null;
   currentValue?: number | null;
@@ -111,7 +110,6 @@ export function validatePublicPositionInput(
   }
 
   const hasCurrentValue = data.currentValue !== null && data.currentValue !== undefined;
-  const hasWeightPercent = data.weightPercent !== null && data.weightPercent !== undefined;
   const hasCostBasis =
     data.quantity !== null &&
     data.quantity !== undefined &&
@@ -119,7 +117,7 @@ export function validatePublicPositionInput(
     data.avgCost !== undefined;
   const hasAutomaticPrice = !!data.supportsAutomaticPrice;
 
-  if (!hasCurrentValue && !hasWeightPercent && !(hasCostBasis && hasAutomaticPrice)) {
+  if (!hasCurrentValue && !(hasCostBasis && hasAutomaticPrice)) {
     return 'MISSING_PUBLIC_METRICS';
   }
 
@@ -133,11 +131,11 @@ export function formatPublicPositionValidationError(
   const messages = {
     ko: {
       MISSING_PUBLIC_THESIS: '공개 포지션은 공개 한 줄 가설이 필요합니다.',
-      MISSING_PUBLIC_METRICS: '공개 포지션은 비중, 현재가치 또는 자동 시세 연동 가능한 (수량 + 평균단가)가 필요합니다.',
+      MISSING_PUBLIC_METRICS: '공개 포지션은 현재가치 또는 자동 시세 연동 가능한 (수량 + 평균단가)가 필요합니다.',
     },
     en: {
       MISSING_PUBLIC_THESIS: 'Public position requires publicThesis.',
-      MISSING_PUBLIC_METRICS: 'Public position requires weightPercent, currentValue, or auto-priced (quantity and avgCost).',
+      MISSING_PUBLIC_METRICS: 'Public position requires currentValue or auto-priced (quantity and avgCost).',
     },
   } as const;
 

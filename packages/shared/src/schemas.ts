@@ -136,7 +136,6 @@ export const CreatePositionSchema = z.object({
   quantity: z.number().nullable().optional(),
   avgCost: z.number().nullable().optional(),
   currentValue: z.number().nullable().optional(),
-  weightPercent: z.number().min(0).max(100).nullable().optional(),
   profitLoss: z.number().nullable().optional(),
   profitLossPercent: z.number().nullable().optional(),
   note: z.string().max(1000).nullable().optional(),
