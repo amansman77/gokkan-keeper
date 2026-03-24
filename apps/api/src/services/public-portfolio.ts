@@ -1,7 +1,7 @@
 import type { D1Database } from '@cloudflare/workers-types';
-import type { PublicPortfolioResponse, Position } from '@gokkan-keeper/shared';
+import { getPositionMarketValue, type PublicPortfolioResponse, type Position } from '@gokkan-keeper/shared';
 import type { Env } from '../types';
-import { enrichPositionWithQuote, MarketQuoteService } from './market-price';
+import { enrichPositionWithQuote, loadQuotesForTargets, MarketQuoteService } from './market-price';
 
 interface PublicPortfolioRow {
   id: string;
@@ -54,28 +54,13 @@ function toPublicPosition(row: PublicPortfolioRow): Position {
   };
 }
 
-function resolvePositionMarketValue(position: Position): number | null {
-  if (position.currentMarketValue !== null && position.currentMarketValue !== undefined) {
-    return position.currentMarketValue;
-  }
-  if (position.currentValue === null || position.currentValue === undefined) {
-    return null;
-  }
-  if (position.quantity !== null && position.quantity !== undefined) {
-    return position.quantity * position.currentValue;
-  }
-  return position.currentValue;
-}
-
 async function loadQuoteMap(
   rows: PublicPortfolioRow[],
   env?: Env,
   db?: D1Database,
 ): Promise<Map<string, Awaited<ReturnType<MarketQuoteService['getQuoteBySymbol']>>>> {
-  const quoteMap = new Map<string, Awaited<ReturnType<MarketQuoteService['getQuoteBySymbol']>>>();
-
   if (!env || !db) {
-    return quoteMap;
+    return new Map<string, Awaited<ReturnType<MarketQuoteService['getQuoteBySymbol']>>>();
   }
 
   const quoteService = new MarketQuoteService({
@@ -83,23 +68,15 @@ async function loadQuoteMap(
     DB: db,
   });
 
-  const quoteEntries = await Promise.all(
-    rows.map(async (row) => (
-      [
-        row.id,
-        await quoteService.getQuoteBySymbol(row.symbol, {
-          market: row.market,
-          assetType: row.asset_type ?? null,
-        }),
-      ] as const
-    )),
+  return loadQuotesForTargets(
+    rows.map((row) => ({
+      id: row.id,
+      symbol: row.symbol,
+      market: row.market,
+      assetType: row.asset_type ?? null,
+    })),
+    quoteService,
   );
-
-  for (const [rowId, quote] of quoteEntries) {
-    quoteMap.set(rowId, quote);
-  }
-
-  return quoteMap;
 }
 
 export async function buildPublicPortfolioResponse(
@@ -117,7 +94,7 @@ export async function buildPublicPortfolioResponse(
     const basePosition = toPublicPosition(row);
     const quote = quoteMap.get(row.id) ?? null;
     const enrichedPosition = enrichPositionWithQuote(basePosition, quote);
-    const positionMarketValue = resolvePositionMarketValue(enrichedPosition);
+    const positionMarketValue = getPositionMarketValue(enrichedPosition);
     const weightPercent = toNullableNumber(row.weight_percent);
     const avgCost = enrichedPosition.avgCost ?? null;
 

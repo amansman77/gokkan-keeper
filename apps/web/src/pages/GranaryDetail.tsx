@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { deletePosition, getGranary, getGranaryExport, getPositions, getSnapshots } from '../lib/api';
 import type { GranaryWithLatestSnapshot, Snapshot, Position } from '../lib/types';
-import { formatCurrency, formatDate } from '@gokkan-keeper/shared';
+import { formatCurrency, formatDate, getPositionMarketValue } from '@gokkan-keeper/shared';
 
 export default function GranaryDetail() {
   const { id } = useParams<{ id: string }>();
@@ -82,19 +82,6 @@ export default function GranaryDetail() {
     } finally {
       setDownloading(false);
     }
-  };
-
-  const getPositionMarketValue = (position: Position) => {
-    if (position.currentMarketValue !== null && position.currentMarketValue !== undefined) {
-      return position.currentMarketValue;
-    }
-    if (position.currentValue === null || position.currentValue === undefined) {
-      return null;
-    }
-    if (position.quantity !== null && position.quantity !== undefined) {
-      return position.quantity * position.currentValue;
-    }
-    return position.currentValue;
   };
 
   const getPriceSourceLabel = (source: Position['currentPriceSource']) => {

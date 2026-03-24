@@ -4,6 +4,13 @@ import { FscStockPriceService } from './fsc-stock-price';
 import type { PositionQuote, QuoteLookupInput } from './quote-types';
 import { YahooFinanceQuoteService } from './yahoo-finance';
 
+interface QuoteLookupTarget {
+  id: string;
+  symbol: string;
+  market?: string | null;
+  assetType?: string | null;
+}
+
 export class MarketQuoteService {
   private readonly fscService: FscStockPriceService;
   private readonly yahooService: YahooFinanceQuoteService;
@@ -107,24 +114,54 @@ export function enrichPositionWithQuote(position: Position, quote?: PositionQuot
   };
 }
 
+export async function loadQuotesForTargets(
+  targets: QuoteLookupTarget[],
+  quoteService: Pick<MarketQuoteService, 'getQuoteBySymbol'>,
+): Promise<Map<string, PositionQuote | null>> {
+  const pendingByLookupKey = new Map<string, Promise<PositionQuote | null>>();
+  const lookupKeyByTargetId = new Map<string, string>();
+
+  for (const target of targets) {
+    const lookupKey = [
+      target.symbol.trim().toUpperCase(),
+      target.market?.trim().toUpperCase() ?? '',
+      target.assetType?.trim().toUpperCase() ?? '',
+    ].join('::');
+
+    let pending = pendingByLookupKey.get(lookupKey);
+    if (!pending) {
+      pending = quoteService.getQuoteBySymbol(target.symbol, {
+        market: target.market ?? null,
+        assetType: target.assetType ?? null,
+      });
+      pendingByLookupKey.set(lookupKey, pending);
+    }
+    lookupKeyByTargetId.set(target.id, lookupKey);
+  }
+
+  const resolvedQuotes = new Map<string, PositionQuote | null>(
+    await Promise.all(
+      [...pendingByLookupKey.entries()].map(async ([lookupKey, pending]) => [lookupKey, await pending] as const),
+    ),
+  );
+
+  return new Map(
+    targets.map((target) => [target.id, resolvedQuotes.get(lookupKeyByTargetId.get(target.id) ?? '') ?? null] as const),
+  );
+}
+
 export async function enrichPositionsWithLiveQuotes(positions: Position[], env: Env): Promise<Position[]> {
   const quoteService = new MarketQuoteService(env);
 
   try {
-    const entries = await Promise.all(
-      positions.map(async (position) => (
-        [
-          position.id,
-          await quoteService.getQuoteBySymbol(position.symbol, {
-            market: position.market ?? null,
-            assetType: position.assetType ?? null,
-          }),
-        ] as const
-      )),
-    );
-
-    const quoteMap = new Map(
-      entries.filter((entry): entry is readonly [string, PositionQuote] => !!entry[1]),
+    const quoteMap = await loadQuotesForTargets(
+      positions.map((position) => ({
+        id: position.id,
+        symbol: position.symbol,
+        market: position.market ?? null,
+        assetType: position.assetType ?? null,
+      })),
+      quoteService,
     );
 
     return positions.map((position) => enrichPositionWithQuote(position, quoteMap.get(position.id) ?? null));

@@ -1,3 +1,5 @@
+import type { Position } from './schemas';
+
 export function formatCurrency(amount: number, currency: string): string {
   return new Intl.NumberFormat('ko-KR', {
     style: 'currency',
@@ -56,6 +58,31 @@ export interface PublicPositionValidationInput {
   quantity?: number | null;
   avgCost?: number | null;
   currentValue?: number | null;
+  supportsAutomaticPrice?: boolean | null;
+}
+
+type PublicPositionValidationLocale = 'ko' | 'en';
+
+function hasValue(value: number | null | undefined): value is number {
+  return value !== null && value !== undefined;
+}
+
+export function getPositionMarketValue(
+  position: Pick<Position, 'currentMarketValue' | 'currentValue' | 'quantity'>,
+): number | null {
+  if (hasValue(position.currentMarketValue)) {
+    return position.currentMarketValue;
+  }
+
+  if (!hasValue(position.currentValue)) {
+    return null;
+  }
+
+  if (hasValue(position.quantity)) {
+    return position.quantity * position.currentValue;
+  }
+
+  return position.currentValue;
 }
 
 export function calculateComparison(current: number, previous: number): ComparisonResult | null {
@@ -90,10 +117,29 @@ export function validatePublicPositionInput(
     data.quantity !== undefined &&
     data.avgCost !== null &&
     data.avgCost !== undefined;
+  const hasAutomaticPrice = !!data.supportsAutomaticPrice;
 
-  if (!hasCurrentValue && !hasCostBasis && !hasWeightPercent) {
+  if (!hasCurrentValue && !hasWeightPercent && !(hasCostBasis && hasAutomaticPrice)) {
     return 'MISSING_PUBLIC_METRICS';
   }
 
   return null;
+}
+
+export function formatPublicPositionValidationError(
+  error: PublicPositionValidationError,
+  locale: PublicPositionValidationLocale = 'en',
+): string {
+  const messages = {
+    ko: {
+      MISSING_PUBLIC_THESIS: '공개 포지션은 공개 한 줄 가설이 필요합니다.',
+      MISSING_PUBLIC_METRICS: '공개 포지션은 비중, 현재가치 또는 자동 시세 연동 가능한 (수량 + 평균단가)가 필요합니다.',
+    },
+    en: {
+      MISSING_PUBLIC_THESIS: 'Public position requires publicThesis.',
+      MISSING_PUBLIC_METRICS: 'Public position requires weightPercent, currentValue, or auto-priced (quantity and avgCost).',
+    },
+  } as const;
+
+  return messages[locale][error];
 }

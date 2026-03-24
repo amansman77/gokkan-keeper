@@ -4,18 +4,26 @@ import { DBClient } from '../db/client';
 import {
   CreatePositionSchema,
   UpdatePositionSchema,
+  formatPublicPositionValidationError,
   validatePublicPositionInput,
-  type PublicPositionValidationError,
 } from '@gokkan-keeper/shared';
 import { enrichPositionsWithLiveQuotes, inferQuotedAssetType, MarketQuoteService } from '../services/market-price';
 
 export const positionsRouter = new Hono<{ Bindings: Env }>();
 
-function mapPublicPositionValidationError(error: PublicPositionValidationError): string {
-  if (error === 'MISSING_PUBLIC_THESIS') {
-    return 'Public position requires publicThesis.';
-  }
-  return 'Public position requires weightPercent, currentValue, or (quantity and avgCost).';
+function supportsAutomaticPriceLookup(
+  service: MarketQuoteService,
+  input: {
+    symbol: string;
+    market?: string | null;
+    assetType?: string | null;
+  },
+): boolean {
+  return service.hasAvailableProvider({
+    symbol: input.symbol,
+    market: input.market ?? null,
+    assetType: input.assetType ?? null,
+  });
 }
 
 positionsRouter.get('/', async (c) => {
@@ -91,10 +99,14 @@ positionsRouter.post('/', async (c) => {
   try {
     const body = await c.req.json();
     const validated = CreatePositionSchema.parse(body);
+    const quoteService = new MarketQuoteService(c.env);
 
-    const publicValidationError = validatePublicPositionInput(validated);
+    const publicValidationError = validatePublicPositionInput({
+      ...validated,
+      supportsAutomaticPrice: supportsAutomaticPriceLookup(quoteService, validated),
+    });
     if (publicValidationError) {
-      return c.json({ error: mapPublicPositionValidationError(publicValidationError) }, 400);
+      return c.json({ error: formatPublicPositionValidationError(publicValidationError) }, 400);
     }
 
     const db = new DBClient(c.env.DB);
@@ -121,6 +133,7 @@ positionsRouter.patch('/:id', async (c) => {
     const id = c.req.param('id');
     const body = await c.req.json();
     const validated = UpdatePositionSchema.parse(body);
+    const quoteService = new MarketQuoteService(c.env);
 
     const db = new DBClient(c.env.DB);
     const existing = await db.getPositionById(id);
@@ -133,9 +146,12 @@ positionsRouter.patch('/:id', async (c) => {
       ...validated,
     };
 
-    const publicValidationError = validatePublicPositionInput(merged);
+    const publicValidationError = validatePublicPositionInput({
+      ...merged,
+      supportsAutomaticPrice: supportsAutomaticPriceLookup(quoteService, merged),
+    });
     if (publicValidationError) {
-      return c.json({ error: mapPublicPositionValidationError(publicValidationError) }, 400);
+      return c.json({ error: formatPublicPositionValidationError(publicValidationError) }, 400);
     }
 
     if (validated.granaryId !== undefined && validated.granaryId !== null) {
