@@ -7,6 +7,7 @@ interface PublicPortfolioRow {
   id: string;
   granary_id: string | null;
   granary_name: string | null;
+  granary_currency: string | null;
   market: string | null;
   name: string;
   symbol: string;
@@ -21,10 +22,37 @@ interface PublicPortfolioRow {
   last_public_update: string | null;
 }
 
+const MARKET_CURRENCY_BY_MARKET: Record<string, string> = {
+  KRX: 'KRW',
+  KOSDAQ: 'KRW',
+  KOSPI: 'KRW',
+  KONEX: 'KRW',
+  NASDAQ: 'USD',
+  NYSE: 'USD',
+  AMEX: 'USD',
+  TSE: 'JPY',
+  HKEX: 'HKD',
+  SSE: 'CNY',
+  SZSE: 'CNY',
+};
+
 function toNullableNumber(value: unknown): number | null {
   if (value === null || value === undefined) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeCurrency(value: string | null | undefined): string | null {
+  const normalized = value?.trim().toUpperCase();
+  return normalized || null;
+}
+
+function inferPositionCurrency(row: PublicPortfolioRow): string | null {
+  const normalizedMarket = row.market?.trim().toUpperCase();
+  if (normalizedMarket && MARKET_CURRENCY_BY_MARKET[normalizedMarket]) {
+    return MARKET_CURRENCY_BY_MARKET[normalizedMarket];
+  }
+  return normalizeCurrency(row.granary_currency);
 }
 
 function toPublicPosition(row: PublicPortfolioRow): Position {
@@ -77,19 +105,65 @@ async function loadQuoteMap(
   );
 }
 
+async function loadFxRateMap(
+  rows: PublicPortfolioRow[],
+  env?: Env,
+  db?: D1Database,
+): Promise<Map<string, number>> {
+  if (!env || !db) return new Map<string, number>();
+
+  const quoteService = new MarketQuoteService({
+    ...env,
+    DB: db,
+  });
+
+  const pairs = [...new Set(
+    rows
+      .map((row) => {
+        const sourceCurrency = inferPositionCurrency(row);
+        const targetCurrency = normalizeCurrency(row.granary_currency);
+        if (!sourceCurrency || !targetCurrency || sourceCurrency === targetCurrency) return null;
+        return `${sourceCurrency}:${targetCurrency}`;
+      })
+      .filter((pair): pair is string => !!pair),
+  )];
+
+  const entries = await Promise.all(
+    pairs.map(async (pair) => {
+      const [sourceCurrency, targetCurrency] = pair.split(':');
+      const quote = await quoteService.getQuoteBySymbol(`${sourceCurrency}${targetCurrency}=X`);
+      return [pair, quote?.closePrice ?? null] as const;
+    }),
+  );
+
+  return new Map(
+    entries.filter((entry): entry is readonly [string, number] => entry[1] !== null),
+  );
+}
+
 export async function buildPublicPortfolioResponse(
   rows: PublicPortfolioRow[],
   env?: Env,
   db?: D1Database,
 ): Promise<PublicPortfolioResponse> {
   const quoteMap = await loadQuoteMap(rows, env, db);
+  const fxRateMap = await loadFxRateMap(rows, env, db);
   const warnings: PublicPortfolioResponse['meta']['warnings'] = [];
 
   const evaluated = rows.map((row) => {
     const basePosition = toPublicPosition(row);
     const quote = quoteMap.get(row.id) ?? null;
     const enrichedPosition = enrichPositionWithQuote(basePosition, quote);
-    const positionMarketValue = getPositionMarketValue(enrichedPosition);
+    const rawPositionMarketValue = getPositionMarketValue(enrichedPosition);
+    const sourceCurrency = inferPositionCurrency(row);
+    const targetCurrency = normalizeCurrency(row.granary_currency);
+    const fxKey = sourceCurrency && targetCurrency ? `${sourceCurrency}:${targetCurrency}` : null;
+    const fxRate = !fxKey || sourceCurrency === targetCurrency
+      ? 1
+      : (fxRateMap.get(fxKey) ?? null);
+    const positionMarketValue = rawPositionMarketValue !== null
+      ? rawPositionMarketValue * (fxRate ?? 1)
+      : null;
     const avgCost = enrichedPosition.avgCost ?? null;
 
     let returnPercent: number | null = null;
@@ -118,6 +192,9 @@ export async function buildPublicPortfolioResponse(
     return {
       row,
       enrichedPosition,
+      sourceCurrency,
+      targetCurrency,
+      fxRate,
       positionMarketValue,
       returnPercent,
       isEstimatedReturn,
@@ -127,6 +204,19 @@ export async function buildPublicPortfolioResponse(
   const totalAllocationBasis = evaluated.reduce((acc, item) => acc + (item.positionMarketValue ?? 0), 0);
 
   for (const item of evaluated) {
+    if (
+      item.positionMarketValue !== null &&
+      item.sourceCurrency &&
+      item.targetCurrency &&
+      item.sourceCurrency !== item.targetCurrency &&
+      item.fxRate === null
+    ) {
+      warnings.push({
+        positionId: item.row.id,
+        symbol: item.row.symbol,
+        message: `Missing FX rate for ${item.sourceCurrency}/${item.targetCurrency}. Allocation may be approximate.`,
+      });
+    }
     if (item.positionMarketValue === null) {
       warnings.push({
         positionId: item.row.id,

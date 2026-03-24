@@ -135,6 +135,7 @@ export class PositionRepository {
         SELECT
           p.id,
           p.granary_id,
+          g.currency AS granary_currency,
           p.market,
           p.name,
           p.symbol,
