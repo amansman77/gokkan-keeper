@@ -35,6 +35,7 @@ const MARKET_CURRENCY_BY_MARKET: Record<string, string> = {
   SSE: 'CNY',
   SZSE: 'CNY',
 };
+const REPORTING_CURRENCY = 'KRW';
 
 function toNullableNumber(value: unknown): number | null {
   if (value === null || value === undefined) return null;
@@ -121,7 +122,7 @@ async function loadFxRateMap(
     rows
       .map((row) => {
         const sourceCurrency = inferPositionCurrency(row);
-        const targetCurrency = normalizeCurrency(row.granary_currency);
+        const targetCurrency = REPORTING_CURRENCY;
         if (!sourceCurrency || !targetCurrency || sourceCurrency === targetCurrency) return null;
         return `${sourceCurrency}:${targetCurrency}`;
       })
@@ -156,7 +157,7 @@ export async function buildPublicPortfolioResponse(
     const enrichedPosition = enrichPositionWithQuote(basePosition, quote);
     const rawPositionMarketValue = getPositionMarketValue(enrichedPosition);
     const sourceCurrency = inferPositionCurrency(row);
-    const targetCurrency = normalizeCurrency(row.granary_currency);
+    const targetCurrency = REPORTING_CURRENCY;
     const fxKey = sourceCurrency && targetCurrency ? `${sourceCurrency}:${targetCurrency}` : null;
     const fxRate = !fxKey || sourceCurrency === targetCurrency
       ? 1
