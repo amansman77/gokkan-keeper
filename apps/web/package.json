@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node ./scripts/generate-seo-files.mjs && tsc && vite build",
-    "build:prod": "node ./scripts/generate-seo-files.mjs && tsc && vite build --mode production",
+    "build": "node ./scripts/ensure-build-env.mjs production && node ./scripts/generate-seo-files.mjs && tsc && vite build",
+    "build:prod": "node ./scripts/ensure-build-env.mjs production && node ./scripts/generate-seo-files.mjs && tsc && vite build --mode production",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "deploy": "wrangler pages deploy",

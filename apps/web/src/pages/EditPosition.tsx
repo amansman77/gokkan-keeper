@@ -96,6 +96,7 @@ export default function EditPosition() {
         loading={saving}
         error={error}
         submitLabel="저장하기"
+        enableQuoteAutoFill
         onSubmit={handleSubmit}
         onCancel={() => navigate(position.granaryId ? `/granaries/${position.granaryId}` : '/')}
       />
