@@ -9,6 +9,9 @@ import { judgmentDiaryRouter } from './routes/judgment-diary';
 import { publicRouter } from './routes/public';
 import { positionsRouter } from './routes/positions';
 import { authRouter } from './routes/auth';
+import { marketIndicesRouter } from './routes/market-indices';
+import { runAlertEngine } from './services/alert-engine';
+import { alertsRouter } from './routes/alerts';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -49,11 +52,21 @@ app.route('/auth', authRouter);
 app.use('/*', authMiddleware);
 
 // Routes
+app.route('/market-indices', marketIndicesRouter);
 app.route('/granaries', granariesRouter);
 app.route('/snapshots', snapshotsRouter);
 app.route('/status', statusRouter);
 app.route('/judgment-diary', judgmentDiaryRouter);
 app.route('/positions', positionsRouter);
 app.route('/api/positions', positionsRouter);
+app.route('/alerts', alertsRouter);
 
-export default app;
+export default {
+  fetch: app.fetch.bind(app),
+  async scheduled(event: ScheduledEvent, env: Env): Promise<void> {
+    // "0 9 * * 1-5"  → weekdays 18:00 KST daily signals
+    // "30 9 * * 5"   → Friday  18:30 KST weekly signals
+    const mode = event.cron === '30 9 * * 5' ? 'weekly' : 'daily';
+    await runAlertEngine(env, mode);
+  },
+};

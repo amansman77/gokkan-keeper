@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../lib/config';
 import type { Granary, Snapshot, StatusSummary } from '../lib/types';
 import GranaryCard from '../components/GranaryCard';
 import StatusSummaryComponent from '../components/StatusSummary';
+import MarketIndices from '../components/MarketIndices';
 
 export default function Dashboard() {
   const [granaries, setGranaries] = useState<(Granary & { latestSnapshot?: Snapshot; previousSnapshot?: Snapshot })[]>([]);
@@ -68,6 +69,8 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">곳간 목록</h1>
         <p className="text-gray-600">목적별로 정리된 자산을 확인하세요</p>
       </div>
+
+      <MarketIndices />
 
       {status && <StatusSummaryComponent status={status} />}
 
