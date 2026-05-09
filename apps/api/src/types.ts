@@ -6,6 +6,7 @@ export interface Env {
   ALLOWED_EMAIL: string;
   SESSION_SECRET: string;
   ALLOWED_SUB?: string;
+  API_SECRET?: string;
   DISCORD_WEBHOOK_URL?: string;
   FSC_STOCK_API_SERVICE_KEY?: string;
   FSC_STOCK_API_BASE_URL?: string;

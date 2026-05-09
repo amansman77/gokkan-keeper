@@ -3,6 +3,7 @@ import type { Env } from '../types';
 import { DBClient } from '../db/client';
 import { CreateGranarySchema, UpdateGranarySchema } from '@gokkan-keeper/shared';
 import { enrichPositionsWithLiveQuotes } from '../services/market-price';
+import { getTechnicalIndicators } from '../services/technical-indicators';
 
 export const granariesRouter = new Hono<{ Bindings: Env }>();
 
@@ -28,11 +29,27 @@ granariesRouter.get('/:id/export', async (c) => {
 
   const hydratedPositions = await enrichPositionsWithLiveQuotes(positions, c.env);
 
+  const indicatorResults = await Promise.all(
+    hydratedPositions.flatMap((p) => [
+      getTechnicalIndicators(p.symbol, p.market ?? null, '1d', c.env.YAHOO_FINANCE_API_BASE_URL, c.env.DB)
+        .then((r) => ({ positionId: p.id, interval: '1d' as const, data: r })),
+      getTechnicalIndicators(p.symbol, p.market ?? null, '1wk', c.env.YAHOO_FINANCE_API_BASE_URL, c.env.DB)
+        .then((r) => ({ positionId: p.id, interval: '1wk' as const, data: r })),
+    ]),
+  );
+
+  const indicators: Record<string, { '1d': unknown; '1wk': unknown }> = {};
+  for (const { positionId, interval, data } of indicatorResults) {
+    if (!indicators[positionId]) indicators[positionId] = { '1d': null, '1wk': null };
+    indicators[positionId][interval] = data;
+  }
+
   return c.json({
     exportedAt: new Date().toISOString(),
     granary,
     latestSnapshot,
     positions: hydratedPositions,
+    indicators,
   });
 });
 

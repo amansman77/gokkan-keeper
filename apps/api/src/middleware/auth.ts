@@ -9,6 +9,7 @@ function isPublicPath(pathname: string, method: string): boolean {
   if (pathname === '/auth/me') return true;
   if (pathname === '/public' || pathname.startsWith('/public/')) return true;
   if (pathname === '/api/public' || pathname.startsWith('/api/public/')) return true;
+  if (pathname.startsWith('/alerts/run/')) return true; // API_SECRET checked in handler
 
   // Public Judgment Archive: read-only access for anonymous users.
   if (method === 'GET' && (pathname === '/judgment-diary' || pathname.startsWith('/judgment-diary/'))) {

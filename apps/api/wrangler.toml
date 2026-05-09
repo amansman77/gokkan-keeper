@@ -2,6 +2,12 @@ name = "gokkan-keeper-api"
 main = "src/index.ts"
 compatibility_date = "2024-01-15"
 
+# Cron triggers (KST = UTC+9)
+# 18:00 KST weekdays → 09:00 UTC Mon-Fri  (daily signals)
+# 18:30 KST Friday   → 09:30 UTC Friday   (weekly signals)
+[triggers]
+crons = ["0 9 * * 1-5", "30 9 * * 5"]
+
 # D1 database binding (for migrations - uses production database_id)
 # Note: wrangler dev will use local SQLite file automatically
 [[d1_databases]]
