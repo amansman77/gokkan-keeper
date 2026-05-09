@@ -8,6 +8,7 @@ import {
   validatePublicPositionInput,
 } from '@gokkan-keeper/shared';
 import { enrichPositionsWithLiveQuotes, inferQuotedAssetType, MarketQuoteService } from '../services/market-price';
+import { getTechnicalIndicators } from '../services/technical-indicators';
 
 export const positionsRouter = new Hono<{ Bindings: Env }>();
 
@@ -31,6 +32,17 @@ positionsRouter.get('/', async (c) => {
   const db = new DBClient(c.env.DB);
   const positions = await db.getPositions(granaryId || undefined);
   return c.json(await enrichPositionsWithLiveQuotes(positions, c.env));
+});
+
+positionsRouter.get('/indicators', async (c) => {
+  const symbol = c.req.query('symbol');
+  const market = c.req.query('market') ?? null;
+  const interval = c.req.query('interval') === '1wk' ? '1wk' : '1d';
+  if (!symbol) return c.json({ error: 'symbol is required' }, 400);
+
+  const result = await getTechnicalIndicators(symbol, market, interval, c.env.YAHOO_FINANCE_API_BASE_URL, c.env.DB);
+  if (!result) return c.json({ error: 'Indicators not available for this symbol' }, 404);
+  return c.json(result);
 });
 
 positionsRouter.get('/quote', async (c) => {

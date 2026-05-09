@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { deletePosition, getGranary, getGranaryExport, getPositions, getSnapshots } from '../lib/api';
 import type { GranaryWithLatestSnapshot, Snapshot, Position } from '../lib/types';
 import { formatCurrency, formatDate, getPositionMarketValue } from '@gokkan-keeper/shared';
+import TechnicalIndicators from '../components/TechnicalIndicators';
 
 export default function GranaryDetail() {
   const { id } = useParams<{ id: string }>();
@@ -12,6 +13,7 @@ export default function GranaryDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [expandedIndicators, setExpandedIndicators] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!id) {
@@ -162,6 +164,16 @@ export default function GranaryDetail() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setExpandedIndicators((prev) => {
+                        const next = new Set(prev);
+                        next.has(position.id) ? next.delete(position.id) : next.add(position.id);
+                        return next;
+                      })}
+                      className="text-gray-500 hover:text-gray-700 text-xs border border-gray-300 rounded px-2 py-1"
+                    >
+                      {expandedIndicators.has(position.id) ? '지표 닫기' : '지표 보기'}
+                    </button>
                     <Link to={`/positions/${position.id}/edit`} className="text-blue-600 hover:underline text-sm">
                       수정
                     </Link>
@@ -177,6 +189,9 @@ export default function GranaryDetail() {
                     </button>
                   </div>
                 </div>
+                {expandedIndicators.has(position.id) && (
+                  <TechnicalIndicators symbol={position.symbol} market={position.market} />
+                )}
               </div>
             ))}
           </div>
