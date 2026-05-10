@@ -29,6 +29,9 @@ database_name = "shared-db"
 database_id = "894124e2-8236-4647-a3a0-bc8674865889"
 migrations_dir = "../../migrations"
 
+[env.production.triggers]
+crons = ["0 9 * * 1-5", "30 9 * * 5"]
+
 [env.production.vars]
 NODE_ENV = "production"
 FSC_STOCK_API_BASE_URL = "https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService"
