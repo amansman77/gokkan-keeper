@@ -167,16 +167,19 @@ function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name:
   const fmt = (n: number | null | undefined, digits = 2) => n != null ? n.toFixed(digits) : '-';
 
   if (alert.ruleId === 'SELL_001' || alert.ruleId === 'BUY_001') {
+    const fmtObv = (n: number | null | undefined) => n != null ? `${(n / 1_000_000).toFixed(2)}M` : '-';
     fields.push(
       { name: '주봉 MACD OSC', value: fmt(snap.weekly?.macdOsc, 3), inline: true },
       { name: '전주 MACD OSC', value: fmt(snap.weekly?.prevMacdOsc, 3), inline: true },
       { name: '일봉 RSI(14)', value: fmt(snap.daily?.rsi, 1), inline: true },
+      { name: '주봉 ADX(14)', value: fmt(snap.weekly?.adx, 1), inline: true },
+      { name: '주봉 OBV', value: fmtObv(snap.weekly?.obv), inline: true },
     );
     if (alert.ruleId === 'BUY_001') {
       fields.push(
         { name: 'MA5', value: fmt(snap.daily?.ma5), inline: true },
         { name: 'MA20', value: fmt(snap.daily?.ma20), inline: true },
-        { name: 'ADX(14)', value: fmt(snap.daily?.adx, 1), inline: true },
+        { name: '일봉 ADX(14)', value: fmt(snap.daily?.adx, 1), inline: true },
       );
     }
   }
