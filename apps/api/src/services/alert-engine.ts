@@ -162,12 +162,55 @@ const PRIORITY_COLOR: Record<string, number> = {
 };
 const TYPE_EMOJI: Record<string, string> = { BUY: '🟢', SELL: '🔴', WARN: '⚠️' };
 
-async function sendDiscordAlert(alert: Alert, webhookUrl: string): Promise<void> {
+function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name: string; value: string; inline: boolean }> {
+  const fields: Array<{ name: string; value: string; inline: boolean }> = [];
+  const fmt = (n: number | null | undefined, digits = 2) => n != null ? n.toFixed(digits) : '-';
+
+  if (alert.ruleId === 'SELL_001' || alert.ruleId === 'BUY_001') {
+    fields.push(
+      { name: '주봉 MACD OSC', value: fmt(snap.weekly?.macdOsc, 3), inline: true },
+      { name: '전주 MACD OSC', value: fmt(snap.weekly?.prevMacdOsc, 3), inline: true },
+      { name: '일봉 RSI(14)', value: fmt(snap.daily?.rsi, 1), inline: true },
+    );
+    if (alert.ruleId === 'BUY_001') {
+      fields.push(
+        { name: 'MA5', value: fmt(snap.daily?.ma5), inline: true },
+        { name: 'MA20', value: fmt(snap.daily?.ma20), inline: true },
+        { name: 'ADX(14)', value: fmt(snap.daily?.adx, 1), inline: true },
+      );
+    }
+  }
+
+  if (alert.ruleId === 'SELL_002') {
+    const ret = snap.daily?.fiveDayReturn;
+    fields.push(
+      { name: '5일 수익률', value: ret != null ? `${(ret * 100).toFixed(1)}%` : '-', inline: true },
+      { name: '당일 거래량', value: fmt(snap.daily?.volume, 0), inline: true },
+      { name: '20일 평균 거래량', value: fmt(snap.daily?.avgVolume20, 0), inline: true },
+    );
+  }
+
+  if (alert.ruleId === 'WARN_001') {
+    fields.push(
+      { name: '일봉 RSI(14)', value: fmt(snap.daily?.rsi, 1), inline: true },
+      { name: 'ADX(14)', value: fmt(snap.daily?.adx, 1), inline: true },
+      { name: 'MA20 괴리율', value: snap.daily?.close != null && snap.daily?.ma20 != null
+          ? `${(Math.abs(snap.daily.close - snap.daily.ma20) / snap.daily.ma20 * 100).toFixed(1)}%`
+          : '-', inline: true },
+    );
+  }
+
+  return fields;
+}
+
+async function sendDiscordAlert(alert: Alert, snap: SymbolSnapshot, webhookUrl: string): Promise<void> {
+  const fields = buildIndicatorFields(alert, snap);
   const payload = {
     embeds: [{
       title: `${TYPE_EMOJI[alert.type]} [${alert.priority}] ${alert.title}`,
       description: `${alert.message}\n\n**권장 액션:** ${alert.action}`,
       color: PRIORITY_COLOR[alert.priority] ?? 0x95a5a6,
+      fields,
       footer: { text: `Rule: ${alert.ruleId} · ${alert.status}` },
       timestamp: new Date().toISOString(),
     }],
@@ -211,7 +254,7 @@ export async function runAlertEngine(env: Env, mode: 'daily' | 'weekly'): Promis
     for (const alert of evaluateRules(snap, mode)) {
       const key = `${alert.symbol}:${alert.ruleId}:${today}`;
       if (await isAlreadySent(env.DB, key)) continue;
-      await sendDiscordAlert(alert, env.DISCORD_WEBHOOK_URL!);
+      await sendDiscordAlert(alert, snap, env.DISCORD_WEBHOOK_URL!);
       await Promise.all([markSent(env.DB, key), logAlert(env.DB, alert, today, snap)]);
       sent++;
     }
