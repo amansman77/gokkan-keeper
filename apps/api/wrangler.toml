@@ -5,8 +5,9 @@ compatibility_date = "2024-01-15"
 # Cron triggers (KST = UTC+9)
 # 18:00 KST weekdays → 09:00 UTC Mon-Fri  (daily signals)
 # 18:30 KST Friday   → 09:30 UTC Friday   (weekly signals)
+# Note: Cloudflare cron uses 1=Sun, so Mon=2, Fri=6
 [triggers]
-crons = ["0 9 * * 1-5", "30 9 * * 5"]
+crons = ["0 9 * * 2-6", "30 9 * * 6"]
 
 # D1 database binding (for migrations - uses production database_id)
 # Note: wrangler dev will use local SQLite file automatically
@@ -30,7 +31,7 @@ database_id = "894124e2-8236-4647-a3a0-bc8674865889"
 migrations_dir = "../../migrations"
 
 [env.production.triggers]
-crons = ["0 9 * * 1-5", "30 9 * * 5"]
+crons = ["0 9 * * 2-6", "30 9 * * 6"]
 
 [env.production.vars]
 NODE_ENV = "production"
