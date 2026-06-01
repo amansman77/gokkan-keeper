@@ -11,8 +11,6 @@ export interface SymbolSnapshot {
   name: string;
   positionId: string;
   position: number;
-  weightPercent: number | null;
-  targetWeightPercent: number | null;
   daily: TechnicalIndicatorResult | null;
   weekly: TechnicalIndicatorResult | null;
 }
@@ -37,8 +35,6 @@ interface AlertIndicatorLog {
   ma20: number | null;
   weeklyMa40: number | null;
   prevWeeklyMa40: number | null;
-  weightPercent: number | null;
-  targetWeightPercent: number | null;
   fiveDayReturn: number | null;
   volume: number | null;
   avgVolume20: number | null;
@@ -46,14 +42,14 @@ interface AlertIndicatorLog {
 
 // ─── Rule scheduling ──────────────────────────────────────────────────────────
 
-const DAILY_RULES = ['SELL_002', 'WARN_001'];
+const DAILY_RULES = ['SELL_002'];
 const FRIDAY_RULES = ['SELL_001', 'BUY_001', 'WARN_002', 'WARN_003'];
 
 // ─── Rule engine ──────────────────────────────────────────────────────────────
 
 function evaluateRules(snap: SymbolSnapshot, mode: 'daily' | 'weekly'): Alert[] {
   const alerts: Alert[] = [];
-  const { symbol, name, position, weightPercent, targetWeightPercent, daily, weekly } = snap;
+  const { symbol, name, position, daily, weekly } = snap;
   const label = `${name} (${symbol})`;
   const activeRules = mode === 'daily' ? DAILY_RULES : FRIDAY_RULES;
 
@@ -134,20 +130,6 @@ function evaluateRules(snap: SymbolSnapshot, mode: 'daily' | 'weekly'): Alert[] 
     });
   }
 
-  // WARN_001 — 포트폴리오 비중 이탈 (매일)
-  if (activeRules.includes('WARN_001') &&
-    position > 0 &&
-    weightPercent != null && targetWeightPercent != null &&
-    weightPercent > targetWeightPercent * 1.3
-  ) {
-    alerts.push({
-      type: 'WARN', priority: 'P2', ruleId: 'WARN_001', symbol, status: 'CONFIRMED',
-      title: '포트폴리오 비중 이탈',
-      message: `${label} 현재 비중(${weightPercent.toFixed(1)}%)이 목표 비중(${targetWeightPercent.toFixed(1)}%)의 130%를 초과합니다.`,
-      action: '신규 매수 중단. 리밸런싱 후보 등록',
-    });
-  }
-
   return alerts;
 }
 
@@ -179,8 +161,6 @@ async function logAlert(db: D1Database, alert: Alert, date: string, snap: Symbol
     ma20: snap.daily?.ma20 ?? null,
     weeklyMa40: snap.weekly?.ma40 ?? null,
     prevWeeklyMa40: snap.weekly?.prevMa40 ?? null,
-    weightPercent: snap.weightPercent ?? null,
-    targetWeightPercent: snap.targetWeightPercent ?? null,
     fiveDayReturn: snap.daily?.fiveDayReturn ?? null,
     volume: snap.daily?.volume ?? null,
     avgVolume20: snap.daily?.avgVolume20 ?? null,
@@ -231,16 +211,6 @@ function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name:
       { name: '5일 수익률', value: ret != null ? `${(ret * 100).toFixed(1)}%` : '-', inline: true },
       { name: '당일 거래량', value: fmt(snap.daily?.volume, 0), inline: true },
       { name: '20일 평균 거래량', value: fmt(snap.daily?.avgVolume20, 0), inline: true },
-    );
-  }
-
-  if (alert.ruleId === 'WARN_001') {
-    fields.push(
-      { name: '현재 비중', value: snap.weightPercent != null ? `${snap.weightPercent.toFixed(1)}%` : '-', inline: true },
-      { name: '목표 비중', value: snap.targetWeightPercent != null ? `${snap.targetWeightPercent.toFixed(1)}%` : '-', inline: true },
-      { name: '초과 비율', value: snap.weightPercent != null && snap.targetWeightPercent != null
-          ? `${((snap.weightPercent / snap.targetWeightPercent) * 100).toFixed(0)}%`
-          : '-', inline: true },
     );
   }
 
@@ -301,8 +271,6 @@ export async function runAlertEngine(env: Env, mode: 'daily' | 'weekly'): Promis
       name: position.name,
       positionId: position.id,
       position: position.quantity ?? 0,
-      weightPercent: position.weightPercent ?? null,
-      targetWeightPercent: position.targetWeightPercent ?? null,
       daily,
       weekly,
     };
