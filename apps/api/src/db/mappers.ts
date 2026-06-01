@@ -46,6 +46,7 @@ export function transformPosition(row: any): Position {
     avgCost: row.avg_cost ?? null,
     currentValue: row.current_value ?? null,
     weightPercent: row.weight_percent ?? null,
+    targetWeightPercent: row.target_weight_percent ?? null,
     profitLoss: row.profit_loss ?? null,
     profitLossPercent: row.profit_loss_percent ?? null,
     note: row.note ?? null,
