@@ -18,6 +18,7 @@ export default function NewSnapshot() {
     memo: '',
   });
   const [isTotalAmountManual, setIsTotalAmountManual] = useState(false);
+  const [isProfitLossManual, setIsProfitLossManual] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,6 +27,7 @@ export default function NewSnapshot() {
     const latestSnapshot = selectedGranary?.latestSnapshot;
 
     setIsTotalAmountManual(false);
+    setIsProfitLossManual(false);
     setFormData((prev) => ({
       ...prev,
       granaryId,
@@ -59,6 +61,13 @@ export default function NewSnapshot() {
       }
     }
   }, [formData.availableBalance, formData.profitLoss, isTotalAmountManual]);
+
+  // 총 평가 금액(수동)과 예수금이 모두 입력되면 평가 손익 자동 계산
+  useEffect(() => {
+    if (isTotalAmountManual && !isProfitLossManual && formData.availableBalance !== undefined) {
+      setFormData((prev) => ({ ...prev, profitLoss: prev.totalAmount - (formData.availableBalance || 0) }));
+    }
+  }, [formData.totalAmount, formData.availableBalance, isTotalAmountManual, isProfitLossManual]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +140,7 @@ export default function NewSnapshot() {
             value={formData.totalAmount ?? ''}
             onChange={(e) => {
               setIsTotalAmountManual(true);
+              setIsProfitLossManual(false);
               setFormData({ ...formData, totalAmount: parseFloat(e.target.value) || 0 });
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -172,16 +182,32 @@ export default function NewSnapshot() {
         <div>
           <label htmlFor="profitLoss" className="block text-sm font-medium text-gray-700 mb-2">
             평가 손익 (선택)
+            {isTotalAmountManual && !isProfitLossManual && formData.availableBalance !== undefined && (
+              <span className="ml-2 text-xs text-gray-500">(자동 계산됨)</span>
+            )}
           </label>
           <input
             type="number"
             id="profitLoss"
             step="0.01"
             value={formData.profitLoss ?? ''}
-            onChange={(e) => setFormData({ ...formData, profitLoss: e.target.value ? parseFloat(e.target.value) : undefined })}
+            onChange={(e) => {
+              setIsProfitLossManual(true);
+              setIsTotalAmountManual(false);
+              setFormData({ ...formData, profitLoss: e.target.value ? parseFloat(e.target.value) : undefined });
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="양수: 수익, 음수: 손실"
           />
+          {isTotalAmountManual && isProfitLossManual && formData.availableBalance !== undefined && (
+            <button
+              type="button"
+              onClick={() => setIsProfitLossManual(false)}
+              className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+            >
+              자동 계산으로 되돌리기
+            </button>
+          )}
         </div>
 
         <div>
