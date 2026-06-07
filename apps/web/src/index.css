@@ -11,3 +11,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+input[type="date"] {
+  background-color: white;
+  -webkit-appearance: none;
+}
+
+main {
+  padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
+}
+
