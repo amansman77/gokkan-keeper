@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { createSnapshot, getGranaries } from '../lib/api';
-import type { CreateSnapshot, GranaryWithLatestSnapshot } from '../lib/types';
+import { createSnapshot, getGranaries, getPositions } from '../lib/api';
+import { formatCurrency } from '@gokkan-keeper/shared';
+import type { CreateSnapshot, GranaryWithLatestSnapshot, Position } from '../lib/types';
 
 export default function NewSnapshot() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export default function NewSnapshot() {
     profitLoss: undefined,
     memo: '',
   });
+  const [positions, setPositions] = useState<Position[]>([]);
   const [isTotalAmountManual, setIsTotalAmountManual] = useState(false);
   const [isProfitLossManual, setIsProfitLossManual] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -51,6 +53,14 @@ export default function NewSnapshot() {
     }
     loadGranaries();
   }, [granaryIdParam]);
+
+  useEffect(() => {
+    if (!formData.granaryId) {
+      setPositions([]);
+      return;
+    }
+    getPositions(formData.granaryId).then(setPositions).catch(() => setPositions([]));
+  }, [formData.granaryId]);
 
   // 예수금과 평가 손익이 모두 입력되면 총 평가 금액 자동 계산
   useEffect(() => {
@@ -208,6 +218,26 @@ export default function NewSnapshot() {
               자동 계산으로 되돌리기
             </button>
           )}
+          {(() => {
+            const positionProfitLossTotal = positions
+              .filter((p) => p.profitLoss != null)
+              .reduce((sum, p) => sum + (p.profitLoss ?? 0), 0);
+            const selectedGranary = granaries.find((g) => g.id === formData.granaryId);
+            if (!selectedGranary || !positions.some((p) => p.profitLoss != null)) return null;
+            return (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfitLossManual(true);
+                  setIsTotalAmountManual(false);
+                  setFormData((prev) => ({ ...prev, profitLoss: positionProfitLossTotal }));
+                }}
+                className="mt-2 text-sm text-emerald-600 hover:text-emerald-800"
+              >
+                포지션 합산 적용 ({formatCurrency(positionProfitLossTotal, selectedGranary.currency)})
+              </button>
+            );
+          })()}
         </div>
 
         <div>
