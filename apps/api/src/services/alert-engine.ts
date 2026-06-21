@@ -40,79 +40,116 @@ interface AlertIndicatorLog {
   avgVolume20: number | null;
 }
 
-// ─── Rule scheduling ──────────────────────────────────────────────────────────
+// ─── Rule engine (event-based: fire only on a false → true condition transition) ──
 
-const DAILY_RULES = ['SELL_002'];
-const FRIDAY_RULES = ['SELL_001', 'BUY_001', 'WARN_003'];
+interface Rule {
+  ruleId: string;
+  type: Alert['type'];
+  priority: Alert['priority'];
+  title: string;
+  mode: 'daily' | 'weekly';
+  condition: (snap: SymbolSnapshot) => boolean;
+  message: (snap: SymbolSnapshot, label: string) => string;
+  action: string;
+}
 
-// ─── Rule engine ──────────────────────────────────────────────────────────────
+const RULES: Rule[] = [
+  {
+    ruleId: 'SELL_001',
+    type: 'SELL',
+    priority: 'P0',
+    title: '주봉 하락 추세 진입',
+    mode: 'weekly',
+    condition: (snap) =>
+      snap.position > 0 &&
+      snap.weekly?.prevMacdOsc != null && snap.weekly?.macdOsc != null &&
+      snap.weekly.prevMacdOsc >= 0 &&
+      snap.weekly.macdOsc < 0,
+    message: (_snap, label) => `${label} 주봉 MACD OSC가 양수에서 음수로 전환되었습니다.`,
+    action: '보유 수량 50% 매도 검토',
+  },
+  {
+    ruleId: 'BUY_001',
+    type: 'BUY',
+    priority: 'P1',
+    title: '주봉 상승 추세 진입',
+    mode: 'weekly',
+    condition: (snap) =>
+      snap.position === 0 &&
+      snap.weekly?.prevMacdOsc != null && snap.weekly?.macdOsc != null &&
+      snap.weekly.prevMacdOsc <= 0 &&
+      snap.weekly.macdOsc > 0 &&
+      snap.daily?.ma5 != null && snap.daily?.ma20 != null && snap.daily.ma5 > snap.daily.ma20 &&
+      snap.daily?.rsi != null && snap.daily.rsi < 80,
+    message: (_snap, label) => `${label} 주봉 MACD OSC가 음수에서 양수로 전환되었고 일봉 골든크로스 상태입니다.`,
+    action: '1회 매수 단위 검토',
+  },
+  {
+    ruleId: 'WARN_003',
+    type: 'WARN',
+    priority: 'P1',
+    title: '장기 추세 이탈',
+    mode: 'weekly',
+    condition: (snap) =>
+      snap.position > 0 &&
+      snap.weekly?.prevClose != null && snap.weekly?.prevMa40 != null &&
+      snap.weekly?.close != null && snap.weekly?.ma40 != null &&
+      snap.weekly.prevClose >= snap.weekly.prevMa40 &&
+      snap.weekly.close < snap.weekly.ma40 &&
+      snap.weekly.ma40 < snap.weekly.prevMa40,
+    message: (_snap, label) => `${label} 주봉 종가가 MA40 위에서 아래로 이탈했습니다 (MA40 하락 중).`,
+    action: '비중 축소 검토',
+  },
+  {
+    ruleId: 'SELL_002',
+    type: 'SELL',
+    priority: 'P1',
+    title: '급등 후 차익실현 신호',
+    mode: 'daily',
+    condition: (snap) =>
+      snap.position > 0 &&
+      snap.daily?.fiveDayReturn != null && snap.daily.fiveDayReturn >= 0.15 &&
+      snap.daily?.close != null && snap.daily?.open != null && snap.daily.close < snap.daily.open &&
+      snap.daily?.avgVolume20 != null && snap.daily?.volume != null && snap.daily.volume > snap.daily.avgVolume20,
+    message: (_snap, label) => `${label} 단기 과열 분출 가능`,
+    action: '보유 수량 50% 매도 검토',
+  },
+];
 
-function evaluateRules(snap: SymbolSnapshot, mode: 'daily' | 'weekly'): Alert[] {
+async function getRuleConditionMet(db: D1Database, symbol: string, ruleId: string): Promise<boolean> {
+  const row = await db.prepare('SELECT condition_met FROM gk_alert_rule_state WHERE symbol = ? AND rule_id = ?')
+    .bind(symbol, ruleId).first<{ condition_met: number }>();
+  return row?.condition_met === 1;
+}
+
+async function setRuleConditionMet(db: D1Database, symbol: string, ruleId: string, conditionMet: boolean): Promise<void> {
+  await db.prepare(`
+    INSERT INTO gk_alert_rule_state (symbol, rule_id, condition_met, updated_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(symbol, rule_id) DO UPDATE SET
+      condition_met = excluded.condition_met,
+      updated_at = excluded.updated_at
+  `).bind(symbol, ruleId, conditionMet ? 1 : 0, new Date().toISOString()).run();
+}
+
+async function evaluateRules(db: D1Database, snap: SymbolSnapshot, mode: 'daily' | 'weekly'): Promise<Alert[]> {
   const alerts: Alert[] = [];
-  const { symbol, name, position, daily, weekly } = snap;
-  const label = `${name} (${symbol})`;
-  const activeRules = mode === 'daily' ? DAILY_RULES : FRIDAY_RULES;
+  const label = `${snap.name} (${snap.symbol})`;
 
-  // SELL_001 — 주봉 하락 모멘텀 확정 (금요일)
-  if (activeRules.includes('SELL_001') &&
-    position > 0 &&
-    weekly?.macdOsc != null && weekly?.prevMacdOsc != null &&
-    weekly.macdOsc < 0 &&
-    weekly.macdOsc < weekly.prevMacdOsc
-  ) {
-    alerts.push({
-      type: 'SELL', priority: 'P0', ruleId: 'SELL_001', symbol, status: 'CONFIRMED',
-      title: '주봉 하락 모멘텀 확정',
-      message: `${label} 주봉 MACD OSC가 음수권에서 하락 중입니다.`,
-      action: '보유 수량 50% 매도 검토',
-    });
-  }
-
-  // SELL_002 — 급등 후 차익실현 신호 (매일)
-  if (activeRules.includes('SELL_002') &&
-    position > 0 &&
-    daily?.fiveDayReturn != null && daily.fiveDayReturn >= 0.15 &&
-    daily?.close != null && daily?.open != null && daily.close < daily.open &&
-    daily?.avgVolume20 != null && daily?.volume != null && daily.volume > daily.avgVolume20
-  ) {
-    alerts.push({
-      type: 'SELL', priority: 'P1', ruleId: 'SELL_002', symbol, status: 'CONFIRMED',
-      title: '급등 후 차익실현 신호',
-      message: `${label} 단기 과열 분출 가능`,
-      action: '보유 수량 50% 매도 검토',
-    });
-  }
-
-  // BUY_001 — 신규 매수 후보 (금요일)
-  if (activeRules.includes('BUY_001') &&
-    position === 0 &&
-    weekly?.macdOsc != null && weekly?.prevMacdOsc != null &&
-    weekly.macdOsc > 0 &&
-    weekly.macdOsc > weekly.prevMacdOsc &&
-    daily?.ma5 != null && daily?.ma20 != null && daily.ma5 > daily.ma20 &&
-    daily?.rsi != null && daily.rsi < 80
-  ) {
-    alerts.push({
-      type: 'BUY', priority: 'P1', ruleId: 'BUY_001', symbol, status: 'CONFIRMED',
-      title: '신규 매수 후보',
-      message: `${label} 주봉 MACD 상승 전환 확정 + 일봉 골든크로스`,
-      action: '1회 매수 단위 검토',
-    });
-  }
-
-  // WARN_003 — 장기 추세 훼손 (금요일)
-  if (activeRules.includes('WARN_003') &&
-    position > 0 &&
-    weekly?.close != null && weekly?.ma40 != null && weekly?.prevMa40 != null &&
-    weekly.close < weekly.ma40 &&
-    weekly.ma40 < weekly.prevMa40
-  ) {
-    alerts.push({
-      type: 'WARN', priority: 'P1', ruleId: 'WARN_003', symbol, status: 'CONFIRMED',
-      title: '장기 추세 훼손',
-      message: `${label} 주봉 종가가 MA40 아래, MA40 기울기 하락 중`,
-      action: '비중 축소 검토. SELL_001 발생 여부 집중 관찰',
-    });
+  for (const rule of RULES.filter((r) => r.mode === mode)) {
+    const conditionMet = rule.condition(snap);
+    const wasMet = await getRuleConditionMet(db, snap.symbol, rule.ruleId);
+    if (conditionMet !== wasMet) {
+      await setRuleConditionMet(db, snap.symbol, rule.ruleId, conditionMet);
+    }
+    if (conditionMet && !wasMet) {
+      alerts.push({
+        type: rule.type, priority: rule.priority, ruleId: rule.ruleId, symbol: snap.symbol, status: 'CONFIRMED',
+        title: rule.title,
+        message: rule.message(snap, label),
+        action: rule.action,
+      });
+    }
   }
 
   return alerts;
@@ -260,7 +297,7 @@ export async function runAlertEngine(env: Env, mode: 'daily' | 'weekly'): Promis
       weekly,
     };
 
-    for (const alert of evaluateRules(snap, mode)) {
+    for (const alert of await evaluateRules(env.DB, snap, mode)) {
       const key = `${alert.symbol}:${alert.ruleId}:${today}`;
       if (await isAlreadySent(env.DB, key)) continue;
       await sendDiscordAlert(alert, snap, env.DISCORD_WEBHOOK_URL!);

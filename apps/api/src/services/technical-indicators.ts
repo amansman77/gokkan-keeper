@@ -40,6 +40,7 @@ export interface TechnicalIndicatorResult {
   ma40: number | null;
   prevMa40: number | null;
   close: number | null;
+  prevClose: number | null;
   open: number | null;
   volume: number | null;
   avgVolume20: number | null;
@@ -363,6 +364,7 @@ export async function getTechnicalIndicators(
   const ma20 = closes.length >= 20 ? closes.slice(-20).reduce((a, b) => a + b) / 20 : null;
   const ma40 = closes.length >= 40 ? closes.slice(-40).reduce((a, b) => a + b) / 40 : null;
   const prevMa40 = closes.length >= 41 ? closes.slice(-41, -1).reduce((a, b) => a + b) / 40 : null;
+  const prevClose = closes.length >= 2 ? closes[closes.length - 2] : null;
   const avgVolume20 = volumes.length >= 20 ? volumes.slice(-20).reduce((a, b) => a + b) / 20 : null;
   const fiveDayReturn = closes.length >= 6
     ? (closes[closes.length - 1] - closes[closes.length - 6]) / closes[closes.length - 6]
@@ -370,7 +372,7 @@ export async function getTechnicalIndicators(
 
   const data: TechnicalIndicatorResult = {
     symbol: resolvedSymbol, asOfDate, rsi, macdOsc, prevMacdOsc, obv, adx, diPlus, diMinus,
-    ma5, ma20, ma40, prevMa40, close: last.close, open: last.open, volume: last.volume, avgVolume20, fiveDayReturn,
+    ma5, ma20, ma40, prevMa40, close: last.close, prevClose, open: last.open, volume: last.volume, avgVolume20, fiveDayReturn,
   };
   await setCached(db, cacheKey, data);
   return data;
