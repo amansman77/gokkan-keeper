@@ -43,7 +43,7 @@ interface AlertIndicatorLog {
 // ─── Rule scheduling ──────────────────────────────────────────────────────────
 
 const DAILY_RULES = ['SELL_002'];
-const FRIDAY_RULES = ['SELL_001', 'BUY_001', 'WARN_002', 'WARN_003'];
+const FRIDAY_RULES = ['SELL_001', 'BUY_001', 'WARN_003'];
 
 // ─── Rule engine ──────────────────────────────────────────────────────────────
 
@@ -97,21 +97,6 @@ function evaluateRules(snap: SymbolSnapshot, mode: 'daily' | 'weekly'): Alert[] 
       title: '신규 매수 후보',
       message: `${label} 주봉 MACD 상승 전환 확정 + 일봉 골든크로스`,
       action: '1회 매수 단위 검토',
-    });
-  }
-
-  // WARN_002 — 주봉 상승 모멘텀 둔화 (금요일)
-  if (activeRules.includes('WARN_002') &&
-    position > 0 &&
-    weekly?.macdOsc != null && weekly?.prevMacdOsc != null &&
-    weekly.macdOsc > 0 &&
-    weekly.macdOsc < weekly.prevMacdOsc
-  ) {
-    alerts.push({
-      type: 'WARN', priority: 'P2', ruleId: 'WARN_002', symbol, status: 'CONFIRMED',
-      title: '주봉 상승 모멘텀 둔화',
-      message: `${label} 주봉 MACD OSC는 아직 양수지만 전주 대비 둔화되었습니다.`,
-      action: '신규 매수 보류. 다음 주 재확인',
     });
   }
 
@@ -187,7 +172,7 @@ function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name:
   const fields: Array<{ name: string; value: string; inline: boolean }> = [];
   const fmt = (n: number | null | undefined, digits = 2) => n != null ? n.toFixed(digits) : '-';
 
-  if (alert.ruleId === 'SELL_001' || alert.ruleId === 'BUY_001' || alert.ruleId === 'WARN_002') {
+  if (alert.ruleId === 'SELL_001' || alert.ruleId === 'BUY_001') {
     const fmtObv = (n: number | null | undefined) => n != null ? `${(n / 1_000_000).toFixed(2)}M` : '-';
     fields.push(
       { name: '주봉 MACD OSC', value: fmt(snap.weekly?.macdOsc, 3), inline: true },
