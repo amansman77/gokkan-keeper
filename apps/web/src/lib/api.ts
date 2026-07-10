@@ -135,7 +135,7 @@ export interface GranaryExportPayload {
   granary: Granary;
   latestSnapshot: Snapshot | null;
   positions: Position[];
-  indicators: Record<string, { '1d': TechnicalIndicatorResult | null; '1wk': TechnicalIndicatorResult | null }>;
+  indicators: Record<string, { '1d': TechnicalIndicatorResult[]; '1wk': TechnicalIndicatorResult[] }>;
 }
 
 export async function getGranaryExport(id: string): Promise<GranaryExportPayload> {

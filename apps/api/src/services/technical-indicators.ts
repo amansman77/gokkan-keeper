@@ -252,6 +252,76 @@ function aggregateWeekly(rows: OhlcvRow[]): OhlcvRow[] {
   return result;
 }
 
+// ─── Compute indicators from a row array ─────────────────────────────────────
+
+function computeIndicatorsFromRows(rows: OhlcvRow[], resolvedSymbol: string): TechnicalIndicatorResult {
+  const closes = rows.map((r) => r.close);
+  const highs = rows.map((r) => r.high);
+  const lows = rows.map((r) => r.low);
+  const volumes = rows.map((r) => r.volume);
+  const last = rows[rows.length - 1];
+  const asOfDate = new Date(last.ts * 1000).toISOString().slice(0, 10);
+
+  const rsi = calcRsi(closes);
+  const macdOsc = calcMacdOsc(closes);
+  const obv = calcObv(closes, volumes);
+  const { adx, diPlus, diMinus } = calcAdx(highs, lows, closes);
+  const prevMacdOsc = calcPrevMacdOsc(closes);
+  const ma5 = closes.length >= 5 ? closes.slice(-5).reduce((a, b) => a + b) / 5 : null;
+  const ma20 = closes.length >= 20 ? closes.slice(-20).reduce((a, b) => a + b) / 20 : null;
+  const ma40 = closes.length >= 40 ? closes.slice(-40).reduce((a, b) => a + b) / 40 : null;
+  const prevMa40 = closes.length >= 41 ? closes.slice(-41, -1).reduce((a, b) => a + b) / 40 : null;
+  const prevClose = closes.length >= 2 ? closes[closes.length - 2] : null;
+  const avgVolume20 = volumes.length >= 20 ? volumes.slice(-20).reduce((a, b) => a + b) / 20 : null;
+  const fiveDayReturn = closes.length >= 6
+    ? (closes[closes.length - 1] - closes[closes.length - 6]) / closes[closes.length - 6]
+    : null;
+
+  return {
+    symbol: resolvedSymbol, asOfDate, rsi, macdOsc, prevMacdOsc, obv, adx, diPlus, diMinus,
+    ma5, ma20, ma40, prevMa40, close: last.close, prevClose, open: last.open, volume: last.volume, avgVolume20, fiveDayReturn,
+  };
+}
+
+// ─── Yahoo fetch + parse ──────────────────────────────────────────────────────
+
+async function fetchOhlcvRows(
+  resolvedSymbol: string,
+  interval: IndicatorInterval,
+  chartBaseUrl: string,
+): Promise<OhlcvRow[] | null> {
+  const url = new URL(`${chartBaseUrl}/${encodeURIComponent(resolvedSymbol)}`);
+  url.searchParams.set('interval', '1d');
+  url.searchParams.set('range', interval === '1wk' ? '2y' : '3y');
+  url.searchParams.set('includePrePost', 'false');
+
+  const response = await fetch(url.toString(), { headers: YAHOO_REQUEST_HEADERS });
+  if (!response.ok) return null;
+
+  const payload = await response.json() as any;
+  const result = payload?.chart?.result?.[0];
+  if (!result) return null;
+
+  const timestamps: number[] = result.timestamp ?? [];
+  const quote = result.indicators?.quote?.[0] ?? {};
+  const rawOpens: (number | null)[] = quote.open ?? [];
+  const rawCloses: (number | null)[] = quote.close ?? [];
+  const rawHighs: (number | null)[] = quote.high ?? [];
+  const rawLows: (number | null)[] = quote.low ?? [];
+  const rawVolumes: (number | null)[] = quote.volume ?? [];
+
+  const dailyRows: OhlcvRow[] = [];
+  for (let i = 0; i < timestamps.length; i++) {
+    const open = rawOpens[i]; const close = rawCloses[i];
+    const high = rawHighs[i]; const low = rawLows[i]; const volume = rawVolumes[i];
+    if (typeof open === 'number' && typeof close === 'number' &&
+        typeof high === 'number' && typeof low === 'number' && typeof volume === 'number') {
+      dailyRows.push({ ts: timestamps[i], open, close, high, low, volume });
+    }
+  }
+  return dailyRows;
+}
+
 // ─── Cache ────────────────────────────────────────────────────────────────────
 
 async function getCached(db: D1Database | undefined, key: string): Promise<TechnicalIndicatorResult | null | undefined> {
@@ -283,6 +353,34 @@ async function setCached(db: D1Database | undefined, key: string, data: Technica
     .run();
 }
 
+async function getCachedSeries(db: D1Database | undefined, key: string): Promise<TechnicalIndicatorResult[] | undefined> {
+  if (!db) return undefined;
+  const row = await db
+    .prepare('SELECT quote_json FROM gk_quote_cache WHERE cache_key = ? AND expires_at > ? AND is_not_found = 0')
+    .bind(key, new Date().toISOString())
+    .first<{ quote_json: string | null }>();
+  if (!row) return undefined;
+  try { return JSON.parse(row.quote_json!) as TechnicalIndicatorResult[]; } catch { return undefined; }
+}
+
+async function setCachedSeries(db: D1Database | undefined, key: string, data: TechnicalIndicatorResult[]): Promise<void> {
+  if (!db) return;
+  const now = new Date().toISOString();
+  const expires = new Date(Date.now() + CACHE_TTL_HOURS * 60 * 60 * 1000).toISOString();
+  await db
+    .prepare(`
+      INSERT INTO gk_quote_cache (cache_key, short_code, operation, quote_json, is_not_found, fetched_at, expires_at)
+      VALUES (?, ?, 'INDICATORS_SERIES', ?, 0, ?, ?)
+      ON CONFLICT(cache_key) DO UPDATE SET
+        quote_json = excluded.quote_json,
+        is_not_found = excluded.is_not_found,
+        fetched_at = excluded.fetched_at,
+        expires_at = excluded.expires_at
+    `)
+    .bind(key, key, JSON.stringify(data), now, expires)
+    .run();
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export type IndicatorInterval = '1d' | '1wk';
@@ -301,79 +399,47 @@ export async function getTechnicalIndicators(
   const cached = await getCached(db, cacheKey);
   if (cached !== undefined) return cached;
 
-  const baseUrl = chartBaseUrl || DEFAULT_YAHOO_CHART_BASE_URL;
-  const url = new URL(`${baseUrl}/${encodeURIComponent(resolvedSymbol)}`);
+  const dailyRows = await fetchOhlcvRows(resolvedSymbol, interval, chartBaseUrl || DEFAULT_YAHOO_CHART_BASE_URL);
+  if (!dailyRows) return null;
+
   // Always fetch daily bars; weekly is aggregated from daily for accuracy
-  url.searchParams.set('interval', '1d');
-  url.searchParams.set('range', interval === '1wk' ? '2y' : '3y');
-  url.searchParams.set('includePrePost', 'false');
-
-  const response = await fetch(url.toString(), { headers: YAHOO_REQUEST_HEADERS });
-  if (!response.ok) return null;
-
-  const payload = await response.json() as any;
-  const result = payload?.chart?.result?.[0];
-  if (!result) return null;
-
-  const timestamps: number[] = result.timestamp ?? [];
-  const quote = result.indicators?.quote?.[0] ?? {};
-  const rawOpens: (number | null)[] = quote.open ?? [];
-  const rawCloses: (number | null)[] = quote.close ?? [];
-  const rawHighs: (number | null)[] = quote.high ?? [];
-  const rawLows: (number | null)[] = quote.low ?? [];
-  const rawVolumes: (number | null)[] = quote.volume ?? [];
-
-  const dailyRows: OhlcvRow[] = [];
-  for (let i = 0; i < timestamps.length; i++) {
-    const open = rawOpens[i];
-    const close = rawCloses[i];
-    const high = rawHighs[i];
-    const low = rawLows[i];
-    const volume = rawVolumes[i];
-    if (
-      typeof open === 'number' && typeof close === 'number' &&
-      typeof high === 'number' && typeof low === 'number' &&
-      typeof volume === 'number'
-    ) {
-      dailyRows.push({ ts: timestamps[i], open, close, high, low, volume });
-    }
-  }
-
   const rows = interval === '1wk' ? aggregateWeekly(dailyRows) : dailyRows;
-
   if (rows.length < 30) {
     await setCached(db, cacheKey, null);
     return null;
   }
 
-  const closes = rows.map((r) => r.close);
-  const highs = rows.map((r) => r.high);
-  const lows = rows.map((r) => r.low);
-  const volumes = rows.map((r) => r.volume);
-  const last = rows[rows.length - 1];
-  const asOfDate = new Date(last.ts * 1000).toISOString().slice(0, 10);
-
-  const rsi = calcRsi(closes);
-  const macdOsc = calcMacdOsc(closes);
-  const obv = calcObv(closes, volumes);
-  const { adx, diPlus, diMinus } = calcAdx(highs, lows, closes);
-
-  // Extra fields for alert engine (cached together to avoid extra fetches)
-  const prevMacdOsc = calcPrevMacdOsc(closes);
-  const ma5 = closes.length >= 5 ? closes.slice(-5).reduce((a, b) => a + b) / 5 : null;
-  const ma20 = closes.length >= 20 ? closes.slice(-20).reduce((a, b) => a + b) / 20 : null;
-  const ma40 = closes.length >= 40 ? closes.slice(-40).reduce((a, b) => a + b) / 40 : null;
-  const prevMa40 = closes.length >= 41 ? closes.slice(-41, -1).reduce((a, b) => a + b) / 40 : null;
-  const prevClose = closes.length >= 2 ? closes[closes.length - 2] : null;
-  const avgVolume20 = volumes.length >= 20 ? volumes.slice(-20).reduce((a, b) => a + b) / 20 : null;
-  const fiveDayReturn = closes.length >= 6
-    ? (closes[closes.length - 1] - closes[closes.length - 6]) / closes[closes.length - 6]
-    : null;
-
-  const data: TechnicalIndicatorResult = {
-    symbol: resolvedSymbol, asOfDate, rsi, macdOsc, prevMacdOsc, obv, adx, diPlus, diMinus,
-    ma5, ma20, ma40, prevMa40, close: last.close, prevClose, open: last.open, volume: last.volume, avgVolume20, fiveDayReturn,
-  };
+  const data = computeIndicatorsFromRows(rows, resolvedSymbol);
   await setCached(db, cacheKey, data);
   return data;
+}
+
+export async function getTechnicalIndicatorSeries(
+  symbol: string,
+  market: string | null,
+  interval: IndicatorInterval,
+  count: number,
+  chartBaseUrl?: string,
+  db?: D1Database,
+): Promise<TechnicalIndicatorResult[]> {
+  const resolvedSymbol = resolveSymbol(symbol, market);
+  if (!resolvedSymbol) return [];
+
+  const cacheKey = `INDICATORS_SERIES:${count}:${interval}:${resolvedSymbol}`;
+  const cached = await getCachedSeries(db, cacheKey);
+  if (cached !== undefined) return cached;
+
+  const dailyRows = await fetchOhlcvRows(resolvedSymbol, interval, chartBaseUrl || DEFAULT_YAHOO_CHART_BASE_URL);
+  if (!dailyRows) return [];
+
+  const rows = interval === '1wk' ? aggregateWeekly(dailyRows) : dailyRows;
+  if (rows.length < 30) return [];
+
+  const series: TechnicalIndicatorResult[] = [];
+  for (let k = Math.min(count, rows.length); k >= 1; k--) {
+    series.push(computeIndicatorsFromRows(rows.slice(0, rows.length - k + 1), resolvedSymbol));
+  }
+
+  await setCachedSeries(db, cacheKey, series);
+  return series;
 }
