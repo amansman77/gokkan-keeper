@@ -18,7 +18,11 @@ export default function MarkdownContent({ content, className = '', disableLinks 
           h3: ({ children }) => <h3 className="mt-3 mb-2 text-lg font-semibold text-gray-900 first:mt-0">{children}</h3>,
           p: ({ children }) => <p className="mb-3 last:mb-0 whitespace-pre-wrap">{children}</p>,
           ul: ({ children }) => <ul className="mb-3 list-disc pl-5 space-y-1">{children}</ul>,
-          ol: ({ children }) => <ol className="mb-3 list-decimal pl-5 space-y-1">{children}</ol>,
+          ol: ({ children, start }) => (
+            <ol start={start} className="mb-3 list-decimal pl-5 space-y-1">
+              {children}
+            </ol>
+          ),
           li: ({ children }) => <li>{children}</li>,
           blockquote: ({ children }) => (
             <blockquote className="mb-3 border-l-4 border-gray-300 pl-4 text-gray-600 italic">{children}</blockquote>
