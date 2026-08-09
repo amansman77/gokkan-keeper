@@ -8,7 +8,7 @@ import {
   validatePublicPositionInput,
 } from '@gokkan-keeper/shared';
 import { enrichPositionsWithLiveQuotes, inferQuotedAssetType, MarketQuoteService } from '../services/market-price';
-import { getTechnicalIndicators } from '../services/technical-indicators';
+import { getTechnicalIndicators, getTechnicalIndicatorSeries } from '../services/technical-indicators';
 
 export const positionsRouter = new Hono<{ Bindings: Env }>();
 
@@ -42,6 +42,27 @@ positionsRouter.get('/indicators', async (c) => {
 
   const result = await getTechnicalIndicators(symbol, market, interval, c.env.YAHOO_FINANCE_API_BASE_URL, c.env.DB);
   if (!result) return c.json({ error: 'Indicators not available for this symbol' }, 404);
+  return c.json(result);
+});
+
+// Used by the weekly candidate-pool report automation to pull a short indicator
+// series for arbitrary (not-yet-held) tickers, not just stored Positions.
+positionsRouter.get('/indicators/series', async (c) => {
+  const symbol = c.req.query('symbol');
+  const market = c.req.query('market') ?? null;
+  const interval = c.req.query('interval') === '1wk' ? '1wk' : '1d';
+  const count = Math.min(Math.max(Number(c.req.query('count')) || (interval === '1wk' ? 4 : 7), 1), 30);
+  if (!symbol) return c.json({ error: 'symbol is required' }, 400);
+
+  const result = await getTechnicalIndicatorSeries(
+    symbol,
+    market,
+    interval,
+    count,
+    c.env.YAHOO_FINANCE_API_BASE_URL,
+    c.env.DB,
+  );
+  if (result.length === 0) return c.json({ error: 'Indicators not available for this symbol' }, 404);
   return c.json(result);
 });
 
