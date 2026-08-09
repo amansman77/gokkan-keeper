@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import type { Env } from '../types';
+import type { Env, Variables } from '../types';
 import { DBClient } from '../db/client';
 import {
   CreateJudgmentDiaryEntrySchema,
@@ -8,8 +8,9 @@ import {
   type JudgmentDiaryEntry,
 } from '@gokkan-keeper/shared';
 import { parseLimit } from '../utils/query';
+import { notifyJudgmentDiaryPublished } from '../services/judgment-diary-notify';
 
-export const judgmentDiaryRouter = new Hono<{ Bindings: Env }>();
+export const judgmentDiaryRouter = new Hono<{ Bindings: Env; Variables: Variables }>();
 type JudgmentAction = JudgmentDiaryEntry['action'];
 
 function isJudgmentAction(value: string): value is JudgmentAction {
@@ -56,6 +57,17 @@ judgmentDiaryRouter.post('/', async (c) => {
 
     const db = new DBClient(c.env.DB);
     const entry = await db.createJudgmentDiaryEntry(validated);
+
+    // Only notify for automated (X-API-Secret) callers, e.g. the quarterly
+    // megatrend cloud agent — not for entries written manually via the app,
+    // which would be noisy for routine BUY/SELL/HOLD/REBALANCE entries.
+    if (c.get('authViaApiSecret') && c.env.DISCORD_WEBHOOK_URL) {
+      try {
+        await notifyJudgmentDiaryPublished(c.env.DISCORD_WEBHOOK_URL, entry);
+      } catch {
+        // Notification failure should not block entry creation
+      }
+    }
 
     return c.json(entry, 201);
   } catch (error: any) {
