@@ -14,6 +14,7 @@ import { runAlertEngine } from './services/alert-engine';
 import { alertsRouter } from './routes/alerts';
 import { automationRouter } from './routes/automation';
 import { alertThresholdsRouter } from './routes/alert-thresholds';
+import { settingsRouter } from './routes/settings';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -63,6 +64,7 @@ app.route('/positions', positionsRouter);
 app.route('/api/positions', positionsRouter);
 app.route('/alerts', alertsRouter);
 app.route('/alert-thresholds', alertThresholdsRouter);
+app.route('/settings', settingsRouter);
 app.route('/automation', automationRouter);
 
 export default {

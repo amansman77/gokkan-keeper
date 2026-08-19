@@ -26,6 +26,7 @@ import { SnapshotRepository } from './repositories/snapshot-repository';
 import { AlertLogRepository } from './repositories/alert-log-repository';
 import type { AlertLogEntry } from './repositories/alert-log-repository';
 import { AlertThresholdRepository } from './repositories/alert-threshold-repository';
+import { SettingsRepository } from './repositories/settings-repository';
 
 export class DBClient {
   private readonly granaries: GranaryRepository;
@@ -34,6 +35,7 @@ export class DBClient {
   private readonly judgmentDiary: JudgmentDiaryRepository;
   private readonly alertLog: AlertLogRepository;
   private readonly alertThresholds: AlertThresholdRepository;
+  private readonly settings: SettingsRepository;
 
   constructor(db: D1Database) {
     this.granaries = new GranaryRepository(db);
@@ -42,6 +44,7 @@ export class DBClient {
     this.judgmentDiary = new JudgmentDiaryRepository(db);
     this.alertLog = new AlertLogRepository(db);
     this.alertThresholds = new AlertThresholdRepository(db);
+    this.settings = new SettingsRepository(db);
   }
 
   getAllGranaries(): Promise<Granary[]> {
@@ -158,5 +161,13 @@ export class DBClient {
 
   deleteAlertThreshold(id: string): Promise<void> {
     return this.alertThresholds.deleteAlertThreshold(id);
+  }
+
+  getAllSettings(): Promise<Record<string, string>> {
+    return this.settings.getAllSettings();
+  }
+
+  setSetting(key: string, value: string): Promise<void> {
+    return this.settings.setSetting(key, value);
   }
 }
