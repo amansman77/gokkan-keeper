@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { getAlerts } from '../lib/api';
 import type { AlertLogEntry } from '../lib/api';
+import AlertThresholdManager from '../components/AlertThresholdManager';
 
 const RULE_TITLES: Record<string, string> = {
   SELL_001: '주봉 하락 추세 진입',
   BUY_001: '주봉 상승 추세 진입',
   WARN_003: '장기 추세 이탈',
   SELL_002: '급등 후 차익실현 신호',
-  FX_JPY_001: '엔화 환율 임계값',
 };
 
 function ruleTitle(ruleId: string): string {
+  if (ruleId.startsWith('FX_')) return '환율 임계값';
   return RULE_TITLES[ruleId] ?? ruleId;
 }
 
@@ -59,9 +60,11 @@ export default function Alerts() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">알림 이력</h1>
-        <p className="text-gray-600">알림 엔진이 발송한 최근 알림입니다 (최대 100건)</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">알림</h1>
+        <p className="text-gray-600">알림 트리거를 관리하고, 발송된 알림 이력을 확인합니다</p>
       </div>
+
+      <AlertThresholdManager />
 
       {alerts.length === 0 ? (
         <div className="text-center py-12 text-gray-500">아직 발송된 알림이 없습니다.</div>

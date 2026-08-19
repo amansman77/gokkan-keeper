@@ -18,6 +18,9 @@ import type {
   Position,
   CreatePosition,
   UpdatePosition,
+  AlertThreshold,
+  CreateAlertThreshold,
+  UpdateAlertThreshold,
 } from '@gokkan-keeper/shared';
 
 interface AuthUser {
@@ -324,6 +327,28 @@ export interface AlertLogEntry {
 
 export async function getAlerts(limit = 50): Promise<AlertLogEntry[]> {
   return fetchAPI<AlertLogEntry[]>(`/alerts?limit=${limit}`);
+}
+
+export async function getAlertThresholds(): Promise<AlertThreshold[]> {
+  return fetchAPI<AlertThreshold[]>('/alert-thresholds');
+}
+
+export async function createAlertThreshold(data: CreateAlertThreshold): Promise<AlertThreshold> {
+  return fetchAPI<AlertThreshold>('/alert-thresholds', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateAlertThreshold(id: string, data: UpdateAlertThreshold): Promise<AlertThreshold> {
+  return fetchAPI<AlertThreshold>(`/alert-thresholds/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteAlertThreshold(id: string): Promise<void> {
+  await fetchAPI(`/alert-thresholds/${id}`, { method: 'DELETE' });
 }
 
 export async function loginWithGoogle(credential: string, next?: string): Promise<GoogleLoginResponse> {
