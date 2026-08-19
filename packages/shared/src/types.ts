@@ -23,6 +23,9 @@ export type {
   Position,
   CreatePosition,
   UpdatePosition,
+  AlertThreshold,
+  CreateAlertThreshold,
+  UpdateAlertThreshold,
 } from './schemas';
 
 export interface GranaryWithLatestSnapshot extends Granary {

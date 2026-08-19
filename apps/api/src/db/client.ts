@@ -1,5 +1,7 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type {
+  AlertThreshold,
+  CreateAlertThreshold,
   CreateGranary,
   CreateJudgmentDiaryEntry,
   CreatePosition,
@@ -10,6 +12,7 @@ import type {
   Position,
   PublicPortfolioResponse,
   Snapshot,
+  UpdateAlertThreshold,
   UpdateGranary,
   UpdateJudgmentDiaryEntry,
   UpdatePosition,
@@ -22,6 +25,7 @@ import { PositionRepository } from './repositories/position-repository';
 import { SnapshotRepository } from './repositories/snapshot-repository';
 import { AlertLogRepository } from './repositories/alert-log-repository';
 import type { AlertLogEntry } from './repositories/alert-log-repository';
+import { AlertThresholdRepository } from './repositories/alert-threshold-repository';
 
 export class DBClient {
   private readonly granaries: GranaryRepository;
@@ -29,6 +33,7 @@ export class DBClient {
   private readonly positions: PositionRepository;
   private readonly judgmentDiary: JudgmentDiaryRepository;
   private readonly alertLog: AlertLogRepository;
+  private readonly alertThresholds: AlertThresholdRepository;
 
   constructor(db: D1Database) {
     this.granaries = new GranaryRepository(db);
@@ -36,6 +41,7 @@ export class DBClient {
     this.positions = new PositionRepository(db);
     this.judgmentDiary = new JudgmentDiaryRepository(db);
     this.alertLog = new AlertLogRepository(db);
+    this.alertThresholds = new AlertThresholdRepository(db);
   }
 
   getAllGranaries(): Promise<Granary[]> {
@@ -132,5 +138,25 @@ export class DBClient {
 
   getAlertLog(limit: number): Promise<AlertLogEntry[]> {
     return this.alertLog.getAlertLog(limit);
+  }
+
+  getAlertThresholds(): Promise<AlertThreshold[]> {
+    return this.alertThresholds.getAlertThresholds();
+  }
+
+  getEnabledAlertThresholds(): Promise<AlertThreshold[]> {
+    return this.alertThresholds.getEnabledAlertThresholds();
+  }
+
+  createAlertThreshold(data: CreateAlertThreshold): Promise<AlertThreshold> {
+    return this.alertThresholds.createAlertThreshold(data);
+  }
+
+  updateAlertThreshold(id: string, data: UpdateAlertThreshold): Promise<AlertThreshold> {
+    return this.alertThresholds.updateAlertThreshold(id, data);
+  }
+
+  deleteAlertThreshold(id: string): Promise<void> {
+    return this.alertThresholds.deleteAlertThreshold(id);
   }
 }

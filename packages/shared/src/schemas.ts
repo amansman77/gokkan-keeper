@@ -264,3 +264,28 @@ export type ConsultingRequestResult = z.infer<typeof ConsultingRequestResultSche
 export type Position = z.infer<typeof PositionSchema>;
 export type CreatePosition = z.infer<typeof CreatePositionSchema>;
 export type UpdatePosition = z.infer<typeof UpdatePositionSchema>;
+
+export const AlertThresholdSchema = z.object({
+  id: z.string().uuid(),
+  symbol: z.string().min(1).max(30),
+  label: z.string().min(1).max(60),
+  direction: z.enum(['below', 'above']),
+  threshold: z.number(),
+  enabled: z.boolean(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const CreateAlertThresholdSchema = z.object({
+  symbol: z.string().min(1).max(30),
+  label: z.string().min(1).max(60),
+  direction: z.enum(['below', 'above']),
+  threshold: z.number(),
+  enabled: z.boolean().optional().default(true),
+});
+
+export const UpdateAlertThresholdSchema = CreateAlertThresholdSchema.partial();
+
+export type AlertThreshold = z.infer<typeof AlertThresholdSchema>;
+export type CreateAlertThreshold = z.infer<typeof CreateAlertThresholdSchema>;
+export type UpdateAlertThreshold = z.infer<typeof UpdateAlertThresholdSchema>;

@@ -13,6 +13,7 @@ import { marketIndicesRouter } from './routes/market-indices';
 import { runAlertEngine } from './services/alert-engine';
 import { alertsRouter } from './routes/alerts';
 import { automationRouter } from './routes/automation';
+import { alertThresholdsRouter } from './routes/alert-thresholds';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -61,6 +62,7 @@ app.route('/judgment-diary', judgmentDiaryRouter);
 app.route('/positions', positionsRouter);
 app.route('/api/positions', positionsRouter);
 app.route('/alerts', alertsRouter);
+app.route('/alert-thresholds', alertThresholdsRouter);
 app.route('/automation', automationRouter);
 
 export default {

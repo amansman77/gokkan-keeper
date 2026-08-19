@@ -4,6 +4,7 @@ import { DBClient } from '../db/client';
 import { getTechnicalIndicators } from './technical-indicators';
 import type { TechnicalIndicatorResult } from './technical-indicators';
 import { getMarketIndices } from './market-indices';
+import type { AlertThreshold } from '@gokkan-keeper/shared';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -271,37 +272,18 @@ async function sendDiscordAlert(alert: Alert, snap: SymbolSnapshot, webhookUrl: 
 
 // ─── FX threshold rules (event-based, reuses the rule-state/dedup machinery above) ──
 // Not position-driven — checks a market index value (from market-indices.ts) against
-// a fixed threshold. Add entries here for new thresholds; no schema migration needed
-// (same convention as RULES above).
+// a user-managed threshold (gk_alert_thresholds, CRUD via /alert-thresholds). Each row
+// gets its own event-transition rule id (`FX_<row id>`) so add/edit/delete just works
+// without touching this file.
 
-interface FxThresholdRule {
-  ruleId: string;
-  symbol: string; // must match a MarketIndex.symbol from market-indices.ts
-  label: string;
-  direction: 'below' | 'above';
-  threshold: number;
-  action: string;
-}
-
-const FX_THRESHOLD_RULES: FxThresholdRule[] = [
-  {
-    ruleId: 'FX_JPY_001',
-    symbol: 'JPYKRW=X',
-    label: 'JPY(100엔)/KRW',
-    direction: 'below',
-    threshold: 870,
-    action: '엔화 매수/환전 타이밍 검토',
-  },
-];
-
-async function sendFxAlert(webhookUrl: string, rule: FxThresholdRule, value: number): Promise<void> {
-  const verb = rule.direction === 'below' ? '이하로 하락' : '이상으로 상승';
+async function sendFxAlert(webhookUrl: string, threshold: AlertThreshold, ruleId: string, value: number): Promise<void> {
+  const verb = threshold.direction === 'below' ? '이하로 하락' : '이상으로 상승';
   const payload = {
     embeds: [{
-      title: `🔔 [환율] ${rule.label} ${rule.threshold}원 ${verb}`,
-      description: `현재가: ${value.toFixed(2)}원\n\n**참고:** ${rule.action}`,
-      color: rule.direction === 'below' ? 0x3498db : 0xe74c3c,
-      footer: { text: `Rule: ${rule.ruleId}` },
+      title: `🔔 [환율] ${threshold.label} ${threshold.threshold}원 ${verb}`,
+      description: `현재가: ${value.toFixed(2)}원`,
+      color: threshold.direction === 'below' ? 0x3498db : 0xe74c3c,
+      footer: { text: `Rule: ${ruleId}` },
       timestamp: new Date().toISOString(),
     }],
   };
@@ -314,34 +296,38 @@ async function sendFxAlert(webhookUrl: string, rule: FxThresholdRule, value: num
 
 async function checkFxThresholds(env: Env, today: string): Promise<{ processed: number; sent: number }> {
   let processed = 0, sent = 0;
-  if (FX_THRESHOLD_RULES.length === 0 || !env.DISCORD_WEBHOOK_URL) return { processed, sent };
+  const db = new DBClient(env.DB);
+  const thresholds = await db.getEnabledAlertThresholds();
+  if (thresholds.length === 0 || !env.DISCORD_WEBHOOK_URL) return { processed, sent };
 
   const indices = await getMarketIndices(env.YAHOO_FINANCE_API_BASE_URL, env.DB);
 
-  for (const rule of FX_THRESHOLD_RULES) {
-    const index = indices.find((i) => i.symbol === rule.symbol);
+  for (const threshold of thresholds) {
+    const index = indices.find((i) => i.symbol === threshold.symbol);
     if (!index) continue;
     processed++;
 
-    const conditionMet = rule.direction === 'below' ? index.value < rule.threshold : index.value > rule.threshold;
-    const wasMet = await getRuleConditionMet(env.DB, rule.symbol, rule.ruleId);
+    const ruleId = `FX_${threshold.id}`;
+    const conditionMet = threshold.direction === 'below' ? index.value < threshold.threshold : index.value > threshold.threshold;
+    const wasMet = await getRuleConditionMet(env.DB, threshold.symbol, ruleId);
     if (conditionMet !== wasMet) {
-      await setRuleConditionMet(env.DB, rule.symbol, rule.ruleId, conditionMet);
+      await setRuleConditionMet(env.DB, threshold.symbol, ruleId, conditionMet);
     }
     if (!conditionMet || wasMet) continue;
 
-    const key = `${rule.symbol}:${rule.ruleId}:${today}`;
+    const key = `${threshold.symbol}:${ruleId}:${today}`;
     if (await isAlreadySent(env.DB, key)) continue;
 
-    await sendFxAlert(env.DISCORD_WEBHOOK_URL, rule, index.value);
+    const action = `${threshold.label} ${threshold.threshold}원 ${threshold.direction === 'below' ? '이하' : '이상'} 진입`;
+    await sendFxAlert(env.DISCORD_WEBHOOK_URL, threshold, ruleId, index.value);
     await Promise.all([
       markSent(env.DB, key),
       env.DB.prepare(`
         INSERT INTO gk_alert_log (symbol, rule_id, date, priority, status, action, indicators_json, sent_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
-        rule.symbol, rule.ruleId, today, 'P1', 'CONFIRMED', rule.action,
-        JSON.stringify({ value: index.value, threshold: rule.threshold }), new Date().toISOString(),
+        threshold.symbol, ruleId, today, 'P1', 'CONFIRMED', action,
+        JSON.stringify({ value: index.value, threshold: threshold.threshold }), new Date().toISOString(),
       ).run(),
     ]);
     sent++;
