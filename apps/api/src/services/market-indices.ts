@@ -17,13 +17,17 @@ export interface MarketIndex {
   asOfDate: string;
 }
 
-const INDEX_CONFIGS: { symbol: string; name: string }[] = [
+const INDEX_CONFIGS: { symbol: string; name: string; multiplier?: number }[] = [
   { symbol: '^KS11', name: 'KOSPI' },
   { symbol: '^KQ11', name: 'KOSDAQ' },
   { symbol: '^IXIC', name: 'NASDAQ' },
   { symbol: '^GSPC', name: 'S&P 500' },
   { symbol: '^VIX', name: 'VIX' },
   { symbol: 'KRW=X', name: 'USD/KRW' },
+  { symbol: 'EURKRW=X', name: 'EUR/KRW' },
+  // Quoted per 100 JPY, matching Korean market convention (JPY/KRW per 1 unit is too small to read).
+  { symbol: 'JPYKRW=X', name: 'JPY100/KRW', multiplier: 100 },
+  { symbol: 'CNYKRW=X', name: 'CNY/KRW' },
 ];
 
 function getTodayKST(): string {
@@ -87,6 +91,7 @@ async function fetchIndexQuote(
   symbol: string,
   chartBaseUrl: string,
   db?: D1Database,
+  multiplier = 1,
 ): Promise<CachedData | null> {
   const cacheKey = `MARKET_INDEX:${symbol}`;
   const cached = await getCached(db, cacheKey);
@@ -124,11 +129,11 @@ async function fetchIndexQuote(
   const latest = valid[0];
   const prev = valid[1] ?? null;
 
-  const change = prev ? latest.close - prev.close : null;
+  const change = prev ? (latest.close - prev.close) * multiplier : null;
   const changeRate = prev ? ((latest.close - prev.close) / prev.close) * 100 : null;
   const asOfDate = resolveAsOfDate(latest.ts);
 
-  const data: CachedData = { value: latest.close, change, changeRate, asOfDate };
+  const data: CachedData = { value: latest.close * multiplier, change, changeRate, asOfDate };
   await setCached(db, cacheKey, data);
   return data;
 }
@@ -137,8 +142,8 @@ export async function getMarketIndices(chartBaseUrl?: string, db?: D1Database): 
   const baseUrl = chartBaseUrl || DEFAULT_YAHOO_CHART_BASE_URL;
 
   const results = await Promise.allSettled(
-    INDEX_CONFIGS.map(async ({ symbol, name }) => {
-      const data = await fetchIndexQuote(symbol, baseUrl, db);
+    INDEX_CONFIGS.map(async ({ symbol, name, multiplier }) => {
+      const data = await fetchIndexQuote(symbol, baseUrl, db, multiplier);
       if (!data) return null;
       return { symbol, name, ...data } as MarketIndex;
     }),
