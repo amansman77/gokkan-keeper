@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getMarketIndices } from '../lib/api';
 import type { MarketIndex } from '../lib/api';
+import Sparkline from './Sparkline';
 
 function formatValue(index: MarketIndex): string {
   if (index.symbol === 'KRW=X') {
@@ -45,11 +46,17 @@ export default function MarketIndices() {
 
   return (
     <div className="bg-white rounded-lg shadow p-4 mb-6">
-      <h2 className="text-sm font-semibold text-gray-500 mb-3">시장 지수</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-sm font-semibold text-gray-500">시장 지수</h2>
+        <span className="text-xs text-gray-400">최근 8주 추이</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {indices.map((index) => {
           const isUp = (index.change ?? 0) >= 0;
           const changeColor = index.change === null ? 'text-gray-400' : isUp ? 'text-red-500' : 'text-blue-500';
+          const series = index.weeklySeries ?? [];
+          const weeklyUp = series.length >= 2 ? series[series.length - 1].value >= series[0].value : null;
+          const sparklineColor = weeklyUp === null ? '#9ca3af' : weeklyUp ? '#ef4444' : '#3b82f6';
           return (
             <div key={index.symbol} className="flex flex-col">
               <span className="text-xs text-gray-500 font-medium">{index.name}</span>
@@ -60,6 +67,17 @@ export default function MarketIndices() {
                 </span>
               )}
               <span className="text-xs text-gray-400 mt-0.5">{index.asOfDate}</span>
+              {series.length >= 2 && (
+                <div className="mt-1.5">
+                  <Sparkline
+                    points={series}
+                    color={sparklineColor}
+                    formatValue={(v) =>
+                      index.symbol === '^VIX' ? v.toFixed(2) : v.toLocaleString('ko-KR', { maximumFractionDigits: 2 })
+                    }
+                  />
+                </div>
+              )}
             </div>
           );
         })}

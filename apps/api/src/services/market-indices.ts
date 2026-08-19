@@ -8,6 +8,11 @@ const YAHOO_REQUEST_HEADERS = {
 const CACHE_TTL_MINUTES = 30;
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
+export interface WeeklyPoint {
+  date: string;
+  value: number;
+}
+
 export interface MarketIndex {
   symbol: string;
   name: string;
@@ -15,7 +20,10 @@ export interface MarketIndex {
   change: number | null;
   changeRate: number | null;
   asOfDate: string;
+  weeklySeries: WeeklyPoint[];
 }
+
+const WEEKLY_SERIES_WEEKS = 8;
 
 const INDEX_CONFIGS: { symbol: string; name: string; multiplier?: number }[] = [
   { symbol: '^KS11', name: 'KOSPI' },
@@ -87,6 +95,69 @@ async function setCached(db: D1Database | undefined, key: string, data: CachedDa
     .run();
 }
 
+async function getCachedSeries(db: D1Database | undefined, key: string): Promise<WeeklyPoint[] | undefined> {
+  if (!db) return undefined;
+  const row = await db
+    .prepare('SELECT quote_json FROM gk_quote_cache WHERE cache_key = ? AND expires_at > ? AND is_not_found = 0')
+    .bind(key, new Date().toISOString())
+    .first<{ quote_json: string | null }>();
+  if (!row) return undefined;
+  try { return JSON.parse(row.quote_json!) as WeeklyPoint[]; } catch { return undefined; }
+}
+
+async function setCachedSeries(db: D1Database | undefined, key: string, data: WeeklyPoint[]): Promise<void> {
+  if (!db) return;
+  const now = new Date().toISOString();
+  const expires = new Date(Date.now() + CACHE_TTL_MINUTES * 60 * 1000).toISOString();
+  await db
+    .prepare(`
+      INSERT INTO gk_quote_cache (cache_key, short_code, operation, quote_json, is_not_found, fetched_at, expires_at)
+      VALUES (?, ?, 'MARKET_INDEX_WEEKLY', ?, 0, ?, ?)
+      ON CONFLICT(cache_key) DO UPDATE SET
+        quote_json = excluded.quote_json,
+        is_not_found = excluded.is_not_found,
+        fetched_at = excluded.fetched_at,
+        expires_at = excluded.expires_at
+    `)
+    .bind(key, key, JSON.stringify(data), now, expires)
+    .run();
+}
+
+async function fetchIndexWeeklySeries(
+  symbol: string,
+  chartBaseUrl: string,
+  db?: D1Database,
+  multiplier = 1,
+): Promise<WeeklyPoint[]> {
+  const cacheKey = `MARKET_INDEX_WEEKLY:${symbol}`;
+  const cached = await getCachedSeries(db, cacheKey);
+  if (cached !== undefined) return cached;
+
+  const url = new URL(`${chartBaseUrl}/${encodeURIComponent(symbol)}`);
+  url.searchParams.set('interval', '1wk');
+  url.searchParams.set('range', '3mo');
+  url.searchParams.set('includePrePost', 'false');
+
+  const response = await fetch(url.toString(), { headers: YAHOO_REQUEST_HEADERS });
+  if (!response.ok) return [];
+
+  const payload = await response.json() as any;
+  const result = payload?.chart?.result?.[0];
+  const timestamps: number[] = result?.timestamp ?? [];
+  const closes: (number | null)[] = result?.indicators?.quote?.[0]?.close ?? [];
+
+  const points: WeeklyPoint[] = [];
+  for (let i = 0; i < closes.length; i++) {
+    if (typeof closes[i] === 'number' && typeof timestamps[i] === 'number') {
+      points.push({ date: resolveAsOfDate(timestamps[i]), value: (closes[i] as number) * multiplier });
+    }
+  }
+
+  const series = points.slice(-WEEKLY_SERIES_WEEKS);
+  await setCachedSeries(db, cacheKey, series);
+  return series;
+}
+
 async function fetchIndexQuote(
   symbol: string,
   chartBaseUrl: string,
@@ -143,9 +214,12 @@ export async function getMarketIndices(chartBaseUrl?: string, db?: D1Database): 
 
   const results = await Promise.allSettled(
     INDEX_CONFIGS.map(async ({ symbol, name, multiplier }) => {
-      const data = await fetchIndexQuote(symbol, baseUrl, db, multiplier);
+      const [data, weeklySeries] = await Promise.all([
+        fetchIndexQuote(symbol, baseUrl, db, multiplier),
+        fetchIndexWeeklySeries(symbol, baseUrl, db, multiplier),
+      ]);
       if (!data) return null;
-      return { symbol, name, ...data } as MarketIndex;
+      return { symbol, name, ...data, weeklySeries } as MarketIndex;
     }),
   );
 
