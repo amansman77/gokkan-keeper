@@ -20,18 +20,22 @@ import { GranaryRepository } from './repositories/granary-repository';
 import { JudgmentDiaryRepository } from './repositories/judgment-diary-repository';
 import { PositionRepository } from './repositories/position-repository';
 import { SnapshotRepository } from './repositories/snapshot-repository';
+import { AlertLogRepository } from './repositories/alert-log-repository';
+import type { AlertLogEntry } from './repositories/alert-log-repository';
 
 export class DBClient {
   private readonly granaries: GranaryRepository;
   private readonly snapshots: SnapshotRepository;
   private readonly positions: PositionRepository;
   private readonly judgmentDiary: JudgmentDiaryRepository;
+  private readonly alertLog: AlertLogRepository;
 
   constructor(db: D1Database) {
     this.granaries = new GranaryRepository(db);
     this.snapshots = new SnapshotRepository(db);
     this.positions = new PositionRepository(db);
     this.judgmentDiary = new JudgmentDiaryRepository(db);
+    this.alertLog = new AlertLogRepository(db);
   }
 
   getAllGranaries(): Promise<Granary[]> {
@@ -124,5 +128,9 @@ export class DBClient {
 
   updateJudgmentDiaryEntry(id: string, data: UpdateJudgmentDiaryEntry): Promise<JudgmentDiaryEntry> {
     return this.judgmentDiary.updateJudgmentDiaryEntry(id, data);
+  }
+
+  getAlertLog(limit: number): Promise<AlertLogEntry[]> {
+    return this.alertLog.getAlertLog(limit);
   }
 }

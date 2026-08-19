@@ -310,6 +310,22 @@ export async function getMarketIndices(): Promise<MarketIndicesResponse> {
   return fetchAPI<MarketIndicesResponse>('/market-indices');
 }
 
+export interface AlertLogEntry {
+  id: number;
+  symbol: string;
+  ruleId: string;
+  date: string;
+  priority: string;
+  status: string;
+  action: string | null;
+  indicators: Record<string, unknown> | null;
+  sentAt: string;
+}
+
+export async function getAlerts(limit = 50): Promise<AlertLogEntry[]> {
+  return fetchAPI<AlertLogEntry[]>(`/alerts?limit=${limit}`);
+}
+
 export async function loginWithGoogle(credential: string, next?: string): Promise<GoogleLoginResponse> {
   return fetchAuthAPI<GoogleLoginResponse>('/auth/google', {
     method: 'POST',

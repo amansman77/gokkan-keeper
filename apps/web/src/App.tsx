@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './lib/auth-context';
 import { setCanonical, setRobots } from './lib/seo';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Alerts = lazy(() => import('./pages/Alerts'));
 const GranaryDetail = lazy(() => import('./pages/GranaryDetail'));
 const NewGranary = lazy(() => import('./pages/NewGranary'));
 const EditGranary = lazy(() => import('./pages/EditGranary'));
@@ -25,7 +26,7 @@ const EditPosition = lazy(() => import('./pages/EditPosition'));
 const Login = lazy(() => import('./pages/Login'));
 const Consulting = lazy(() => import('./pages/Consulting'));
 
-const PRIVATE_PATH_PREFIXES = ['/dashboard', '/granaries', '/snapshots', '/positions', '/accounts'];
+const PRIVATE_PATH_PREFIXES = ['/dashboard', '/granaries', '/snapshots', '/positions', '/accounts', '/alerts'];
 
 function isPrivatePath(pathname: string): boolean {
   if (PRIVATE_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
@@ -109,6 +110,14 @@ function AppContent() {
                   </NavLink>
                 ) : null}
                 {authenticated ? (
+                  <NavLink
+                    to="/alerts"
+                    className={({ isActive }) => `${navBaseClass} ${isActive ? navActiveClass : navInactiveClass}`}
+                  >
+                    알림
+                  </NavLink>
+                ) : null}
+                {authenticated ? (
                   <>
                     <button
                       onClick={() => {
@@ -150,6 +159,7 @@ function AppContent() {
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/alerts" element={<Alerts />} />
                 <Route path="/granaries/:id" element={<GranaryDetail />} />
                 <Route path="/granaries/:id/edit" element={<EditGranary />} />
                 <Route path="/granaries/new" element={<NewGranary />} />

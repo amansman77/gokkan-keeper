@@ -14,6 +14,7 @@
 
 ## Private Routes (authentication required)
 - `/dashboard`
+- `/alerts`
 - `/granaries/new`
 - `/granaries/:id`
 - `/granaries/:id/edit`
@@ -35,6 +36,9 @@
 - `POST /api/public/consulting-request`
 - `GET /judgment-diary`
 - `GET /judgment-diary/:id`
+
+## API Private Routes (notable additions)
+- `GET /alerts` — recent alert log entries (`gk_alert_log`)
 
 ## API Private Routes (authentication required)
 - All other API endpoints requiring `gk_session` (HttpOnly session cookie)
