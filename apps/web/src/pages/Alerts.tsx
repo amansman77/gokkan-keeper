@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getAlerts } from '../lib/api';
+import { getAlerts, getPositions, getMarketIndices } from '../lib/api';
 import type { AlertLogEntry } from '../lib/api';
 import AlertThresholdManager from '../components/AlertThresholdManager';
 import WeeklyReportSettings from '../components/WeeklyReportSettings';
@@ -31,12 +31,19 @@ const PRIORITY_STYLE: Record<string, string> = {
 
 export default function Alerts() {
   const [alerts, setAlerts] = useState<AlertLogEntry[]>([]);
+  const [symbolNames, setSymbolNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getAlerts(100)
-      .then(setAlerts)
+    Promise.all([getAlerts(100), getPositions(), getMarketIndices()])
+      .then(([alertsData, positions, marketIndices]) => {
+        setAlerts(alertsData);
+        const names: Record<string, string> = {};
+        for (const p of positions) names[p.symbol] = p.name;
+        for (const idx of marketIndices.indices) names[idx.symbol] = idx.name;
+        setSymbolNames(names);
+      })
       .catch((err) => setError(err.message || '알림 목록을 불러오는데 실패했습니다.'))
       .finally(() => setLoading(false));
   }, []);
@@ -83,7 +90,10 @@ export default function Alerts() {
                     {alert.priority}
                   </span>
                   <span className="font-medium text-gray-900">{ruleTitle(alert.ruleId)}</span>
-                  <span className="text-sm text-gray-500">{alert.symbol}</span>
+                  <span className="text-sm text-gray-700">
+                    {symbolNames[alert.symbol] ? `${symbolNames[alert.symbol]} ` : ''}
+                    <span className="text-gray-400">({alert.symbol})</span>
+                  </span>
                 </div>
                 {alert.action && <p className="text-sm text-gray-600 mt-1">{alert.action}</p>}
               </div>
