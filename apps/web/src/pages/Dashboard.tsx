@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getGranaries, getStatus } from '../lib/api';
+import { getAllGranariesExport, getGranaries, getStatus } from '../lib/api';
 import { API_BASE_URL } from '../lib/config';
 import type { Granary, Snapshot, StatusSummary } from '../lib/types';
 import GranaryCard from '../components/GranaryCard';
@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [status, setStatus] = useState<StatusSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -63,11 +64,43 @@ export default function Dashboard() {
     );
   }
 
+  const handleDownloadAll = async () => {
+    try {
+      setDownloading(true);
+      const payload = await getAllGranariesExport();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const date = new Date().toISOString().slice(0, 10);
+      link.href = url;
+      link.download = `granaries-all-${date}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err.message || 'JSON 다운로드에 실패했습니다.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">곳간 목록</h1>
-        <p className="text-gray-600">목적별로 정리된 자산을 확인하세요</p>
+      <div className="flex justify-between items-start gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">곳간 목록</h1>
+          <p className="text-gray-600">목적별로 정리된 자산을 확인하세요</p>
+        </div>
+        {granaries.length > 0 && (
+          <button
+            onClick={handleDownloadAll}
+            disabled={downloading}
+            className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-60 whitespace-nowrap"
+          >
+            {downloading ? '다운로드 중...' : 'JSON 다운로드'}
+          </button>
+        )}
       </div>
 
       <MarketIndices />

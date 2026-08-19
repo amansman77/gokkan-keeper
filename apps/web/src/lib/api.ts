@@ -145,6 +145,15 @@ export async function getGranaryExport(id: string): Promise<GranaryExportPayload
   return fetchAPI<GranaryExportPayload>(`/granaries/${id}/export`);
 }
 
+export interface AllGranariesExportPayload {
+  exportedAt: string;
+  granaries: Omit<GranaryExportPayload, 'exportedAt'>[];
+}
+
+export async function getAllGranariesExport(): Promise<AllGranariesExportPayload> {
+  return fetchAPI<AllGranariesExportPayload>('/granaries/export');
+}
+
 export async function createGranary(data: CreateGranary): Promise<Granary> {
   return fetchAPI<Granary>('/granaries', {
     method: 'POST',
