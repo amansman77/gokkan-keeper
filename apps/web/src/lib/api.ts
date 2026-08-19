@@ -351,6 +351,17 @@ export async function deleteAlertThreshold(id: string): Promise<void> {
   await fetchAPI(`/alert-thresholds/${id}`, { method: 'DELETE' });
 }
 
+export async function getSettings(): Promise<Record<string, string>> {
+  return fetchAPI<Record<string, string>>('/settings');
+}
+
+export async function updateSetting(key: string, value: string): Promise<Record<string, string>> {
+  return fetchAPI<Record<string, string>>(`/settings/${key}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ value }),
+  });
+}
+
 export async function loginWithGoogle(credential: string, next?: string): Promise<GoogleLoginResponse> {
   return fetchAuthAPI<GoogleLoginResponse>('/auth/google', {
     method: 'POST',

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getAlerts } from '../lib/api';
 import type { AlertLogEntry } from '../lib/api';
 import AlertThresholdManager from '../components/AlertThresholdManager';
+import WeeklyReportSettings from '../components/WeeklyReportSettings';
 
 const RULE_TITLES: Record<string, string> = {
   SELL_001: '주봉 하락 추세 진입',
@@ -65,6 +66,7 @@ export default function Alerts() {
       </div>
 
       <AlertThresholdManager />
+      <WeeklyReportSettings />
 
       {alerts.length === 0 ? (
         <div className="text-center py-12 text-gray-500">아직 발송된 알림이 없습니다.</div>
