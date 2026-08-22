@@ -1,5 +1,12 @@
-# Copy this file to .dev.vars and set your secret
+# Copy this file to .dev.vars and set local-only values.
 # .dev.vars is used for local development with wrangler dev
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+ALLOWED_EMAIL=you@example.com
+SESSION_SECRET=replace-with-at-least-32-random-bytes
+# Optional: bind login to one Google account subject.
+# ALLOWED_SUB=your-google-account-subject
+
+# Used only by the operational /alerts/run/* endpoint, not browser login.
 API_SECRET=your-secret-key-here-change-in-production
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxx/yyy
 FSC_STOCK_API_SERVICE_KEY=your-stock-api-key

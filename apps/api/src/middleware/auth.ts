@@ -3,12 +3,6 @@ import type { Env } from '../types';
 import { readSessionFromCookie } from '../auth/session';
 
 function isPublicPath(pathname: string, method: string): boolean {
-  if (pathname === '/health') return true;
-  if (pathname === '/auth/google') return true;
-  if (pathname === '/auth/logout') return true;
-  if (pathname === '/auth/me') return true;
-  if (pathname === '/public' || pathname.startsWith('/public/')) return true;
-  if (pathname === '/api/public' || pathname.startsWith('/api/public/')) return true;
   if (pathname.startsWith('/alerts/run/')) return true; // API_SECRET checked in handler
 
   // Public Judgment Archive: read-only access for anonymous users.

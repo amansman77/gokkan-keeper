@@ -80,13 +80,12 @@ pnpm dev
 # 1. Set up backend environment variables
 cd apps/api
 cp .dev.vars.example .dev.vars
-# Edit .dev.vars and set API_SECRET
+# Edit .dev.vars and set GOOGLE_CLIENT_ID, ALLOWED_EMAIL, and SESSION_SECRET
 
 # 2. Set up frontend environment variables
 cd ../web
 echo "VITE_API_BASE_URL=http://localhost:8787" > .env
-echo "VITE_API_SECRET=your-secret-key-here" >> .env
-# Edit .env and set VITE_API_SECRET to match API_SECRET
+echo "VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com" >> .env
 
 # 3. Go back to root and run dev
 cd ../..
@@ -109,10 +108,12 @@ cp .dev.vars.example .dev.vars
 
 Content of `apps/api/.dev.vars`:
 ```env
-API_SECRET=your-secret-key-here-change-in-production
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+ALLOWED_EMAIL=you@example.com
+SESSION_SECRET=replace-with-at-least-32-random-bytes
 ```
 
-**Note**: `.dev.vars` is used by `wrangler dev` for local development. This file is gitignored for security.
+`API_SECRET` is optional for normal browser use. It protects the operational alert-run endpoint, not user login. `.dev.vars` is gitignored for security; see `apps/api/.dev.vars.example` for optional integrations.
 
 ### Frontend (Web) - `.env` file
 
@@ -126,11 +127,12 @@ cd apps/web
 Content of `apps/web/.env`:
 ```env
 VITE_API_BASE_URL=http://localhost:8787
-VITE_API_SECRET=your-secret-key-here-change-in-production
+VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 ```
 
 **Important**: 
-- The `VITE_API_SECRET` must match the `API_SECRET` in `apps/api/.dev.vars`
+- `VITE_GOOGLE_CLIENT_ID` must match the backend `GOOGLE_CLIENT_ID`
+- Protected requests use the HttpOnly `gk_session` cookie issued after Google login
 - Both files are gitignored for security
 - For production, set these in your deployment platform's environment variables
 
@@ -203,4 +205,3 @@ pnpm cap:sync
 pnpm cap:ios
 pnpm cap:android
 ```
-

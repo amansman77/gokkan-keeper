@@ -1,7 +1,7 @@
-# Route Inventory (2026-02-24)
+# Route Inventory
 
 ## Public Routes (anonymous allowed)
-- `/` -> redirects to `/judgment-diary` when not authenticated
+- `/` (service introduction)
 - `/login`
 - `/judgment-diary`
 - `/judgment-diary/:slug`
@@ -9,7 +9,8 @@
 - `/judgment-diary/strategy/:strategy`
 - `/judgment-diary/principles`
 - `/judgment-diary/reports/:month`
-- `/public`
+- `/archive` (public portfolio)
+- `/consulting`
 - Static assets (`/sitemap.xml`, `/robots.txt`, favicon, etc.)
 
 ## Private Routes (authentication required)
