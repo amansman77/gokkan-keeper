@@ -1,114 +1,123 @@
-# 아키텍처 가이드 (Architecture Guide)
+# Architecture guide
 
-## Tech Stack (MVP)
+Gokkan Keeper is a pnpm monorepo for a purpose-based asset journal. The system
+separates private owner workflows from an explicitly public judgment archive and
+portfolio view.
 
-- **Frontend**: Vite + React (Capacitor-ready)
-- **Backend**: Cloudflare Workers (Hono)
-- **Database**: Cloudflare D1 (SQLite)
-- **Storage**: Cloudflare R2 (CSV 등)
-- **Cron**: Workers Cron Trigger
-- **Auth**: Shared secret (Single-user MVP)
+For task-oriented agent instructions, see [AGENTS.md](AGENTS.md). For local
+setup, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
-> 인프라보다 **지속 가능한 기록**을 우선합니다.
+## Runtime topology
 
-## Repository Structure
+```text
+Browser (React + Vite)
+  | JSON over HTTP; session cookie on private requests
+  v
+Cloudflare Worker (Hono)
+  | SQL through domain repositories
+  v
+Cloudflare D1 (SQLite)
 
-```
-gokkan-keeper/
-├── apps/
-│   ├── web/          # Frontend (Vite + React)
-│   └── api/          # Backend (Cloudflare Workers)
-├── packages/
-│   └── shared/       # Shared types, schemas, utils
-├── migrations/       # D1 database migrations
-└── wrangler.toml     # Cloudflare Workers configuration
+Worker scheduled triggers
+  -> alert engine -> market providers / Discord webhook
 ```
 
-### Apps
+- `apps/web`: static React application, deployable to Cloudflare Pages and
+  prepared for Capacitor.
+- `apps/api`: Hono Worker containing HTTP routes, authentication, domain
+  services, scheduled alerts, and D1 access.
+- `packages/shared`: compiled TypeScript package containing shared types, Zod
+  schemas, constants, and pure utilities.
+- `migrations`: the append-only D1 schema history.
 
-#### `apps/web` - Frontend
-- **Framework**: Vite + React
-- **Routing**: React Router
-- **Styling**: Tailwind CSS
-- **Mobile**: Capacitor (iOS/Android)
-- **Build**: `pnpm build` → `dist/`
+The root build order is shared package, web, then API because both applications
+consume `@gokkan-keeper/shared`.
 
-#### `apps/api` - Backend
-- **Runtime**: Cloudflare Workers
-- **Framework**: Hono
-- **Database**: Cloudflare D1 (SQLite)
-- **Auth**: Shared secret via `X-API-Secret` header
-- **Deploy**: `pnpm wrangler deploy --env production`
+## Backend boundaries
 
-### Packages
+`apps/api/src/index.ts` is the composition root. It configures CORS, mounts
+anonymous routes before authentication, applies the session middleware, mounts
+private routes, and exports the scheduled Worker handler.
 
-#### `packages/shared` - Shared Code
-- TypeScript types (`Granary`, `Snapshot`, etc.)
-- Zod schemas for validation
-- Utility functions
-- Constants
+Backend code is split by responsibility:
 
-Used by both frontend and backend for type safety and consistency.
+- `routes`: parse HTTP input, validate it, select status codes, and serialize
+  responses.
+- `services`: coordinate domain operations and external market/consulting/alert
+  providers.
+- `db/repositories`: contain D1 queries for granaries, snapshots, positions, and
+  judgment-diary entries.
+- `db/mappers.ts`: converts snake_case database rows to camelCase API objects.
+- `auth` and `middleware`: create/verify sessions and enforce route access.
 
-### Database
+Write payload schemas live in `packages/shared/src/schemas.ts`; domain and API
+types live in `packages/shared/src/types.ts`. Backend-only environment bindings
+live in `apps/api/src/types.ts`.
 
-#### D1 Database Structure
+## Frontend boundaries
 
-**Table Prefix**: `gk_` (for multi-service database sharing)
+`apps/web/src/App.tsx` owns browser routing, lazy page loading, navigation, and
+route-level SEO behavior. Pages compose domain components. All backend calls go
+through `apps/web/src/lib/api.ts`, which provides three intentional request
+paths:
 
-- `gk_granaries`: 곳간 정보
-  - `id`, `name`, `purpose`, `currency`, `owner`, `created_at`, `updated_at`
-  
-- `gk_snapshots`: 스냅샷 기록
-  - `id`, `granary_id`, `date`, `total_amount`, `available_balance`, `memo`, `created_at`
-  - `UNIQUE(granary_id, date)` constraint
+- authenticated requests include the session cookie;
+- public requests omit credentials;
+- auth requests include credentials so login/logout can set or clear cookies.
 
-**Note**: Cloudflare D1 free plan allows up to 5 databases. This project uses table prefixes to share a single database across multiple services.
+`apps/web/src/lib/config.ts` selects `http://localhost:8787` in development and
+same-origin `/api` in production unless `VITE_API_BASE_URL` overrides it.
 
-## Data Flow
+## Authentication and route exposure
 
-1. **Frontend** → API request with `X-API-Secret` header
-2. **Backend** → Validate secret → Query D1 database
-3. **Backend** → Transform snake_case to camelCase → Return JSON
-4. **Frontend** → Display data with React components
+The owner signs in with a Google ID token. The API verifies its audience and the
+configured allowed account, then issues a 30-day HMAC-signed HttpOnly
+`gk_session` cookie. This is a single-owner application even though some content
+is public.
 
-## Authentication
+Anonymous API access includes:
 
-**MVP**: Shared secret authentication
-- Single secret (`API_SECRET`) for all requests
-- Sent via `X-API-Secret` header
-- Backend validates against `c.env.API_SECRET`
+- `GET /health`
+- `/auth/*`
+- `/public/*` and its `/api/public/*` alias
+- read-only `GET /judgment-diary/*`
 
-**Production Recommendation**: Add Cloudflare Access for additional security layer.
+Other application routes require a valid session. Operational `/alerts/run/*`
+handlers use `API_SECRET` rather than the browser session. The exact allowlist is
+in `apps/api/src/middleware/auth.ts`; the browser inventory is in
+`docs/routes.md`.
 
-## CORS Configuration
+## Persistence
 
-Allowed origins:
-- `http://localhost:*` (local development)
-- `capacitor://localhost` (Capacitor apps)
-- `*.pages.dev` (Cloudflare Pages)
-- Custom domains (configured in `apps/api/src/index.ts`)
+D1 tables use the `gk_` prefix because the database may be shared with other
+services. The current domains are:
 
-## Environment Variables
+- `gk_granaries`: purpose-based asset containers and publication settings;
+- `gk_snapshots`: dated value observations for a granary;
+- `gk_positions`: holdings and optional public display metadata;
+- `gk_judgment_diary_entries`: public judgment/action records;
+- `gk_quote_cache`: cached external market quotes;
+- `gk_alert_sent` and `gk_alert_log`: alert deduplication/history.
 
-### Backend
-- `API_SECRET`: Shared secret for authentication
+Migrations are ordered SQL files. Applied migrations are immutable; schema
+changes must use the next numbered file.
 
-### Frontend
-- `VITE_API_BASE_URL`: API endpoint URL
-- `VITE_API_SECRET`: Must match backend `API_SECRET`
+## External integrations
 
-## Build Process
+- Google token info: owner identity verification.
+- Korean FSC and Yahoo Finance endpoints: position prices and market data, with
+  source and timestamp metadata retained in responses.
+- Discord webhook: scheduled alert delivery.
+- Cloudflare Cron Triggers: weekday daily and Friday weekly alert evaluation.
 
-1. **Shared package**: TypeScript compilation → `packages/shared/dist/`
-2. **Frontend**: Vite build → `apps/web/dist/`
-3. **Backend**: TypeScript compilation → bundled by Wrangler
+External failures must not silently become authoritative prices. Preserve
+fallbacks, warnings, provider source, and `asOf` values.
 
-## Deployment
+## Validation and deployment
 
-- **Backend**: Cloudflare Workers (via Wrangler)
-- **Frontend**: Cloudflare Pages (or any static hosting)
-- **Database**: Cloudflare D1 (managed service)
+Run `pnpm typecheck` for the baseline repository check. Run `pnpm build` for
+changes affecting web build scripts, SEO output, routes, or deployment. There is
+no general automated unit-test suite at present; the auth integration smoke test
+is documented separately.
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
-
+Deployment details and Cloudflare bindings are in [DEPLOYMENT.md](DEPLOYMENT.md).

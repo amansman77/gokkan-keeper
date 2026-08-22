@@ -31,10 +31,6 @@ pnpm wrangler pages secret put VITE_API_BASE_URL \
   --project-name=gokkan-keeper-web \
   --value="https://gokkan-keeper-api-production.amansman77.workers.dev"
 
-pnpm wrangler pages secret put VITE_API_SECRET \
-  --project-name=gokkan-keeper-web \
-  --value="your-api-secret"
-
 # 배포
 pnpm wrangler pages deploy dist \
   --project-name=gokkan-keeper-web \
@@ -78,7 +74,7 @@ Root directory: apps/web
 
 **⚠️ 환경 변수가 적용되지 않는 경우 확인사항:**
 
-1. **환경 변수 이름 확인**: 정확히 `VITE_API_BASE_URL`과 `VITE_API_SECRET`인지 확인 (대소문자 구분)
+1. **환경 변수 이름 확인**: 정확히 `VITE_API_BASE_URL`과 `VITE_GOOGLE_CLIENT_ID`인지 확인 (대소문자 구분)
 2. **Environment 선택 확인**: Production, Preview, Branch preview 모두 선택했는지 확인
 3. **빌드 재실행**: 환경 변수 설정 후 반드시 새로운 배포를 트리거해야 함
 4. **브라우저 캐시**: 배포 후 브라우저에서 강력 새로고침 (Ctrl+Shift+R 또는 Cmd+Shift+R)
@@ -94,8 +90,8 @@ Root directory: apps/web
    - **Value**: `https://gokkan-keeper-api-production.amansman77.workers.dev`
    - **Environment**: Production, Preview, Branch preview 모두 선택
 
-   - **Variable name**: `VITE_API_SECRET`
-   - **Value**: (백엔드와 동일한 API_SECRET 값)
+   - **Variable name**: `VITE_GOOGLE_CLIENT_ID`
+   - **Value**: (백엔드와 동일한 Google OAuth 클라이언트 ID)
    - **Environment**: Production, Preview, Branch preview 모두 선택
 
 3. **Save** 클릭
