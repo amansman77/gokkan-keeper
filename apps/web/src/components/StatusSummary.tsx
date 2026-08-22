@@ -9,7 +9,7 @@ interface StatusSummaryProps {
 export default function StatusSummaryComponent({ status }: StatusSummaryProps) {
   return (
     <div className="bg-white rounded-lg shadow p-6 mb-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">곳간 지기 요약</h2>
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">곶간 지기 요약</h2>
       
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
@@ -57,4 +57,3 @@ export default function StatusSummaryComponent({ status }: StatusSummaryProps) {
     </div>
   );
 }
-

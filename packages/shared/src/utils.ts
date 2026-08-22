@@ -69,6 +69,8 @@ function hasValue(value: number | null | undefined): value is number {
 export function getPositionMarketValue(
   position: Pick<Position, 'currentMarketValue' | 'currentValue' | 'quantity'>,
 ): number | null {
+  // See docs/DOMAIN_GLOSSARY.md. currentValue predates the normalized enriched
+  // fields and has different semantics depending on whether quantity is known.
   if (hasValue(position.currentMarketValue)) {
     return position.currentMarketValue;
   }
