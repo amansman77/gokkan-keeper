@@ -1,51 +1,92 @@
-# AI Agent Guide
+# Gokkan Keeper agent guide
 
-This file is the shortest reliable path to understanding and changing Gokkan Keeper.
+This file is the shortest reliable entry point for coding agents. Read it before
+changing code, then open only the files related to the task.
 
-## Start Here
+## Product boundary
 
-1. Read `ARCHITECTURE.md` for boundaries and request flows.
-2. Read `packages/shared/src/schemas.ts` before changing a domain payload.
-3. Locate the relevant API route in `apps/api/src/routes/`, then follow it to a repository or service.
-4. Locate the corresponding web call in `apps/web/src/lib/api.ts`, then the page/component using it.
-5. Run `pnpm typecheck`; run `pnpm build` when build scripts or production behavior changed.
+Gokkan Keeper is a purpose-based asset journal, not a trading system. Its main
+domains are granaries, periodic snapshots, positions, and a public judgment
+diary. Preserve the distinction between private owner data and deliberately
+published portfolio/diary data.
 
-## Repository Boundaries
+Use [docs/DOMAIN_GLOSSARY.md](docs/DOMAIN_GLOSSARY.md) as the source of truth for
+domain terms and field semantics. In particular, do not infer the meaning of the
+legacy `Position.currentValue` field from its name.
 
-- `apps/web`: React UI. Pages orchestrate data fetching; components hold reusable UI; `lib/api.ts` is the API client.
-- `apps/api`: Hono/Cloudflare Worker API. `app.ts` composes HTTP middleware and routes; `index.ts` only adapts it to Worker fetch/cron handlers.
-- `packages/shared`: cross-boundary domain types, Zod schemas, constants, and pure utilities. Put request/response contracts here when both apps use them.
-- `migrations`: append-only D1 schema history. Never edit a migration that may have been applied; add the next numbered migration.
-- `docs`: focused operational references. `docs/routes.md` is the route inventory.
+## Workspace map
 
-## Change Map
+- `apps/web`: React/Vite client. Routes are composed in `src/App.tsx`; all HTTP
+  calls belong in `src/lib/api.ts`.
+- `apps/api`: Hono Cloudflare Worker. `src/app.ts` composes the HTTP app while
+  `src/index.ts` adapts it to Worker fetch and scheduled handlers. `src/routes`
+  owns HTTP concerns, `src/services` owns external data and domain orchestration,
+  and `src/db/repositories` owns D1 queries.
+- `packages/shared`: types, Zod input schemas, constants, and pure utilities
+  shared by web and API. Add cross-workspace contracts here instead of copying
+  them into both apps.
+- `migrations`: ordered D1 schema history. Never edit an applied migration;
+  append a new numbered migration.
+- `docs`: feature-specific decisions and historical plans. The current system
+  overview is `ARCHITECTURE.md`; local setup is `DEVELOPMENT.md`.
 
-| Change | Start in | Usually also check |
-| --- | --- | --- |
-| Domain field or validation | `packages/shared/src/schemas.ts` | shared types, migration, mapper, API route, form |
-| Database read/write | `apps/api/src/db/repositories/` | `db/mappers.ts`, migration, route |
-| Business/integration logic | `apps/api/src/services/` | route, environment bindings in `types.ts` |
-| API endpoint | `apps/api/src/routes/` | `app.ts`, web `lib/api.ts`, `docs/routes.md` |
-| Page or navigation | `apps/web/src/App.tsx` and `pages/` | SEO rules, protected-route rules, route docs |
-| Authentication | `apps/api/src/auth/`, `middleware/auth.ts` | auth route, web auth context, integration test |
-| Scheduled alert behavior | `services/alert-engine.ts` | `index.ts`, both Wrangler configs |
+## Request and data flow
 
-## Architectural Rules
-
-- Keep HTTP parsing/status codes in routes, persistence in repositories, and reusable domain or external-provider logic in services.
-- Validate external input with a shared Zod schema instead of duplicating ad hoc checks.
-- Keep database snake_case conversion in `apps/api/src/db/mappers.ts`; expose camelCase JSON.
-- Preserve the authentication boundary in `apps/api/src/app.ts`: routes registered before `authMiddleware` are anonymous.
-- Judgment-diary GET routes and alert run routes are deliberate exceptions handled by `authMiddleware`; mutations require a session unless the handler verifies `API_SECRET`.
-- The API is deployed both at direct Worker paths and behind the Pages `/api` proxy. Preserve existing aliases unless deployment routing is changed too.
-
-## Verification
-
-```bash
-pnpm typecheck
-pnpm build
+```text
+React page/component
+  -> apps/web/src/lib/api.ts
+  -> apps/api/src/routes/*
+  -> apps/api/src/services/* (when orchestration/external I/O is needed)
+  -> apps/api/src/db/repositories/*
+  -> D1
 ```
 
-There is no general unit-test suite yet. Authentication has an opt-in integration script (`pnpm --filter api test:auth:integration`) that requires a running API and credentials; see `docs/auth-integration-test.md`.
+Shared Zod schemas validate write input at the API boundary. Database mappers
+translate SQLite rows to the camelCase shared types. Do not access D1 from web
+code or embed SQL in route handlers when a repository already owns that domain.
 
-Do not commit generated `dist/`, local `.env`/`.dev.vars`, Wrangler state, or dependency directories.
+## Authentication and publication rules
+
+- Owner authentication is Google ID token verification followed by a signed,
+  HttpOnly `gk_session` cookie (`apps/api/src/routes/auth.ts` and
+  `apps/api/src/auth/session.ts`). Client requests that need the session use
+  `credentials: 'include'` via `fetchAPI`.
+- Anonymous access is intentionally limited to health/auth, public portfolio and
+  consulting endpoints, and read-only judgment-diary endpoints. Review
+  `apps/api/src/middleware/auth.ts` before adding or moving a route.
+- `API_SECRET` is not the browser login mechanism. It only protects operational
+  alert-run endpoints.
+- When adding public data, opt in explicitly at the query/DTO layer. Do not
+  serialize private database records and remove fields afterward.
+
+## Change checklist
+
+1. Identify the owning layer using the workspace map and follow a neighboring
+   implementation.
+2. Check new domain names against `docs/DOMAIN_GLOSSARY.md`; update the glossary
+   when introducing a genuinely new concept.
+3. If an API contract changes, update shared types/schemas, API handler, web API
+   wrapper, and consumer together.
+4. If persistence changes, add a migration, repository mapping, and shared type
+   as applicable.
+5. Keep public and authenticated route behavior explicit.
+6. Run `pnpm typecheck`. Run `pnpm build` when build scripts, generated SEO
+   assets, routing, or deployment behavior changes.
+
+There is currently no general unit-test suite. Do not claim test coverage from a
+successful typecheck. Auth has an opt-in integration check documented in
+`docs/auth-integration-test.md`.
+
+## Conventions and pitfalls
+
+- TypeScript is strict; prefer shared domain types and `unknown` narrowing over
+  introducing `any`.
+- API JSON is camelCase even though D1 columns are snake_case.
+- Public API aliases exist at both `/public/*` and `/api/public/*` for direct
+  Worker access and same-origin Pages routing. Positions have a similar
+  `/positions` and `/api/positions` compatibility mount.
+- The frontend production default API base is `/api`; local development defaults
+  to `http://localhost:8787`.
+- Market quote providers are external and fallible. Preserve source/as-of
+  metadata and fallback behavior when modifying price services.
+- Never commit `.dev.vars`, `.env`, tokens, Google credentials, or webhook URLs.

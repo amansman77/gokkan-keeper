@@ -84,8 +84,9 @@ cp .dev.vars.example .dev.vars
 
 # 2. Set up frontend environment variables
 cd ../web
-echo "VITE_API_BASE_URL=http://localhost:8787" > .env
-echo "VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com" >> .env
+cp .env.production.example .env
+# Set VITE_GOOGLE_CLIENT_ID to the same OAuth client ID as GOOGLE_CLIENT_ID.
+# VITE_API_BASE_URL may be omitted locally; it defaults to http://localhost:8787.
 
 # 3. Go back to root and run dev
 cd ../..
@@ -103,17 +104,22 @@ Create `apps/api/.dev.vars` file for local development:
 ```bash
 cd apps/api
 cp .dev.vars.example .dev.vars
-# Edit .dev.vars and set your API_SECRET
+# Edit .dev.vars and set GOOGLE_CLIENT_ID, ALLOWED_EMAIL, and SESSION_SECRET
 ```
 
-Content of `apps/api/.dev.vars`:
+Minimum content of `apps/api/.dev.vars`:
 ```env
-GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-ALLOWED_EMAIL=you@example.com
-SESSION_SECRET=replace-with-at-least-32-random-bytes
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+ALLOWED_EMAIL=owner@example.com
+SESSION_SECRET=replace-with-a-long-random-secret
 ```
 
-`API_SECRET` is optional for normal browser use. It protects the operational alert-run endpoint, not user login. `.dev.vars` is gitignored for security; see `apps/api/.dev.vars.example` for optional integrations.
+**Note**: `.dev.vars` is used by `wrangler dev` for local development. This file is gitignored for security.
+
+`ALLOWED_SUB` can additionally pin the Google account subject. `API_SECRET` is
+only needed for the operational alert-run endpoints; it is not used for browser
+login. Market-data keys and the Discord webhook are optional unless you are
+working on those integrations. See `.dev.vars.example` for the complete list.
 
 ### Frontend (Web) - `.env` file
 
@@ -126,13 +132,13 @@ cd apps/web
 
 Content of `apps/web/.env`:
 ```env
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+# Optional; this is already the local default:
 VITE_API_BASE_URL=http://localhost:8787
-VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 ```
 
 **Important**: 
-- `VITE_GOOGLE_CLIENT_ID` must match the backend `GOOGLE_CLIENT_ID`
-- Protected requests use the HttpOnly `gk_session` cookie issued after Google login
+- `VITE_GOOGLE_CLIENT_ID` must match `GOOGLE_CLIENT_ID` in `apps/api/.dev.vars`
 - Both files are gitignored for security
 - For production, set these in your deployment platform's environment variables
 

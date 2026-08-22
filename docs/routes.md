@@ -3,6 +3,7 @@
 ## Public Routes (anonymous allowed)
 - `/` (service introduction)
 - `/login`
+- `/consulting`
 - `/judgment-diary`
 - `/judgment-diary/:slug`
 - `/judgment-diary/action/:action`
@@ -10,7 +11,6 @@
 - `/judgment-diary/principles`
 - `/judgment-diary/reports/:month`
 - `/archive` (public portfolio)
-- `/consulting`
 - Static assets (`/sitemap.xml`, `/robots.txt`, favicon, etc.)
 
 ## Private Routes (authentication required)

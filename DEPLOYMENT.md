@@ -89,8 +89,9 @@ cd apps/api
 pnpm wrangler secret put GOOGLE_CLIENT_ID --env production
 pnpm wrangler secret put ALLOWED_EMAIL --env production
 pnpm wrangler secret put SESSION_SECRET --env production
-# alert 실행 엔드포인트를 사용할 때만 추가
+# 운영용 alert-run 엔드포인트를 사용할 때만 설정
 pnpm wrangler secret put API_SECRET --env production
+# 또는: npx wrangler secret put API_SECRET --env production
 
 # 현재 설정된 secret 확인
 pnpm wrangler secret list --env production
@@ -101,14 +102,14 @@ pnpm wrangler secret list --env production
 1. Cloudflare Dashboard → Workers & Pages → gokkan-keeper-api
 2. Settings → Variables and Secrets
 3. `GOOGLE_CLIENT_ID`, `ALLOWED_EMAIL`, `SESSION_SECRET`을 secret으로 추가
-4. alert 실행 엔드포인트를 사용한다면 `API_SECRET`도 추가
+4. alert-run 엔드포인트를 사용한다면 `API_SECRET`도 추가
 
 #### Frontend
 
 호스팅 플랫폼의 환경 변수 설정에서:
 
 - `VITE_API_BASE_URL`: 프로덕션 API URL (예: `https://api.gokkan-keeper.com`)
-- `VITE_GOOGLE_CLIENT_ID`: 백엔드 `GOOGLE_CLIENT_ID`와 동일한 값
+- `VITE_GOOGLE_CLIENT_ID`: 백엔드 `GOOGLE_CLIENT_ID`와 동일한 OAuth 클라이언트 ID
 
 ## 배포 단계
 
@@ -200,7 +201,7 @@ netlify deploy --prod
    - **Deploy command**: `echo "Deploy completed"` (또는 빈 문자열 - 필수 필드이지만 실제로는 사용되지 않음)
 4. **Environment variables 설정** (Settings → Environment variables):
    - `VITE_API_BASE_URL`: `https://gokkan-keeper-api-production.amansman77.workers.dev`
-   - `VITE_GOOGLE_CLIENT_ID`: (백엔드 `GOOGLE_CLIENT_ID`와 동일한 값)
+   - `VITE_GOOGLE_CLIENT_ID`: 백엔드와 동일한 Google OAuth 클라이언트 ID
    - Environment: Production, Preview, Branch preview 모두 선택
 5. **Save and Deploy**
 
@@ -229,14 +230,15 @@ curl https://your-api-domain.com/health
 # 예상 응답: {"status":"ok"}
 ```
 
-### 2. API 인증 테스트
+### 2. API 인증 보호 확인
 
 ```bash
-# 세션 쿠키 없이 보호 API 호출 (401 예상)
+# 세션 쿠키가 없으면 401 예상
 curl -i https://your-api-domain.com/granaries
 ```
 
-브라우저에서 허용된 Google 계정으로 로그인한 뒤 `/auth/me`가 `authenticated: true`를 반환하고 보호 기능이 동작하는지 확인합니다. 자동화된 통합 확인은 `docs/auth-integration-test.md`를 참고합니다.
+로그인 성공 흐름은 브라우저에서 확인하거나 `docs/auth-integration-test.md`의
+통합 테스트 절차를 사용합니다.
 
 ### 3. Frontend 연결 확인
 
@@ -264,13 +266,13 @@ curl -i https://your-api-domain.com/granaries
    - Require: Email
 5. Save
 
-이렇게 하면 애플리케이션의 Google 계정 제한과 세션 인증 앞에 추가 인증 레이어가 생깁니다.
+이렇게 하면 Shared Secret 외에 추가 인증 레이어가 추가됩니다.
 
-### Secret 관리
+### API_SECRET 관리
 
 - **절대** Git에 커밋하지 마세요
 - 프로덕션과 개발 환경의 secret을 다르게 설정
-- `SESSION_SECRET`과 운영용 `API_SECRET`을 정기적으로 로테이션
+- 정기적으로 secret 로테이션
 - Cloudflare Secret 사용 (환경 변수보다 안전)
 
 ## 트러블슈팅
@@ -286,7 +288,7 @@ curl -i https://your-api-domain.com/granaries
 ### Frontend가 API에 연결되지 않음
 
 - `VITE_API_BASE_URL` 환경 변수 확인
-- `VITE_GOOGLE_CLIENT_ID` 환경 변수 확인
+- `VITE_GOOGLE_CLIENT_ID`와 백엔드 `GOOGLE_CLIENT_ID` 일치 여부 확인
 - CORS 설정 확인 (백엔드 `apps/api/src/app.ts`)
 - 브라우저 콘솔의 네트워크 오류 확인
 

@@ -1,13 +1,16 @@
-# Copy this file to .dev.vars and set local-only values.
-# .dev.vars is used for local development with wrangler dev
+# Copy this file to .dev.vars. Wrangler loads it for local development.
+# Required for Google owner login and the signed session cookie.
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-ALLOWED_EMAIL=you@example.com
-SESSION_SECRET=replace-with-at-least-32-random-bytes
-# Optional: bind login to one Google account subject.
-# ALLOWED_SUB=your-google-account-subject
+ALLOWED_EMAIL=owner@example.com
+SESSION_SECRET=replace-with-a-long-random-secret
 
-# Used only by the operational /alerts/run/* endpoint, not browser login.
-API_SECRET=your-secret-key-here-change-in-production
+# Optional: further pin the allowed Google account to its stable subject ID.
+# ALLOWED_SUB=google-account-subject
+
+# Required only when invoking operational /alerts/run/* endpoints.
+API_SECRET=replace-with-an-operational-secret
+
+# Optional integrations.
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxx/yyy
 FSC_STOCK_API_SERVICE_KEY=your-stock-api-key
 FSC_STOCK_API_BASE_URL=https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService

@@ -77,7 +77,7 @@ function AppContent() {
             <div className="flex justify-between h-16">
               <div className="flex items-center">
                 <Link to="/" className="text-xl font-semibold text-gray-900">
-                  곳간 지기
+                  곶간 지기
                 </Link>
               </div>
               <div className="flex items-center space-x-4">

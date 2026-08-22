@@ -1,85 +1,125 @@
-# 아키텍처 가이드
+# Architecture guide
 
-Gokkan Keeper는 목적별 자산(곳간), 시점별 평가액(스냅샷), 보유 포지션, 판단 기록을 관리하고 일부 기록을 공개하는 pnpm 모노레포입니다.
+Gokkan Keeper is a pnpm monorepo for a purpose-based asset journal. The system
+separates private owner workflows from an explicitly public judgment archive and
+portfolio view.
 
-## 실행 단위
+For task-oriented agent instructions, see [AGENTS.md](AGENTS.md). For local
+setup, see [DEVELOPMENT.md](DEVELOPMENT.md). Domain language and ambiguous field
+semantics are defined in [docs/DOMAIN_GLOSSARY.md](docs/DOMAIN_GLOSSARY.md).
 
-```text
-apps/web (React/Vite)
-    │ HTTPS JSON, gk_session cookie
-    ▼
-apps/api (Hono on Cloudflare Workers)
-    │ repository queries
-    ▼
-Cloudflare D1
-
-packages/shared ── types / Zod schemas / pure utilities ──► web + api
-```
-
-- `apps/web`: React Router 페이지, UI 컴포넌트, API 클라이언트
-- `apps/api`: HTTP 라우트, 인증, DB 저장소, 시장 데이터/알림 서비스
-- `packages/shared`: 양쪽 앱이 공유하는 도메인 계약
-- `migrations`: `gk_` 접두사를 쓰는 D1 스키마 변경 이력
-
-## Backend Composition
-
-`apps/api/src/index.ts`는 Cloudflare Worker 어댑터입니다. HTTP 앱 조립은 `app.ts`, 예약 실행은 `services/alert-engine.ts`에 위임합니다.
-
-HTTP 요청 흐름은 다음 순서를 따릅니다.
-
-1. `app.ts`가 CORS를 적용합니다.
-2. health/auth/public 라우트를 인증 미들웨어보다 먼저 등록합니다.
-3. `middleware/auth.ts`가 이후 요청의 `gk_session` 쿠키를 검증합니다.
-4. `routes/`가 입력 파싱, Zod 검증, HTTP 응답을 담당합니다.
-5. 단순 CRUD는 `db/repositories/`, 외부 연동·재사용 로직은 `services/`로 내려갑니다.
-6. `db/mappers.ts`가 D1의 snake_case 행을 camelCase 도메인 객체로 바꿉니다.
-
-판단일지 GET은 공개 아카이브를 위해 세션 검사를 통과합니다. `/alerts/run/*`은 세션 대신 핸들러에서 `API_SECRET`을 검증하는 운영용 예외입니다.
-
-## Frontend Composition
-
-- `src/App.tsx`: lazy page import, 라우트, 내비게이션, 공개/비공개 SEO 정책
-- `src/pages/`: URL 단위 화면과 데이터 로딩 조율
-- `src/components/`: 재사용 가능한 표현 및 폼 UI
-- `src/lib/api.ts`: 모든 HTTP 호출과 응답 타입
-- `src/lib/auth-context.tsx`: 현재 세션 상태와 로그인/로그아웃
-- `src/lib/config.ts`: 개발/배포 API 및 사이트 URL 해석
-
-프로덕션에서는 브라우저가 같은 출처의 `/api`를 호출하고 Pages Worker가 API Worker로 전달합니다. 로컬 기본 API 주소는 `http://localhost:8787`입니다.
-
-## Domain and Database
-
-핵심 관계는 다음과 같습니다.
+## Runtime topology
 
 ```text
-Granary 1 ── N Snapshot
-Granary 1 ── N Position
-JudgmentDiaryEntry (public archive; granary와 독립)
-QuoteCache / AlertLog (시장 가격과 알림 운영 데이터)
+Browser (React + Vite)
+  | JSON over HTTP; session cookie on private requests
+  v
+Cloudflare Worker (Hono)
+  | SQL through domain repositories
+  v
+Cloudflare D1 (SQLite)
+
+Worker scheduled triggers
+  -> alert engine -> market providers / Discord webhook
 ```
 
-정확한 필드 계약은 `packages/shared/src/types.ts`와 `schemas.ts`, 영속 구조는 `migrations/`가 기준입니다. 필드 변경 시 공유 계약 → migration → mapper/repository → route → web API/form 순으로 확인합니다.
+- `apps/web`: static React application, deployable to Cloudflare Pages and
+  prepared for Capacitor.
+- `apps/api`: Hono Worker containing HTTP routes, authentication, domain
+  services, scheduled alerts, and D1 access.
+- `packages/shared`: compiled TypeScript package containing shared types, Zod
+  schemas, constants, and pure utilities.
+- `migrations`: the append-only D1 schema history.
 
-## Authentication
+The root build order is shared package, web, then API because both applications
+consume `@gokkan-keeper/shared`.
 
-1. Web이 Google Identity Services에서 ID token을 받습니다.
-2. `POST /auth/google`이 Google token과 허용 계정을 검증합니다.
-3. API가 HMAC 서명된 `gk_session` HttpOnly 쿠키를 설정합니다.
-4. 보호된 API 호출은 `credentials: include`로 쿠키를 보냅니다.
+## Backend boundaries
 
-필수 Worker 설정은 `GOOGLE_CLIENT_ID`, `ALLOWED_EMAIL`, `SESSION_SECRET`, DB binding입니다. 자세한 설정은 `docs/auth-google.md`를 봅니다. `API_SECRET`은 일반 사용자 인증 수단이 아니라 alert 실행 엔드포인트용입니다.
+`apps/api/src/app.ts` is the HTTP composition root. It configures CORS, mounts
+anonymous routes before authentication, applies the session middleware, and
+mounts private routes. `apps/api/src/index.ts` is the Worker adapter that exports
+the composed fetch handler and the scheduled alert handler.
 
-## Scheduled and External Services
+Backend code is split by responsibility:
 
-Worker cron은 평일 daily 및 금요일 weekly alert engine을 실행합니다. 시장 가격 공급자, quote cache, 기술 지표 계산은 `apps/api/src/services/`에 모여 있습니다. 외부 응답 형식은 서비스 경계 안에서 정규화하고 라우트나 UI로 누출하지 않습니다.
+- `routes`: parse HTTP input, validate it, select status codes, and serialize
+  responses.
+- `services`: coordinate domain operations and external market/consulting/alert
+  providers.
+- `db/repositories`: contain D1 queries for granaries, snapshots, positions, and
+  judgment-diary entries.
+- `db/mappers.ts`: converts snake_case database rows to camelCase API objects.
+- `auth` and `middleware`: create/verify sessions and enforce route access.
 
-## Build and Validation
+Write payload schemas live in `packages/shared/src/schemas.ts`; domain and API
+types live in `packages/shared/src/types.ts`. Backend-only environment bindings
+live in `apps/api/src/types.ts`.
 
-shared가 먼저 빌드된 뒤 web과 api가 검사됩니다.
+## Frontend boundaries
 
-```bash
-pnpm typecheck
-pnpm build
-```
+`apps/web/src/App.tsx` owns browser routing, lazy page loading, navigation, and
+route-level SEO behavior. Pages compose domain components. All backend calls go
+through `apps/web/src/lib/api.ts`, which provides three intentional request
+paths:
 
-개발 환경과 migration 실행은 `DEVELOPMENT.md`, 배포·binding·secret 설정은 `DEPLOYMENT.md`, 변경 위치를 빠르게 찾는 표는 `AGENTS.md`를 참고합니다.
+- authenticated requests include the session cookie;
+- public requests omit credentials;
+- auth requests include credentials so login/logout can set or clear cookies.
+
+`apps/web/src/lib/config.ts` selects `http://localhost:8787` in development and
+same-origin `/api` in production unless `VITE_API_BASE_URL` overrides it.
+
+## Authentication and route exposure
+
+The owner signs in with a Google ID token. The API verifies its audience and the
+configured allowed account, then issues a 30-day HMAC-signed HttpOnly
+`gk_session` cookie. This is a single-owner application even though some content
+is public.
+
+Anonymous API access includes:
+
+- `GET /health`
+- `/auth/*`
+- `/public/*` and its `/api/public/*` alias
+- read-only `GET /judgment-diary/*`
+
+Other application routes require a valid session. Operational `/alerts/run/*`
+handlers use `API_SECRET` rather than the browser session. The exact allowlist is
+in `apps/api/src/middleware/auth.ts`; the browser inventory is in
+`docs/routes.md`.
+
+## Persistence
+
+D1 tables use the `gk_` prefix because the database may be shared with other
+services. The current domains are:
+
+- `gk_granaries`: purpose-based asset containers and publication settings;
+- `gk_snapshots`: dated value observations for a granary;
+- `gk_positions`: holdings and optional public display metadata;
+- `gk_judgment_diary_entries`: public judgment/action records;
+- `gk_quote_cache`: cached external market quotes;
+- `gk_alert_sent` and `gk_alert_log`: alert deduplication/history.
+
+Migrations are ordered SQL files. Applied migrations are immutable; schema
+changes must use the next numbered file.
+
+## External integrations
+
+- Google token info: owner identity verification.
+- Korean FSC and Yahoo Finance endpoints: position prices and market data, with
+  source and timestamp metadata retained in responses.
+- Discord webhook: scheduled alert delivery.
+- Cloudflare Cron Triggers: weekday daily and Friday weekly alert evaluation.
+
+External failures must not silently become authoritative prices. Preserve
+fallbacks, warnings, provider source, and `asOf` values.
+
+## Validation and deployment
+
+Run `pnpm typecheck` for the baseline repository check. Run `pnpm build` for
+changes affecting web build scripts, SEO output, routes, or deployment. There is
+no general automated unit-test suite at present; the auth integration smoke test
+is documented separately.
+
+Deployment details and Cloudflare bindings are in [DEPLOYMENT.md](DEPLOYMENT.md).
