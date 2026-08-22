@@ -36,9 +36,10 @@ consume `@gokkan-keeper/shared`.
 
 ## Backend boundaries
 
-`apps/api/src/index.ts` is the composition root. It configures CORS, mounts
-anonymous routes before authentication, applies the session middleware, mounts
-private routes, and exports the scheduled Worker handler.
+`apps/api/src/app.ts` is the HTTP composition root. It configures CORS, mounts
+anonymous routes before authentication, applies the session middleware, and
+mounts private routes. `apps/api/src/index.ts` is the Worker adapter that exports
+the composed fetch handler and the scheduled alert handler.
 
 Backend code is split by responsibility:
 

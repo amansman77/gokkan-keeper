@@ -18,9 +18,10 @@ legacy `Position.currentValue` field from its name.
 
 - `apps/web`: React/Vite client. Routes are composed in `src/App.tsx`; all HTTP
   calls belong in `src/lib/api.ts`.
-- `apps/api`: Hono Cloudflare Worker. `src/index.ts` is the composition root,
-  `src/routes` owns HTTP concerns, `src/services` owns external data and domain
-  orchestration, and `src/db/repositories` owns D1 queries.
+- `apps/api`: Hono Cloudflare Worker. `src/app.ts` composes the HTTP app while
+  `src/index.ts` adapts it to Worker fetch and scheduled handlers. `src/routes`
+  owns HTTP concerns, `src/services` owns external data and domain orchestration,
+  and `src/db/repositories` owns D1 queries.
 - `packages/shared`: types, Zod input schemas, constants, and pure utilities
   shared by web and API. Add cross-workspace contracts here instead of copying
   them into both apps.

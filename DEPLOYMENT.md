@@ -289,7 +289,7 @@ curl -i https://your-api-domain.com/granaries
 
 - `VITE_API_BASE_URL` 환경 변수 확인
 - `VITE_GOOGLE_CLIENT_ID`와 백엔드 `GOOGLE_CLIENT_ID` 일치 여부 확인
-- CORS 설정 확인 (백엔드 `apps/api/src/index.ts`)
+- CORS 설정 확인 (백엔드 `apps/api/src/app.ts`)
 - 브라우저 콘솔의 네트워크 오류 확인
 
 ### 데이터베이스 오류
