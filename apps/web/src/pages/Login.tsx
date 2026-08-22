@@ -24,7 +24,7 @@ export default function Login() {
 
   useEffect(() => {
     setSeo({
-      title: '로그인 | 곳간 지기',
+      title: '로그인 | 곶간 지기',
       description: 'Google 계정으로 대시보드와 자산 관리 기능에 접근합니다.',
       robots: 'noindex, nofollow',
     });

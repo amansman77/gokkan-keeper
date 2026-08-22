@@ -7,6 +7,9 @@ Gokkan Keeper는
 자산을 통제하는 도구가 아니라
 **자산을 이해하고, 지켜보는 구조를 만드는 기록 시스템**입니다.
 
+개발 시 사용하는 정식 도메인 용어와 필드 의미는
+[Domain glossary](docs/DOMAIN_GLOSSARY.md)를 참고하세요.
+
 ## 🧭 What is Gokkan Keeper?
 
 **Gokkan Keeper(곶간 지기)** 는

@@ -10,6 +10,10 @@ domains are granaries, periodic snapshots, positions, and a public judgment
 diary. Preserve the distinction between private owner data and deliberately
 published portfolio/diary data.
 
+Use [docs/DOMAIN_GLOSSARY.md](docs/DOMAIN_GLOSSARY.md) as the source of truth for
+domain terms and field semantics. In particular, do not infer the meaning of the
+legacy `Position.currentValue` field from its name.
+
 ## Workspace map
 
 - `apps/web`: React/Vite client. Routes are composed in `src/App.tsx`; all HTTP
@@ -58,12 +62,14 @@ code or embed SQL in route handlers when a repository already owns that domain.
 
 1. Identify the owning layer using the workspace map and follow a neighboring
    implementation.
-2. If an API contract changes, update shared types/schemas, API handler, web API
+2. Check new domain names against `docs/DOMAIN_GLOSSARY.md`; update the glossary
+   when introducing a genuinely new concept.
+3. If an API contract changes, update shared types/schemas, API handler, web API
    wrapper, and consumer together.
-3. If persistence changes, add a migration, repository mapping, and shared type
+4. If persistence changes, add a migration, repository mapping, and shared type
    as applicable.
-4. Keep public and authenticated route behavior explicit.
-5. Run `pnpm typecheck`. Run `pnpm build` when build scripts, generated SEO
+5. Keep public and authenticated route behavior explicit.
+6. Run `pnpm typecheck`. Run `pnpm build` when build scripts, generated SEO
    assets, routing, or deployment behavior changes.
 
 There is currently no general unit-test suite. Do not claim test coverage from a

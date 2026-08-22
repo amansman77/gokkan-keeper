@@ -29,8 +29,11 @@ export const SnapshotSchema = z.object({
   id: z.string().uuid(),
   granaryId: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  // Total granary valuation on `date`; it is not a transaction amount.
   totalAmount: z.number().nonnegative(),
+  // Optional cash balance. It is not guaranteed to reconcile with totalAmount.
   availableBalance: z.number().nonnegative().optional(),
+  // Optional signed unrealized gain/loss amount, not a percentage.
   profitLoss: z.number().optional(),
   memo: z.string().max(500).optional(),
   createdAt: z.string().datetime(),
@@ -108,7 +111,10 @@ export const PositionSchema = z.object({
   assetType: z.string().max(30).nullable().optional(),
   quantity: z.number().nullable().optional(),
   avgCost: z.number().nullable().optional(),
+  // Legacy manual value: unit price when quantity exists, otherwise total value.
+  // Use getPositionMarketValue() when a normalized market value is needed.
   currentValue: z.number().nullable().optional(),
+  // Stored compatibility field; public allocation is currently derived by value.
   weightPercent: z.number().min(0).max(100).nullable().optional(),
   profitLoss: z.number().nullable().optional(),
   profitLossPercent: z.number().nullable().optional(),
@@ -117,6 +123,7 @@ export const PositionSchema = z.object({
   publicThesis: z.string().max(300).nullable().optional(),
   publicOrder: z.number().int().min(0).default(0),
   lastPublicUpdate: z.string().datetime().nullable().optional(),
+  // Enriched normalized unit price and total value; these are not write inputs.
   currentUnitPrice: z.number().nullable().optional(),
   currentMarketValue: z.number().nullable().optional(),
   currentPriceAsOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),

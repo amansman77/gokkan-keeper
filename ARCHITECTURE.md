@@ -5,7 +5,8 @@ separates private owner workflows from an explicitly public judgment archive and
 portfolio view.
 
 For task-oriented agent instructions, see [AGENTS.md](AGENTS.md). For local
-setup, see [DEVELOPMENT.md](DEVELOPMENT.md).
+setup, see [DEVELOPMENT.md](DEVELOPMENT.md). Domain language and ambiguous field
+semantics are defined in [docs/DOMAIN_GLOSSARY.md](docs/DOMAIN_GLOSSARY.md).
 
 ## Runtime topology
 
