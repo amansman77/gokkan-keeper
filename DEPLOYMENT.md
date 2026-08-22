@@ -86,9 +86,12 @@ pnpm migrate
 ```bash
 cd apps/api
 # 프로덕션 환경에 secret 설정
+pnpm wrangler secret put GOOGLE_CLIENT_ID --env production
+pnpm wrangler secret put ALLOWED_EMAIL --env production
+pnpm wrangler secret put SESSION_SECRET --env production
+# 운영용 alert-run 엔드포인트를 사용할 때만 설정
 pnpm wrangler secret put API_SECRET --env production
 # 또는: npx wrangler secret put API_SECRET --env production
-# 프롬프트에 프로덕션 API_SECRET 입력
 
 # 현재 설정된 secret 확인
 pnpm wrangler secret list --env production
@@ -98,14 +101,15 @@ pnpm wrangler secret list --env production
 
 1. Cloudflare Dashboard → Workers & Pages → gokkan-keeper-api
 2. Settings → Variables and Secrets
-3. Add secret: `API_SECRET`
+3. `GOOGLE_CLIENT_ID`, `ALLOWED_EMAIL`, `SESSION_SECRET`을 secret으로 추가
+4. alert-run 엔드포인트를 사용한다면 `API_SECRET`도 추가
 
 #### Frontend
 
 호스팅 플랫폼의 환경 변수 설정에서:
 
 - `VITE_API_BASE_URL`: 프로덕션 API URL (예: `https://api.gokkan-keeper.com`)
-- `VITE_API_SECRET`: 백엔드 `API_SECRET`과 동일한 값
+- `VITE_GOOGLE_CLIENT_ID`: 백엔드 `GOOGLE_CLIENT_ID`와 동일한 OAuth 클라이언트 ID
 
 ## 배포 단계
 
@@ -197,7 +201,7 @@ netlify deploy --prod
    - **Deploy command**: `echo "Deploy completed"` (또는 빈 문자열 - 필수 필드이지만 실제로는 사용되지 않음)
 4. **Environment variables 설정** (Settings → Environment variables):
    - `VITE_API_BASE_URL`: `https://gokkan-keeper-api-production.amansman77.workers.dev`
-   - `VITE_API_SECRET`: (백엔드와 동일한 값)
+   - `VITE_GOOGLE_CLIENT_ID`: 백엔드와 동일한 Google OAuth 클라이언트 ID
    - Environment: Production, Preview, Branch preview 모두 선택
 5. **Save and Deploy**
 
@@ -226,15 +230,15 @@ curl https://your-api-domain.com/health
 # 예상 응답: {"status":"ok"}
 ```
 
-### 2. API 인증 테스트
+### 2. API 인증 보호 확인
 
 ```bash
-# 올바른 secret으로 테스트
-curl -H "X-API-Secret: your-secret" https://your-api-domain.com/granaries
-
-# 잘못된 secret으로 테스트 (401 예상)
-curl -H "X-API-Secret: wrong-secret" https://your-api-domain.com/granaries
+# 세션 쿠키가 없으면 401 예상
+curl -i https://your-api-domain.com/granaries
 ```
+
+로그인 성공 흐름은 브라우저에서 확인하거나 `docs/auth-integration-test.md`의
+통합 테스트 절차를 사용합니다.
 
 ### 3. Frontend 연결 확인
 
@@ -284,7 +288,7 @@ curl -H "X-API-Secret: wrong-secret" https://your-api-domain.com/granaries
 ### Frontend가 API에 연결되지 않음
 
 - `VITE_API_BASE_URL` 환경 변수 확인
-- `VITE_API_SECRET` 환경 변수 확인
+- `VITE_GOOGLE_CLIENT_ID`와 백엔드 `GOOGLE_CLIENT_ID` 일치 여부 확인
 - CORS 설정 확인 (백엔드 `apps/api/src/index.ts`)
 - 브라우저 콘솔의 네트워크 오류 확인
 

@@ -80,13 +80,13 @@ pnpm dev
 # 1. Set up backend environment variables
 cd apps/api
 cp .dev.vars.example .dev.vars
-# Edit .dev.vars and set API_SECRET
+# Edit .dev.vars and set GOOGLE_CLIENT_ID, ALLOWED_EMAIL, and SESSION_SECRET
 
 # 2. Set up frontend environment variables
 cd ../web
-echo "VITE_API_BASE_URL=http://localhost:8787" > .env
-echo "VITE_API_SECRET=your-secret-key-here" >> .env
-# Edit .env and set VITE_API_SECRET to match API_SECRET
+cp .env.production.example .env
+# Set VITE_GOOGLE_CLIENT_ID to the same OAuth client ID as GOOGLE_CLIENT_ID.
+# VITE_API_BASE_URL may be omitted locally; it defaults to http://localhost:8787.
 
 # 3. Go back to root and run dev
 cd ../..
@@ -104,15 +104,22 @@ Create `apps/api/.dev.vars` file for local development:
 ```bash
 cd apps/api
 cp .dev.vars.example .dev.vars
-# Edit .dev.vars and set your API_SECRET
+# Edit .dev.vars and set GOOGLE_CLIENT_ID, ALLOWED_EMAIL, and SESSION_SECRET
 ```
 
-Content of `apps/api/.dev.vars`:
+Minimum content of `apps/api/.dev.vars`:
 ```env
-API_SECRET=your-secret-key-here-change-in-production
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+ALLOWED_EMAIL=owner@example.com
+SESSION_SECRET=replace-with-a-long-random-secret
 ```
 
 **Note**: `.dev.vars` is used by `wrangler dev` for local development. This file is gitignored for security.
+
+`ALLOWED_SUB` can additionally pin the Google account subject. `API_SECRET` is
+only needed for the operational alert-run endpoints; it is not used for browser
+login. Market-data keys and the Discord webhook are optional unless you are
+working on those integrations. See `.dev.vars.example` for the complete list.
 
 ### Frontend (Web) - `.env` file
 
@@ -125,12 +132,13 @@ cd apps/web
 
 Content of `apps/web/.env`:
 ```env
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+# Optional; this is already the local default:
 VITE_API_BASE_URL=http://localhost:8787
-VITE_API_SECRET=your-secret-key-here-change-in-production
 ```
 
 **Important**: 
-- The `VITE_API_SECRET` must match the `API_SECRET` in `apps/api/.dev.vars`
+- `VITE_GOOGLE_CLIENT_ID` must match `GOOGLE_CLIENT_ID` in `apps/api/.dev.vars`
 - Both files are gitignored for security
 - For production, set these in your deployment platform's environment variables
 
@@ -203,4 +211,3 @@ pnpm cap:sync
 pnpm cap:ios
 pnpm cap:android
 ```
-
