@@ -1,5 +1,9 @@
 # Route Inventory
 
+The executable browser-route source of truth is
+`apps/web/src/app-routes.tsx`. Keep this human-readable inventory in sync when
+the public URL surface changes.
+
 ## Public Routes (anonymous allowed)
 - `/` (service introduction)
 - `/login`

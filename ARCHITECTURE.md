@@ -58,10 +58,13 @@ live in `apps/api/src/types.ts`.
 
 ## Frontend boundaries
 
-`apps/web/src/App.tsx` owns browser routing, lazy page loading, navigation, and
-route-level SEO behavior. Pages compose domain components. All backend calls go
-through `apps/web/src/lib/api.ts`, which provides three intentional request
-paths:
+`apps/web/src/app-routes.tsx` is the browser route inventory: it groups lazy
+pages by public/private access and supplies route-level access checks used by
+SEO. `apps/web/src/App.tsx` renders that inventory and owns navigation and the
+application shell. Add a page to exactly one route list so authentication and
+search-indexing behavior stay aligned. Pages compose domain components. All
+backend calls go through `apps/web/src/lib/api.ts`, which provides three
+intentional request paths:
 
 - authenticated requests include the session cookie;
 - public requests omit credentials;
