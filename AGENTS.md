@@ -13,6 +13,8 @@ published portfolio/diary data.
 Use [docs/DOMAIN_GLOSSARY.md](docs/DOMAIN_GLOSSARY.md) as the source of truth for
 domain terms and field semantics. In particular, do not infer the meaning of the
 legacy `Position.currentValue` field from its name.
+Canonical Korean UI labels that mirror the glossary live in
+`apps/web/src/lib/terminology.ts`; reuse them instead of introducing synonyms.
 
 ## Workspace map
 

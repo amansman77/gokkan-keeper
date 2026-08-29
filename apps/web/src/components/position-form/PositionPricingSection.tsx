@@ -45,12 +45,12 @@ export function PositionPricingSection({
                   }}
                   className="h-4 w-4 text-blue-600 border-gray-300 rounded"
                 />
-                수동 fallback 입력
+                수동 대체값 입력
               </label>
             </div>
             {showManualCurrentValue && (
               <div className="mt-4">
-                <label htmlFor="currentValue" className="block text-sm font-medium text-gray-700 mb-2">현재 단가/현재가치(수동 fallback)</label>
+                <label htmlFor="currentValue" className="block text-sm font-medium text-gray-700 mb-2">현재 단가/평가금액 (수동 대체값)</label>
                 <input
                   id="currentValue"
                   type="number"
@@ -64,7 +64,7 @@ export function PositionPricingSection({
           </div>
         ) : (
           <div>
-            <label htmlFor="currentValue" className="block text-sm font-medium text-gray-700 mb-2">현재 단가/현재가치(수동 입력)</label>
+            <label htmlFor="currentValue" className="block text-sm font-medium text-gray-700 mb-2">현재 단가/평가금액 (수동 입력)</label>
             <input
               id="currentValue"
               type="number"
@@ -73,7 +73,7 @@ export function PositionPricingSection({
               onChange={(e) => setFormData((prev) => ({ ...prev, currentValue: parseNullableNumber(e.target.value) }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <p className="mt-1 text-xs text-gray-500">자동 시세 연동이 없는 자산은 이 값을 기준으로 평가금액이 계산됩니다.</p>
+            <p className="mt-1 text-xs text-gray-500">수량이 있으면 단가, 없으면 총 평가금액으로 사용합니다.</p>
           </div>
         )}
       </div>

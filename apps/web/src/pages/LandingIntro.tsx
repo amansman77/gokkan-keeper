@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getPublicPortfolio } from '../lib/api';
 import { useAuth } from '../lib/auth-context';
 import { setSeo } from '../lib/seo';
+import { UI_TERMS } from '../lib/terminology';
 
 interface TrackRecordData {
   publicPositionCount: number;
@@ -70,10 +71,10 @@ function HeroSection() {
       </h1>
       <p className="mt-5 text-2xl font-semibold text-emerald-800">흔들리지 않는 구조입니다.</p>
       <p className="mt-6 whitespace-pre-line text-lg leading-relaxed text-slate-700">
-        {'시장에 따라 사고 팔지만,\n구조 없이 버티는 투자는 오래가지 않습니다.\n\n곶간지기는\n중장기 포트폴리오를 유지하며\n시장 변동 속에서도 방향을 관리합니다.'}
+        {`시장에 따라 사고 팔지만,\n구조 없이 버티는 투자는 오래가지 않습니다.\n\n${UI_TERMS.brandName}는\n중장기 포트폴리오를 유지하며\n시장 변동 속에서도 방향을 관리합니다.`}
       </p>
       <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-        <PrimaryButton to="/archive">공개 포트폴리오 보기</PrimaryButton>
+        <PrimaryButton to="/archive">{`${UI_TERMS.publicPortfolio} 보기`}</PrimaryButton>
         <SecondaryButton to="/consulting">무료 구조 점검 받기</SecondaryButton>
       </div>
     </section>
@@ -103,13 +104,13 @@ function EmpathySection() {
 function MethodSection() {
   return (
     <section className="border-t border-slate-200 py-20">
-      <h2 className="text-2xl font-bold text-slate-900">곶간지기의 방식</h2>
+      <h2 className="text-2xl font-bold text-slate-900">{UI_TERMS.brandName}의 방식</h2>
       <div className="mt-6">
         <BulletList
           items={[
             '중장기 기준을 먼저 설정합니다',
             '비중을 관리합니다',
-            '결과를 공개 기록합니다',
+            '결과를 공개 기록으로 남깁니다',
           ]}
         />
       </div>
@@ -148,11 +149,11 @@ function TrackRecordSummary() {
         setData({
           publicPositionCount: result.data.length,
           weightedAverageReturn,
-          snapshotReferenceText: '입력된 포트폴리오 평가금액 기준 자동 계산',
+          snapshotReferenceText: '공개 포지션 평가금액 기준 자동 계산',
         });
       } catch (err: any) {
         if (cancelled) return;
-        setError(err.message || '공개 기록 정보를 불러오지 못했습니다.');
+        setError(err.message || `${UI_TERMS.publicPortfolio} 정보를 불러오지 못했습니다.`);
         setData({
           publicPositionCount: 0,
           weightedAverageReturn: null,
@@ -179,7 +180,7 @@ function TrackRecordSummary() {
       <h2 className="text-2xl font-bold text-slate-900">말이 아니라 기록입니다.</h2>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
-          label="공개 판단 수"
+          label="공개 포지션 수"
           value={loading ? '로딩 중...' : String(data?.publicPositionCount ?? 0)}
         />
         <StatCard
@@ -194,7 +195,7 @@ function TrackRecordSummary() {
       </div>
       {error ? <p className="mt-4 text-sm text-rose-700">{error}</p> : null}
       <div className="mt-8">
-        <SecondaryButton to="/judgment-diary">전체 기록 확인하기</SecondaryButton>
+        <SecondaryButton to="/judgment-diary">전체 판단일지 보기</SecondaryButton>
       </div>
     </section>
   );
@@ -213,7 +214,7 @@ function DualCTASection() {
           </p>
           <div className="mt-auto pt-6">
             <PrimaryButton to={authenticated ? '/dashboard' : '/login?next=/dashboard'}>
-              나의 트랙레코드 만들기
+              {`나의 ${UI_TERMS.trackRecord} 만들기`}
             </PrimaryButton>
           </div>
         </div>
@@ -221,7 +222,7 @@ function DualCTASection() {
         <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-6">
           <h3 className="text-xl font-bold text-slate-900">구조 설계가 필요하다면</h3>
           <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-700">
-            {'곶간지기 매니저가\n포트폴리오 구조를 점검해드립니다.'}
+            {`${UI_TERMS.brandName} 매니저가\n포트폴리오 구조를 점검해드립니다.`}
           </p>
           <div className="mt-4 space-y-1 text-sm text-slate-700">
             <p>무료 1회</p>
@@ -240,8 +241,8 @@ function DualCTASection() {
 export default function LandingIntro() {
   useEffect(() => {
     setSeo({
-      title: '곶간지기 | 구조를 유지하는 투자 기록',
-      description: '구조 없는 불안을 줄이고, 중장기 기준을 기록으로 관리하는 곶간지기 랜딩 페이지',
+      title: `${UI_TERMS.brandName} | 구조를 유지하는 투자 기록`,
+      description: `구조 없는 불안을 줄이고, 중장기 기준을 기록으로 관리하는 ${UI_TERMS.brandName} 랜딩 페이지`,
     });
   }, []);
 
