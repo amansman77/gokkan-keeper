@@ -62,9 +62,11 @@ live in `apps/api/src/types.ts`.
 pages by public/private access and supplies route-level access checks used by
 SEO. `apps/web/src/App.tsx` renders that inventory and owns navigation and the
 application shell. Add a page to exactly one route list so authentication and
-search-indexing behavior stay aligned. Pages compose domain components. All
-backend calls go through `apps/web/src/lib/api.ts`, which provides three
-intentional request paths:
+search-indexing behavior stay aligned. Pages compose domain components.
+
+Pages import backend calls from the stable `apps/web/src/lib/api.ts` barrel.
+Implementations are grouped by domain in `apps/web/src/lib/api/*`, while
+`api/client.ts` owns the three intentional transport paths:
 
 - authenticated requests include the session cookie;
 - public requests omit credentials;

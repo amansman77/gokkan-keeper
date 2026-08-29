@@ -78,7 +78,7 @@ Gokkan Keeper는 질문을 바꿉니다.
 곶간 지기는
 “통제자”가 아니라 **관찰자이자 기록자**입니다.
 
-## 📒 Public Judgment Philosophy
+## 📒 공개 판단 기록 원칙
 
 곶간 지기는 기록을 남깁니다.
 
@@ -154,9 +154,6 @@ Gokkan Keeper는
 * [x] Manual snapshot input
 * [x] Granary status summary
 * [x] 판단일지 및 공개 기록 (트랙레코드)
-* [ ] Upbit auto snapshot (Phase 2)
-* [ ] Accounts table (Phase 2)
-* [ ] 벤치마크 비교 모듈 (트랙레코드 강화)
 
 ## 📄 License
 
