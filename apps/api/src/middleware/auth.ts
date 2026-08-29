@@ -5,7 +5,7 @@ import { readSessionFromCookie } from '../auth/session';
 function isPublicPath(pathname: string, method: string): boolean {
   if (pathname.startsWith('/alerts/run/')) return true; // API_SECRET checked in handler
 
-  // Public Judgment Archive: read-only access for anonymous users.
+  // Judgment diary entries are deliberately readable without owner authentication.
   if (method === 'GET' && (pathname === '/judgment-diary' || pathname.startsWith('/judgment-diary/'))) {
     return true;
   }

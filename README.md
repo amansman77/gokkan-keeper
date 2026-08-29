@@ -80,7 +80,7 @@ Gokkan Keeper는 질문을 바꿉니다.
 
 ## 📒 Public Judgment Philosophy
 
-곶간지기는 기록을 남깁니다.
+곶간 지기는 기록을 남깁니다.
 
 > 나는 곶간을 지키는 방법을 기록합니다.
 > 판단의 기준을 공개하고, 실행의 결과를 남깁니다.
@@ -134,13 +134,12 @@ Gokkan Keeper는
 구조를 드러내며,
 장기 생존을 우선하는 도구입니다.
 
-## 🧩 How It Connects to Public Archive
+## 🧩 공개 기록과의 연결
 
 Gokkan Keeper는
 개인 자산 기록 도구입니다.
 
-Public Judgment Archive는
-판단과 실행의 기록입니다.
+판단일지는 판단과 실행의 기록입니다.
 
 두 영역은 분리되어 있지만,
 철학은 같습니다.
@@ -154,10 +153,10 @@ Public Judgment Archive는
 * [x] Core data model
 * [x] Manual snapshot input
 * [x] Granary status summary
-* [x] Public Judgment Archive (Track Record)
+* [x] 판단일지 및 공개 기록 (트랙레코드)
 * [ ] Upbit auto snapshot (Phase 2)
 * [ ] Accounts table (Phase 2)
-* [ ] Benchmark comparison module (Track Record 강화)
+* [ ] 벤치마크 비교 모듈 (트랙레코드 강화)
 
 ## 📄 License
 

@@ -4,6 +4,7 @@ import { isAssetJournalPath, isPrivatePath, PRIVATE_ROUTES, PUBLIC_ROUTES } from
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth } from './lib/auth-context';
 import { setCanonical, setRobots } from './lib/seo';
+import { UI_TERMS } from './lib/terminology';
 
 function RouteSeoController() {
   const location = useLocation();
@@ -45,7 +46,7 @@ function AppContent() {
             <div className="flex justify-between h-16">
               <div className="flex items-center">
                 <Link to="/" className="text-xl font-semibold text-gray-900">
-                  곶간 지기
+                  {UI_TERMS.brandName}
                 </Link>
               </div>
               <div className="flex items-center space-x-4">
@@ -66,7 +67,7 @@ function AppContent() {
                   to="/archive"
                   className={({ isActive }) => `${navBaseClass} ${isActive ? navActiveClass : navInactiveClass}`}
                 >
-                  공개 기록 보기
+                  {UI_TERMS.publicArchive} 보기
                 </NavLink>
                 {authenticated ? (
                   <NavLink
@@ -93,7 +94,7 @@ function AppContent() {
                     to={createTrackRecordPath}
                     className="bg-slate-900 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-800"
                   >
-                    나의 트랙레코드 만들기
+                    나의 {UI_TERMS.trackRecord} 만들기
                   </Link>
                 ) : null}
               </div>

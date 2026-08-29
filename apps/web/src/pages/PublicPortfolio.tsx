@@ -4,6 +4,7 @@ import { getJudgmentDiaryEntries, getPublicPortfolio } from '../lib/api';
 import { setSeo } from '../lib/seo';
 import type { JudgmentDiaryEntry, PublicPortfolioWarning } from '../lib/types';
 import type { PublicPortfolioEntryData } from '../lib/api';
+import { UI_TERMS } from '../lib/terminology';
 
 function formatPercent(value: number | null): string {
   if (value === null || Number.isNaN(value)) return '-';
@@ -34,8 +35,8 @@ export default function PublicPortfolio() {
 
   useEffect(() => {
     setSeo({
-      title: '공개 기록 보기 | 곶간지기',
-      description: '추천이 아닌 기록. 판단과 배분, 결과를 공개 아카이브로 확인합니다.',
+      title: `${UI_TERMS.publicArchive} 보기 | ${UI_TERMS.brandName}`,
+      description: `추천이 아닌 기록. 판단과 배분, 결과를 ${UI_TERMS.publicArchive}에서 확인합니다.`,
     });
   }, []);
 
@@ -92,15 +93,15 @@ export default function PublicPortfolio() {
   return (
     <div className="space-y-8">
       <section className="bg-white rounded-lg border border-gray-200 p-6">
-        <h1 className="text-3xl font-bold text-gray-900">공개 기록 아카이브</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{UI_TERMS.publicArchive}</h1>
         <p className="text-gray-600 mt-2">추천이 아닌 기록. 판단과 배분, 결과를 투명하게 남깁니다.</p>
       </section>
 
       <section className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900">Current Return Overview</h2>
+        <h2 className="text-xl font-semibold text-gray-900">현재 수익률 요약</h2>
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="rounded-md border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">공개 종목 수</p>
+            <p className="text-xs text-gray-500">공개 포지션 수</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">{portfolio.length}</p>
           </div>
           <div className="rounded-md border border-gray-200 p-4">
@@ -114,7 +115,7 @@ export default function PublicPortfolio() {
             <p className="text-sm text-gray-700 mt-1">
               {pricingMeta.integratedCount > 0
                 ? `${pricingMeta.latestAsOf ? `${pricingMeta.latestAsOf} 기준 ` : ''}금융위/Yahoo Finance 시세 연동`
-                : '입력된 포트폴리오 평가금액 기준 자동 계산'}
+                : '공개 포지션 평가금액 기준 자동 계산'}
             </p>
           </div>
         </div>
@@ -123,14 +124,14 @@ export default function PublicPortfolio() {
             자동 연동 {pricingMeta.integratedCount}건
           </span>
           <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-700">
-            수동 fallback {pricingMeta.manualCount}건
+            수동 입력 {pricingMeta.manualCount}건
           </span>
         </div>
       </section>
 
       {warnings.length > 0 && (
         <section className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <h2 className="text-sm font-semibold text-amber-900">Data Warnings</h2>
+          <h2 className="text-sm font-semibold text-amber-900">데이터 경고</h2>
           <ul className="mt-2 text-sm text-amber-900 list-disc pl-5">
             {warnings.map((warning) => (
               <li key={`${warning.positionId}-${warning.message}`}>
@@ -142,9 +143,9 @@ export default function PublicPortfolio() {
       )}
 
       <section className="bg-white rounded-lg border border-gray-200 p-6 overflow-x-auto">
-        <h2 className="text-xl font-semibold text-gray-900">Portfolio Allocation</h2>
+        <h2 className="text-xl font-semibold text-gray-900">{UI_TERMS.publicPortfolio} 비중</h2>
         {portfolio.length === 0 ? (
-          <p className="text-gray-500 mt-4">아직 공개된 포트폴리오 항목이 없습니다.</p>
+          <p className="text-gray-500 mt-4">아직 공개된 포지션이 없습니다.</p>
         ) : (
           <table className="w-full mt-4 min-w-[720px]">
             <thead>
@@ -180,7 +181,7 @@ export default function PublicPortfolio() {
                         </p>
                       </div>
                     ) : item.currentPriceSource === 'MANUAL' ? (
-                      <span className="text-gray-500">수동 fallback</span>
+                      <span className="text-gray-500">수동 입력</span>
                     ) : (
                       <span className="text-gray-400">-</span>
                     )}
@@ -195,10 +196,10 @@ export default function PublicPortfolio() {
       </section>
 
       <section className="bg-amber-50 border border-amber-200 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-amber-900">Disclaimer</h2>
-        <p className="text-sm text-amber-900 mt-2">This portfolio is shared for research transparency purposes only.</p>
-        <p className="text-sm text-amber-900">This is not financial advice or investment recommendation.</p>
-        <p className="text-sm text-amber-900">All investment decisions are the responsibility of the individual.</p>
+        <h2 className="text-lg font-semibold text-amber-900">유의 사항</h2>
+        <p className="text-sm text-amber-900 mt-2">이 공개 포트폴리오는 기록의 투명성을 위해 공유합니다.</p>
+        <p className="text-sm text-amber-900">금융 자문이나 투자 권유가 아닙니다.</p>
+        <p className="text-sm text-amber-900">모든 투자 판단과 결정의 책임은 본인에게 있습니다.</p>
       </section>
 
       <section className="bg-white rounded-lg border border-gray-200 p-6">

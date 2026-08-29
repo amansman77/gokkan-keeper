@@ -3,11 +3,12 @@ import ConsultingRequestForm from '../components/consulting/ConsultingRequestFor
 import ConsultingRequestSection from '../components/consulting/ConsultingRequestSection';
 import { trackEvent } from '../lib/analytics';
 import { setSeo } from '../lib/seo';
+import { UI_TERMS } from '../lib/terminology';
 
 export default function Consulting() {
   useEffect(() => {
     setSeo({
-      title: '무료 구조 점검 요청 | 곶간지기',
+      title: `무료 구조 점검 요청 | ${UI_TERMS.brandName}`,
       description: '포트폴리오 스크린샷과 고민을 보내는 무료 1회 구조 점검 요청 폼',
     });
     trackEvent('consulting_form_viewed', {

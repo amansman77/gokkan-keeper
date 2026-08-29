@@ -4,6 +4,7 @@ import { GOOGLE_CLIENT_ID } from '../lib/config';
 import { useAuth } from '../lib/auth-context';
 import { loadGoogleIdentityScript, normalizeNextPath } from '../lib/auth';
 import { setSeo } from '../lib/seo';
+import { UI_TERMS } from '../lib/terminology';
 
 type GoogleCredentialResponse = {
   credential?: string;
@@ -24,7 +25,7 @@ export default function Login() {
 
   useEffect(() => {
     setSeo({
-      title: '로그인 | 곶간 지기',
+      title: `로그인 | ${UI_TERMS.brandName}`,
       description: 'Google 계정으로 대시보드와 자산 관리 기능에 접근합니다.',
       robots: 'noindex, nofollow',
     });
