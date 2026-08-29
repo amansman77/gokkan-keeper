@@ -16,8 +16,9 @@ legacy `Position.currentValue` field from its name.
 
 ## Workspace map
 
-- `apps/web`: React/Vite client. Routes are composed in `src/App.tsx`; all HTTP
-  calls belong in `src/lib/api.ts`.
+- `apps/web`: React/Vite client. `src/app-routes.tsx` is the public/private route
+  inventory and `src/App.tsx` renders it; all HTTP calls belong in
+  `src/lib/api.ts`.
 - `apps/api`: Hono Cloudflare Worker. `src/app.ts` composes the HTTP app while
   `src/index.ts` adapts it to Worker fetch and scheduled handlers. `src/routes`
   owns HTTP concerns, `src/services` owns external data and domain orchestration,

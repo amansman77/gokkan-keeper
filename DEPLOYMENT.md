@@ -187,8 +187,6 @@ netlify deploy --prod
 
 #### Cloudflare Pages 배포
 
-**상세 가이드**: `apps/web/CLOUDFLARE_PAGES_DEPLOY.md` 참고
-
 **Git 연동 배포 (권장)**:
 
 1. **Cloudflare Dashboard → Pages → Create a project**
