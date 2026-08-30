@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { Env } from './types';
+import { API_ROUTE_PATHS } from './http/route-access';
 import { authMiddleware } from './middleware/auth';
 import { alertsRouter } from './routes/alerts';
 import { authRouter } from './routes/auth';
@@ -25,21 +26,21 @@ function resolveAllowedOrigin(origin: string): string | null {
 }
 
 function registerPublicRoutes(app: Hono<{ Bindings: Env }>): void {
-  app.get('/health', (c) => c.json({ status: 'ok' }));
-  app.route('/public', publicRouter);
-  app.route('/api/public', publicRouter);
-  app.route('/auth', authRouter);
+  app.get(API_ROUTE_PATHS.health, (c) => c.json({ status: 'ok' }));
+  app.route(API_ROUTE_PATHS.public, publicRouter);
+  app.route(API_ROUTE_PATHS.publicAlias, publicRouter);
+  app.route(API_ROUTE_PATHS.auth, authRouter);
 }
 
 function registerProtectedRoutes(app: Hono<{ Bindings: Env }>): void {
-  app.route('/market-indices', marketIndicesRouter);
-  app.route('/granaries', granariesRouter);
-  app.route('/snapshots', snapshotsRouter);
-  app.route('/status', statusRouter);
-  app.route('/judgment-diary', judgmentDiaryRouter);
-  app.route('/positions', positionsRouter);
-  app.route('/api/positions', positionsRouter);
-  app.route('/alerts', alertsRouter);
+  app.route(API_ROUTE_PATHS.marketIndices, marketIndicesRouter);
+  app.route(API_ROUTE_PATHS.granaries, granariesRouter);
+  app.route(API_ROUTE_PATHS.snapshots, snapshotsRouter);
+  app.route(API_ROUTE_PATHS.status, statusRouter);
+  app.route(API_ROUTE_PATHS.judgmentDiary, judgmentDiaryRouter);
+  app.route(API_ROUTE_PATHS.positions, positionsRouter);
+  app.route(API_ROUTE_PATHS.positionsAlias, positionsRouter);
+  app.route(API_ROUTE_PATHS.alerts, alertsRouter);
 }
 
 /** Compose the HTTP application separately from the Worker runtime entry point. */

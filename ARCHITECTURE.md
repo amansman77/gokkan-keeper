@@ -91,8 +91,10 @@ Anonymous API access includes:
 
 Other application routes require a valid session. Operational `/alerts/run/*`
 handlers use `API_SECRET` rather than the browser session. The exact allowlist is
-in `apps/api/src/middleware/auth.ts`; the executable browser inventory is in
-`apps/web/src/app-routes.tsx`.
+in `apps/api/src/http/route-access.ts`; the executable browser inventory is in
+`apps/web/src/app-routes.tsx`. The route-access module also names compatibility
+aliases, so new routes should not duplicate path literals across composition and
+authentication code.
 
 ## Persistence
 
