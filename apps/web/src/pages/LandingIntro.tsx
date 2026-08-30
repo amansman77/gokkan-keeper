@@ -222,7 +222,7 @@ function DualCTASection() {
         <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-6">
           <h3 className="text-xl font-bold text-slate-900">구조 설계가 필요하다면</h3>
           <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-700">
-            {`${UI_TERMS.brandName} 매니저가\n포트폴리오 구조를 점검해드립니다.`}
+            {'현재 포트폴리오의\n구조와 중장기 기준을 점검해드립니다.'}
           </p>
           <div className="mt-4 space-y-1 text-sm text-slate-700">
             <p>무료 1회</p>

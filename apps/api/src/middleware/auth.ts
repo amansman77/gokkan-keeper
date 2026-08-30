@@ -1,17 +1,7 @@
 import type { Context, Next } from 'hono';
 import type { Env } from '../types';
 import { readSessionFromCookie } from '../auth/session';
-
-function isPublicPath(pathname: string, method: string): boolean {
-  if (pathname.startsWith('/alerts/run/')) return true; // API_SECRET checked in handler
-
-  // Judgment diary entries are deliberately readable without owner authentication.
-  if (method === 'GET' && (pathname === '/judgment-diary' || pathname.startsWith('/judgment-diary/'))) {
-    return true;
-  }
-
-  return false;
-}
+import { isAnonymousRequestAtAuthBoundary } from '../http/route-access';
 
 export async function authMiddleware(c: Context<{ Bindings: Env }>, next: Next) {
   // Let CORS preflight pass without auth check.
@@ -20,7 +10,7 @@ export async function authMiddleware(c: Context<{ Bindings: Env }>, next: Next) 
     return;
   }
 
-  if (isPublicPath(c.req.path, c.req.method)) {
+  if (isAnonymousRequestAtAuthBoundary(c.req.path, c.req.method)) {
     await next();
     return;
   }

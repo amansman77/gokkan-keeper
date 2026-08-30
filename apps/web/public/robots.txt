@@ -9,8 +9,6 @@ Disallow: /snapshots
 Disallow: /snapshots/
 Disallow: /positions
 Disallow: /positions/
-Disallow: /accounts
-Disallow: /accounts/
 Disallow: /login
 Disallow: /judgment-diary/new
 Disallow: /judgment-diary/*/edit

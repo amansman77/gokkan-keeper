@@ -66,7 +66,7 @@ export function isPrivatePath(pathname: string): boolean {
   return PRIVATE_ROUTES.some(({ path }) => matchPath({ path, end: true }, pathname));
 }
 
-const ASSET_JOURNAL_PREFIXES = ['/dashboard', '/granaries', '/snapshots', '/positions', '/accounts'];
+const ASSET_JOURNAL_PREFIXES = ['/dashboard', '/granaries', '/snapshots', '/positions'];
 
 export function isAssetJournalPath(pathname: string): boolean {
   return ASSET_JOURNAL_PREFIXES.some(

@@ -19,8 +19,8 @@ Canonical Korean UI labels that mirror the glossary live in
 ## Workspace map
 
 - `apps/web`: React/Vite client. `src/app-routes.tsx` is the public/private route
-  inventory and `src/App.tsx` renders it; all HTTP calls belong in
-  `src/lib/api.ts`.
+  inventory and `src/App.tsx` renders it. Domain HTTP calls live in
+  `src/lib/api/*`; `src/lib/api.ts` is their stable barrel entry point.
 - `apps/api`: Hono Cloudflare Worker. `src/app.ts` composes the HTTP app while
   `src/index.ts` adapts it to Worker fetch and scheduled handlers. `src/routes`
   owns HTTP concerns, `src/services` owns external data and domain orchestration,
@@ -30,8 +30,9 @@ Canonical Korean UI labels that mirror the glossary live in
   them into both apps.
 - `migrations`: ordered D1 schema history. Never edit an applied migration;
   append a new numbered migration.
-- `docs`: feature-specific decisions and historical plans. The current system
-  overview is `ARCHITECTURE.md`; local setup is `DEVELOPMENT.md`.
+- `docs`: feature-specific decisions and focused operational guides. The
+  repository-level system overview is `ARCHITECTURE.md`; local setup is
+  `DEVELOPMENT.md`.
 
 ## Request and data flow
 
@@ -56,7 +57,8 @@ code or embed SQL in route handlers when a repository already owns that domain.
   `credentials: 'include'` via `fetchAPI`.
 - Anonymous access is intentionally limited to health/auth, public portfolio and
   consulting endpoints, and read-only judgment-diary endpoints. Review
-  `apps/api/src/middleware/auth.ts` before adding or moving a route.
+  `apps/api/src/http/route-access.ts` before adding or moving a route; it is the
+  canonical inventory used by both app composition and authentication.
 - `API_SECRET` is not the browser login mechanism. It only protects operational
   alert-run endpoints.
 - When adding public data, opt in explicitly at the query/DTO layer. Do not

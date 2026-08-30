@@ -16,8 +16,6 @@ const PRIVATE_DISALLOW_PATHS = [
   '/snapshots/',
   '/positions',
   '/positions/',
-  '/accounts',
-  '/accounts/',
   '/login',
   '/judgment-diary/new',
   '/judgment-diary/*/edit',
