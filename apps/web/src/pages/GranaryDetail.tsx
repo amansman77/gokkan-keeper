@@ -15,6 +15,8 @@ export default function GranaryDetail() {
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [expandedIndicators, setExpandedIndicators] = useState<Set<string>>(new Set());
+  const [positionsCollapsed, setPositionsCollapsed] = useState(true);
+  const [snapshotsCollapsed, setSnapshotsCollapsed] = useState(true);
 
   useEffect(() => {
     if (!id) {
@@ -124,7 +126,14 @@ export default function GranaryDetail() {
 
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">포지션</h2>
+          <button
+            type="button"
+            onClick={() => setPositionsCollapsed((prev) => !prev)}
+            className="flex items-center gap-2 text-lg font-semibold text-gray-900"
+          >
+            <span className="text-gray-400 text-sm">{positionsCollapsed ? '▶' : '▼'}</span>
+            포지션 {positions.length > 0 && <span className="text-sm text-gray-400 font-normal">({positions.length})</span>}
+          </button>
           <Link
             to={`/positions/new?granaryId=${granary.id}`}
             className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
@@ -133,7 +142,7 @@ export default function GranaryDetail() {
           </Link>
         </div>
 
-        {positions.length === 0 ? (
+        {positionsCollapsed ? null : positions.length === 0 ? (
           <p className="text-gray-500 text-center py-8">등록된 포지션이 없습니다.</p>
         ) : (
           <div className="space-y-3">
@@ -234,7 +243,14 @@ export default function GranaryDetail() {
 
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">스냅샷 기록</h2>
+          <button
+            type="button"
+            onClick={() => setSnapshotsCollapsed((prev) => !prev)}
+            className="flex items-center gap-2 text-lg font-semibold text-gray-900"
+          >
+            <span className="text-gray-400 text-sm">{snapshotsCollapsed ? '▶' : '▼'}</span>
+            스냅샷 기록 {snapshots.length > 0 && <span className="text-sm text-gray-400 font-normal">({snapshots.length})</span>}
+          </button>
           <Link
             to={`/snapshots/new?granaryId=${id}`}
             className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
@@ -243,7 +259,7 @@ export default function GranaryDetail() {
           </Link>
         </div>
 
-        {snapshots.length === 0 ? (
+        {snapshotsCollapsed ? null : snapshots.length === 0 ? (
           <p className="text-gray-500 text-center py-8">아직 스냅샷이 없습니다.</p>
         ) : (
           <div className="space-y-4">
