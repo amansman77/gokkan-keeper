@@ -6,9 +6,10 @@ import { formatCurrency, formatDate } from '@gokkan-keeper/shared';
 interface CashFlowManagerProps {
   granaryId: string;
   currency: string;
+  onDepositDatesChange?: (dates: string[]) => void;
 }
 
-export default function CashFlowManager({ granaryId, currency }: CashFlowManagerProps) {
+export default function CashFlowManager({ granaryId, currency, onDepositDatesChange }: CashFlowManagerProps) {
   const [cashFlows, setCashFlows] = useState<CashFlow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +26,7 @@ export default function CashFlowManager({ granaryId, currency }: CashFlowManager
       setError(null);
       const data = await getCashFlows(granaryId);
       setCashFlows(data);
+      onDepositDatesChange?.(data.filter((cf) => cf.type === 'DEPOSIT').map((cf) => cf.date));
     } catch (err: any) {
       setError(err.message || '입출금 기록을 불러오는데 실패했습니다.');
     } finally {
@@ -65,75 +67,71 @@ export default function CashFlowManager({ granaryId, currency }: CashFlowManager
   async function handleDelete(id: string) {
     try {
       await deleteCashFlow(id);
-      setCashFlows((prev) => prev.filter((cf) => cf.id !== id));
+      const next = cashFlows.filter((cf) => cf.id !== id);
+      setCashFlows(next);
+      onDepositDatesChange?.(next.filter((cf) => cf.type === 'DEPOSIT').map((cf) => cf.date));
     } catch (err: any) {
       setError(err.message || '입출금 기록 삭제에 실패했습니다.');
     }
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-1">입출금 기록</h2>
-      <p className="text-xs text-gray-400 mb-4">
-        스냅샷 총액에는 매매로 생긴 평가손익뿐 아니라 이 곳간에 새로 넣거나 뺀 돈도 섞여 있어요. 여기 입출금을 기록해두면
-        나중에 실제 투자 성과(시간가중수익률)를 원금 증가분과 분리해서 계산할 수 있어요.
-      </p>
+    <div className="gd-section">
+      <div className="gd-section-head">
+        <div>
+          <div className="gd-eyebrow">입출금 기록</div>
+          <div className="gd-section-title">
+            이 곳간의 원금 변동
+            {cashFlows.length > 0 && <span className="gd-count">({cashFlows.length})</span>}
+          </div>
+          <p className="gd-section-note">
+            스냅샷 총액에는 매매로 생긴 평가손익뿐 아니라 새로 넣거나 뺀 돈도 섞여 있어요. 여기 남긴 기록으로 실제
+            투자 성과를 원금 증가분과 분리해 계산할 수 있어요.
+          </p>
+        </div>
+      </div>
 
-      {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+      {error && <p className="gd-error">{error}</p>}
 
       {loading ? (
-        <div className="text-sm text-gray-400">로딩 중...</div>
+        <p className="gd-empty">로딩 중...</p>
       ) : cashFlows.length > 0 ? (
-        <div className="divide-y divide-gray-100 mb-4">
+        <div className="gd-list">
           {cashFlows.map((cf) => (
-            <div key={cf.id} className="flex items-center gap-3 py-2">
-              <span className="text-sm text-gray-500 w-24 shrink-0">{formatDate(cf.date)}</span>
-              <span className={`text-xs font-medium px-2 py-0.5 rounded ${cf.type === 'DEPOSIT' ? 'bg-blue-50 text-blue-700' : 'bg-orange-50 text-orange-700'}`}>
+            <div key={cf.id} className="gd-ledger-row">
+              <span className="gd-date">{formatDate(cf.date)}</span>
+              <span className={`gd-chip gd-flow-chip ${cf.type === 'DEPOSIT' ? 'gd-deposit' : 'gd-withdrawal'}`}>
                 {cf.type === 'DEPOSIT' ? '입금' : '출금'}
               </span>
-              <span className="text-sm font-medium flex-1">
+              <span className="gd-memo">{cf.memo || ''}</span>
+              <span className={`gd-amount ${cf.type === 'DEPOSIT' ? 'gd-good' : 'gd-bad'}`}>
+                {cf.type === 'DEPOSIT' ? '+' : '-'}
                 {formatCurrency(cf.amount, currency)}
               </span>
-              {cf.memo && <span className="text-xs text-gray-400 truncate max-w-[10rem]">{cf.memo}</span>}
-              <button
-                type="button"
-                onClick={() => handleDelete(cf.id)}
-                className="text-xs text-gray-400 hover:text-red-600 px-2 py-1"
-                aria-label="입출금 기록 삭제"
-              >
+              <button type="button" className="gd-ledger-del" onClick={() => handleDelete(cf.id)} aria-label="입출금 기록 삭제">
                 삭제
               </button>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-sm text-gray-400 mb-4">아직 입출금 기록이 없습니다.</p>
+        <p className="gd-empty">아직 입출금 기록이 없습니다.</p>
       )}
 
-      <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-2">
-        <div className="flex flex-col">
-          <label className="text-xs text-gray-500 mb-1">날짜</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
-          />
+      <form onSubmit={handleCreate} className="gd-form-row">
+        <div className="gd-field">
+          <label>날짜</label>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
         </div>
-        <div className="flex flex-col">
-          <label className="text-xs text-gray-500 mb-1">구분</label>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as 'DEPOSIT' | 'WITHDRAWAL')}
-            className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
-          >
+        <div className="gd-field">
+          <label>구분</label>
+          <select value={type} onChange={(e) => setType(e.target.value as 'DEPOSIT' | 'WITHDRAWAL')}>
             <option value="DEPOSIT">입금</option>
             <option value="WITHDRAWAL">출금</option>
           </select>
         </div>
-        <div className="flex flex-col">
-          <label className="text-xs text-gray-500 mb-1">금액</label>
+        <div className="gd-field">
+          <label>금액</label>
           <input
             type="number"
             step="any"
@@ -142,24 +140,20 @@ export default function CashFlowManager({ granaryId, currency }: CashFlowManager
             onChange={(e) => setAmount(e.target.value)}
             placeholder="예: 4000000"
             required
-            className="border border-gray-300 rounded-md px-2 py-1.5 text-sm w-32"
+            style={{ width: '9rem' }}
           />
         </div>
-        <div className="flex flex-col">
-          <label className="text-xs text-gray-500 mb-1">메모(선택)</label>
+        <div className="gd-field">
+          <label>메모(선택)</label>
           <input
             type="text"
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             placeholder="예: 정기 적립"
-            className="border border-gray-300 rounded-md px-2 py-1.5 text-sm w-36"
+            style={{ width: '10rem' }}
           />
         </div>
-        <button
-          type="submit"
-          disabled={submitting || !date || !amount}
-          className="bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-        >
+        <button type="submit" className="gd-submit" disabled={submitting || !date || !amount}>
           {submitting ? '추가 중...' : '추가'}
         </button>
       </form>
