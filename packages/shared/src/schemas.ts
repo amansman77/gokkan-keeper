@@ -9,6 +9,7 @@ import {
   JUDGMENT_TIME_HORIZONS,
   JUDGMENT_STRATEGY_TAGS,
   JUDGMENT_REF_TYPES,
+  CASH_FLOW_TYPES,
 } from './constants';
 
 export const GranarySchema = z.object({
@@ -289,3 +290,28 @@ export const UpdateAlertThresholdSchema = CreateAlertThresholdSchema.partial();
 export type AlertThreshold = z.infer<typeof AlertThresholdSchema>;
 export type CreateAlertThreshold = z.infer<typeof CreateAlertThresholdSchema>;
 export type UpdateAlertThreshold = z.infer<typeof UpdateAlertThresholdSchema>;
+
+export const CashFlowSchema = z.object({
+  id: z.string().uuid(),
+  granaryId: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  type: z.enum(CASH_FLOW_TYPES),
+  amount: z.number().positive(),
+  memo: z.string().max(500).nullable().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const CreateCashFlowSchema = z.object({
+  granaryId: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  type: z.enum(CASH_FLOW_TYPES),
+  amount: z.number().positive(),
+  memo: z.string().max(500).nullable().optional(),
+});
+
+export const UpdateCashFlowSchema = CreateCashFlowSchema.omit({ granaryId: true }).partial();
+
+export type CashFlow = z.infer<typeof CashFlowSchema>;
+export type CreateCashFlow = z.infer<typeof CreateCashFlowSchema>;
+export type UpdateCashFlow = z.infer<typeof UpdateCashFlowSchema>;

@@ -15,6 +15,7 @@ import { alertsRouter } from './routes/alerts';
 import { automationRouter } from './routes/automation';
 import { alertThresholdsRouter } from './routes/alert-thresholds';
 import { settingsRouter } from './routes/settings';
+import { cashFlowsRouter } from './routes/cash-flows';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -66,6 +67,7 @@ app.route('/alerts', alertsRouter);
 app.route('/alert-thresholds', alertThresholdsRouter);
 app.route('/settings', settingsRouter);
 app.route('/automation', automationRouter);
+app.route('/cash-flows', cashFlowsRouter);
 
 export default {
   fetch: app.fetch.bind(app),

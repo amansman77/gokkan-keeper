@@ -1,5 +1,7 @@
 export const CURRENCIES = ['KRW', 'USD', 'EUR', 'JPY', 'CNY'] as const;
 
+export const CASH_FLOW_TYPES = ['DEPOSIT', 'WITHDRAWAL'] as const;
+
 export const GRANARY_PURPOSES = [
   '비상금',
   '가계',

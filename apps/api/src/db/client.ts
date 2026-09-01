@@ -1,7 +1,9 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type {
   AlertThreshold,
+  CashFlow,
   CreateAlertThreshold,
+  CreateCashFlow,
   CreateGranary,
   CreateJudgmentDiaryEntry,
   CreatePosition,
@@ -13,6 +15,7 @@ import type {
   PublicPortfolioResponse,
   Snapshot,
   UpdateAlertThreshold,
+  UpdateCashFlow,
   UpdateGranary,
   UpdateJudgmentDiaryEntry,
   UpdatePosition,
@@ -27,6 +30,7 @@ import { AlertLogRepository } from './repositories/alert-log-repository';
 import type { AlertLogEntry } from './repositories/alert-log-repository';
 import { AlertThresholdRepository } from './repositories/alert-threshold-repository';
 import { SettingsRepository } from './repositories/settings-repository';
+import { CashFlowRepository } from './repositories/cash-flow-repository';
 
 export class DBClient {
   private readonly granaries: GranaryRepository;
@@ -36,6 +40,7 @@ export class DBClient {
   private readonly alertLog: AlertLogRepository;
   private readonly alertThresholds: AlertThresholdRepository;
   private readonly settings: SettingsRepository;
+  private readonly cashFlows: CashFlowRepository;
 
   constructor(db: D1Database) {
     this.granaries = new GranaryRepository(db);
@@ -45,6 +50,7 @@ export class DBClient {
     this.alertLog = new AlertLogRepository(db);
     this.alertThresholds = new AlertThresholdRepository(db);
     this.settings = new SettingsRepository(db);
+    this.cashFlows = new CashFlowRepository(db);
   }
 
   getAllGranaries(): Promise<Granary[]> {
@@ -169,5 +175,21 @@ export class DBClient {
 
   setSetting(key: string, value: string): Promise<void> {
     return this.settings.setSetting(key, value);
+  }
+
+  getCashFlowsByGranaryId(granaryId: string): Promise<CashFlow[]> {
+    return this.cashFlows.getCashFlowsByGranaryId(granaryId);
+  }
+
+  createCashFlow(data: CreateCashFlow): Promise<CashFlow> {
+    return this.cashFlows.createCashFlow(data);
+  }
+
+  updateCashFlow(id: string, data: UpdateCashFlow): Promise<CashFlow> {
+    return this.cashFlows.updateCashFlow(id, data);
+  }
+
+  deleteCashFlow(id: string): Promise<void> {
+    return this.cashFlows.deleteCashFlow(id);
   }
 }

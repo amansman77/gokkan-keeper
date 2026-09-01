@@ -4,6 +4,7 @@ import { deletePosition, getGranary, getGranaryExport, getPositions, getSnapshot
 import type { GranaryWithLatestSnapshot, Snapshot, Position } from '../lib/types';
 import { formatCurrency, formatDate, getPositionMarketValue } from '@gokkan-keeper/shared';
 import TechnicalIndicators from '../components/TechnicalIndicators';
+import CashFlowManager from '../components/CashFlowManager';
 
 export default function GranaryDetail() {
   const { id } = useParams<{ id: string }>();
@@ -228,6 +229,8 @@ export default function GranaryDetail() {
           </div>
         </div>
       )}
+
+      <CashFlowManager granaryId={granary.id} currency={granary.currency} />
 
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-4">

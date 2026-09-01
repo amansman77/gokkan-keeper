@@ -21,6 +21,9 @@ import type {
   AlertThreshold,
   CreateAlertThreshold,
   UpdateAlertThreshold,
+  CashFlow,
+  CreateCashFlow,
+  UpdateCashFlow,
 } from '@gokkan-keeper/shared';
 
 interface AuthUser {
@@ -358,6 +361,28 @@ export async function updateAlertThreshold(id: string, data: UpdateAlertThreshol
 
 export async function deleteAlertThreshold(id: string): Promise<void> {
   await fetchAPI(`/alert-thresholds/${id}`, { method: 'DELETE' });
+}
+
+export async function getCashFlows(granaryId: string): Promise<CashFlow[]> {
+  return fetchAPI<CashFlow[]>(`/cash-flows?granaryId=${granaryId}`);
+}
+
+export async function createCashFlow(data: CreateCashFlow): Promise<CashFlow> {
+  return fetchAPI<CashFlow>('/cash-flows', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCashFlow(id: string, data: UpdateCashFlow): Promise<CashFlow> {
+  return fetchAPI<CashFlow>(`/cash-flows/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteCashFlow(id: string): Promise<void> {
+  await fetchAPI(`/cash-flows/${id}`, { method: 'DELETE' });
 }
 
 export async function getSettings(): Promise<Record<string, string>> {
