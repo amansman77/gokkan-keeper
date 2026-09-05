@@ -100,9 +100,24 @@ export default function EditSnapshot() {
       <div className="mb-4">
         <button
           onClick={() => navigate(`/granaries/${snapshot.granaryId}`)}
-          className="text-accent hover:underline"
+          className="inline-flex items-center gap-1.5 py-1.5 px-2.5 -ml-2.5 text-sm font-medium text-ink-muted hover:text-ink hover:bg-surface-2 rounded-md transition-colors"
+          aria-label="돌아가기"
         >
-          ← 돌아가기
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+            className="w-4 h-4 shrink-0 text-ink-faint"
+          >
+            <path
+              d="M10 3.5 5.5 8 10 12.5"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span>돌아가기</span>
         </button>
       </div>
 

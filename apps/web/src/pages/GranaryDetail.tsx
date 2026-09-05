@@ -214,29 +214,49 @@ export default function GranaryDetail() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/dashboard" className="text-accent hover:underline mb-4 inline-block">
-          ← 대시보드로 돌아가기
-        </Link>
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-ink">{granary.name}</h1>
-            <p className="text-ink-muted mt-1">{granary.purpose} · {granary.currency}</p>
-          </div>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center gap-1.5 py-1.5 px-2.5 -ml-2.5 text-sm font-medium text-ink-muted hover:text-ink hover:bg-surface-2 rounded-md transition-colors"
+            aria-label="대시보드로 돌아가기"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
+              className="w-4 h-4 shrink-0 text-ink-faint"
+            >
+              <path
+                d="M10 3.5 5.5 8 10 12.5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span>대시보드</span>
+          </Link>
+
           <div className="flex items-center gap-2">
             <button
               onClick={handleDownloadJson}
               disabled={downloading}
-              className="px-4 py-2 text-sm text-ink-muted border border-line rounded-md hover:bg-surface-2 disabled:opacity-60"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-ink-muted border border-line rounded-md hover:bg-surface-2 disabled:opacity-60 transition-colors"
             >
               {downloading ? '다운로드 중...' : 'JSON 다운로드'}
             </button>
             <Link
               to={`/granaries/${granary.id}/edit`}
-              className="px-4 py-2 text-sm text-accent border border-accent rounded-md hover:bg-accent-tint"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-accent border border-accent rounded-md hover:bg-accent-tint transition-colors"
             >
               수정
             </Link>
           </div>
+        </div>
+
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-ink tracking-tight break-keep">{granary.name}</h1>
+          <p className="text-ink-muted text-sm mt-1">{granary.purpose} · {granary.currency}</p>
         </div>
       </div>
 
