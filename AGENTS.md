@@ -16,6 +16,12 @@ legacy `Position.currentValue` field from its name.
 Canonical Korean UI labels that mirror the glossary live in
 `apps/web/src/lib/terminology.ts`; reuse them instead of introducing synonyms.
 
+[docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) is the source of truth for color
+and typography. Read it before choosing a color, font, or weight for any UI work.
+Note its implementation-status banner: the tokens are agreed but not yet wired
+into `tailwind.config.js`, so names like `accent` are not usable Tailwind classes
+until that migration happens.
+
 ## Workspace map
 
 - `apps/web`: React/Vite client. `src/app-routes.tsx` is the public/private route
