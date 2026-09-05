@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { deletePosition, getCashFlows, getGranary, getGranaryExport, getPositions, getSnapshots } from '../lib/api';
 import type { CashFlow, GranaryWithLatestSnapshot, Snapshot, Position } from '../lib/types';
@@ -22,6 +22,21 @@ export default function GranaryDetail() {
   const [positionsCollapsed, setPositionsCollapsed] = useState(true);
   const [snapshotsCollapsed, setSnapshotsCollapsed] = useState(true);
   const [visibleSnapshotCount, setVisibleSnapshotCount] = useState(SNAPSHOT_PAGE_SIZE);
+  const [chartWidth, setChartWidth] = useState(720);
+  const chartContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // The trend chart fills whatever width its card actually has, instead of a fixed size that
+  // leaves a large blank gap on wide screens (or forces a scrollbar on narrow ones).
+  useEffect(() => {
+    const el = chartContainerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) setChartWidth(Math.max(240, Math.floor(width)));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!id) {
@@ -160,51 +175,42 @@ export default function GranaryDetail() {
       {/* 평가금액 + 추이: 가장 자주 확인하는 정보라 항상 펼쳐진 채로 맨 위에 둔다. */}
       <div className="bg-white rounded-lg shadow p-6">
         {latest ? (
-          <div className="flex flex-wrap items-start justify-between gap-6">
-            <div>
-              <p className="text-sm text-gray-500">{formatDate(latest.date)} 기준 평가금액</p>
-              <div className="flex items-baseline gap-3 mt-1 flex-wrap">
-                <span className="text-3xl font-bold text-gray-900">
-                  {formatCurrency(latest.totalAmount, granary.currency)}
-                </span>
-                {performanceDelta !== null && performancePct !== null && (
-                  <span
-                    className={`text-sm font-semibold px-2 py-0.5 rounded-full ${
-                      performanceDelta > 0
-                        ? 'bg-green-50 text-green-700'
-                        : performanceDelta < 0
-                        ? 'bg-red-50 text-red-700'
-                        : 'bg-gray-100 text-gray-500'
-                    }`}
-                  >
-                    {performanceDelta > 0 ? '▲' : performanceDelta < 0 ? '▼' : '–'} {Math.abs(performancePct).toFixed(1)}%
-                    {hasCashFlowInPeriod ? ' (입출금 반영 실질)' : ' (직전 스냅샷 대비)'}
+          <div>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-sm text-gray-500">{formatDate(latest.date)} 기준 평가금액</p>
+                <div className="flex items-baseline gap-3 mt-1 flex-wrap">
+                  <span className="text-3xl font-bold text-gray-900">
+                    {formatCurrency(latest.totalAmount, granary.currency)}
                   </span>
+                  {performanceDelta !== null && performancePct !== null && (
+                    <span
+                      className={`text-sm font-semibold px-2 py-0.5 rounded-full ${
+                        performanceDelta > 0
+                          ? 'bg-green-50 text-green-700'
+                          : performanceDelta < 0
+                          ? 'bg-red-50 text-red-700'
+                          : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {performanceDelta > 0 ? '▲' : performanceDelta < 0 ? '▼' : '–'} {Math.abs(performancePct).toFixed(1)}%
+                      {hasCashFlowInPeriod ? ' (입출금 반영 실질)' : ' (직전 스냅샷 대비)'}
+                    </span>
+                  )}
+                </div>
+                {latest.availableBalance !== undefined && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    예수금 {formatCurrency(latest.availableBalance, granary.currency)}
+                  </p>
+                )}
+                {hasCashFlowInPeriod && rawDelta !== null && performanceDelta !== null && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    이 구간 총 변동 {rawDelta > 0 ? '+' : ''}{formatCurrency(rawDelta, granary.currency)} =
+                    {' '}실질 {performanceDelta > 0 ? '+' : ''}{formatCurrency(performanceDelta, granary.currency)}
+                    {' '}+ 입출금 {netCashFlowSincePrevious > 0 ? '+' : ''}{formatCurrency(netCashFlowSincePrevious, granary.currency)}
+                  </p>
                 )}
               </div>
-              {latest.availableBalance !== undefined && (
-                <p className="text-sm text-gray-600 mt-2">
-                  예수금 {formatCurrency(latest.availableBalance, granary.currency)}
-                </p>
-              )}
-              {hasCashFlowInPeriod && rawDelta !== null && performanceDelta !== null && (
-                <p className="text-xs text-gray-400 mt-1">
-                  이 구간 총 변동 {rawDelta > 0 ? '+' : ''}{formatCurrency(rawDelta, granary.currency)} =
-                  {' '}실질 {performanceDelta > 0 ? '+' : ''}{formatCurrency(performanceDelta, granary.currency)}
-                  {' '}+ 입출금 {netCashFlowSincePrevious > 0 ? '+' : ''}{formatCurrency(netCashFlowSincePrevious, granary.currency)}
-                </p>
-              )}
-            </div>
-            <div className="flex flex-col items-end gap-3">
-              {snapshotsAsc.length >= 2 && (
-                <Sparkline
-                  points={snapshotsAsc.map((s) => ({ date: s.date, value: s.totalAmount }))}
-                  width={180}
-                  height={52}
-                  color="#2563eb"
-                  formatValue={(v) => formatCurrency(v, granary.currency)}
-                />
-              )}
               <Link
                 to={`/snapshots/new?granaryId=${id}`}
                 className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
@@ -212,6 +218,17 @@ export default function GranaryDetail() {
                 새 스냅샷 등록
               </Link>
             </div>
+            {snapshotsAsc.length >= 2 && (
+              <div className="mt-6 w-full" ref={chartContainerRef}>
+                <Sparkline
+                  points={snapshotsAsc.map((s) => ({ date: s.date, value: s.totalAmount }))}
+                  width={chartWidth}
+                  height={72}
+                  color="#2563eb"
+                  formatValue={(v) => formatCurrency(v, granary.currency)}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex items-center justify-between gap-4">
