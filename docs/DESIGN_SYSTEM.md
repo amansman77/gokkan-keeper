@@ -149,7 +149,7 @@ Tailwind 클래스 이름은 CSS 변수(`--gk-*`)를 가리킵니다. 정의는
 | 폼 | `gk-field`, `gk-label`, `gk-label-sm`, `gk-input` |
 | 버튼 | `gk-btn` + `gk-btn-primary` / `gk-btn-secondary` / `gk-btn-danger` / `gk-btn-sm` |
 | 오류 | `gk-alert`, `gk-error-text` |
-| 접기 섹션 | `gk-section-row`, `gk-section-row-title`, `gk-section-row-summary`, `gk-chevron`(+`gk-chevron-open`), `gk-section-actions` |
+| 접기 섹션 | `gk-section-row`, `gk-section-row-title`, `gk-section-row-summary`, `gk-chevron`(+`gk-chevron-open`) |
 | 배지 | `gk-chip` + `gk-chip-count` / `gk-chip-accent` / `gk-chip-gain` / `gk-chip-loss` / `gk-chip-flow` |
 | 표 | `gk-table`, `gk-table-scroll`, `gk-num` |
 | 방향·보조 텍스트 | `gk-up`, `gk-down`, `gk-flat`, `gk-meta`, `gk-hint` |

@@ -430,14 +430,6 @@ export default function GranaryDetail() {
                   </table>
                 </div>
               )}
-              <div className="gk-section-actions">
-                <Link
-                  to={`/positions/new?granaryId=${granary.id}`}
-                  className="gk-btn gk-btn-primary"
-                >
-                  새 포지션 추가
-                </Link>
-              </div>
             </>
           )}
         </div>
@@ -541,14 +533,6 @@ export default function GranaryDetail() {
                   </table>
                 </div>
               )}
-              <div className="gk-section-actions">
-                <Link
-                  to={`/snapshots/new?granaryId=${id}`}
-                  className="gk-btn gk-btn-primary"
-                >
-                  새 스냅샷 추가
-                </Link>
-              </div>
             </>
           )}
         </div>
@@ -578,11 +562,6 @@ export default function GranaryDetail() {
                 cashFlows={cashFlows}
                 onChanged={reloadCashFlows}
               />
-              <div className="gk-section-actions">
-                <Link to={`/cash-flows/new?granaryId=${granary.id}`} className="gk-btn gk-btn-primary">
-                  입출금 추가
-                </Link>
-              </div>
             </>
           )}
         </div>
