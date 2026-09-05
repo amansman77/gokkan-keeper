@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { deletePosition, getGranary, getGranaryExport, getPositions, getSnapshots } from '../lib/api';
 import type { GranaryWithLatestSnapshot, Snapshot, Position } from '../lib/types';
 import { formatCurrency, formatDate, getPositionMarketValue } from '@gokkan-keeper/shared';
 import TechnicalIndicators from '../components/TechnicalIndicators';
 import CashFlowManager from '../components/CashFlowManager';
+import Sparkline from '../components/Sparkline';
 
 export default function GranaryDetail() {
   const { id } = useParams<{ id: string }>();
@@ -24,9 +25,9 @@ export default function GranaryDetail() {
       setLoading(false);
       return;
     }
-    
+
     const granaryId = id; // Type narrowing
-    
+
     async function loadData() {
       try {
         setLoading(true);
@@ -46,6 +47,10 @@ export default function GranaryDetail() {
     }
     loadData();
   }, [id]);
+
+  // Snapshots come back newest-first; the trend chart and delta math both want oldest-first.
+  const snapshotsAsc = useMemo(() => [...snapshots].reverse(), [snapshots]);
+  const previousSnapshot = snapshots[1];
 
   if (loading) {
     return (
@@ -95,6 +100,10 @@ export default function GranaryDetail() {
     return null;
   };
 
+  const latest = granary.latestSnapshot;
+  const delta = latest && previousSnapshot ? latest.totalAmount - previousSnapshot.totalAmount : null;
+  const deltaPct = delta !== null && previousSnapshot ? (delta / previousSnapshot.totalAmount) * 100 : null;
+
   return (
     <div className="space-y-6">
       <div>
@@ -124,8 +133,70 @@ export default function GranaryDetail() {
         </div>
       </div>
 
+      {/* 평가금액 + 추이: 가장 자주 확인하는 정보라 항상 펼쳐진 채로 맨 위에 둔다. */}
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-4">
+        {latest ? (
+          <div className="flex flex-wrap items-start justify-between gap-6">
+            <div>
+              <p className="text-sm text-gray-500">{formatDate(latest.date)} 기준 평가금액</p>
+              <div className="flex items-baseline gap-3 mt-1 flex-wrap">
+                <span className="text-3xl font-bold text-gray-900">
+                  {formatCurrency(latest.totalAmount, granary.currency)}
+                </span>
+                {delta !== null && deltaPct !== null && (
+                  <span
+                    className={`text-sm font-semibold px-2 py-0.5 rounded-full ${
+                      delta > 0
+                        ? 'bg-green-50 text-green-700'
+                        : delta < 0
+                        ? 'bg-red-50 text-red-700'
+                        : 'bg-gray-100 text-gray-500'
+                    }`}
+                  >
+                    {delta > 0 ? '▲' : delta < 0 ? '▼' : '–'} {Math.abs(deltaPct).toFixed(1)}% (직전 스냅샷 대비)
+                  </span>
+                )}
+              </div>
+              {latest.availableBalance !== undefined && (
+                <p className="text-sm text-gray-600 mt-2">
+                  예수금 {formatCurrency(latest.availableBalance, granary.currency)}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col items-end gap-3">
+              {snapshotsAsc.length >= 2 && (
+                <Sparkline
+                  points={snapshotsAsc.map((s) => ({ date: s.date, value: s.totalAmount }))}
+                  width={180}
+                  height={52}
+                  color="#2563eb"
+                  formatValue={(v) => formatCurrency(v, granary.currency)}
+                />
+              )}
+              <Link
+                to={`/snapshots/new?granaryId=${id}`}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
+              >
+                새 스냅샷 등록
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-gray-500">아직 스냅샷이 없습니다. 첫 스냅샷을 등록해 평가금액을 기록해보세요.</p>
+            <Link
+              to={`/snapshots/new?granaryId=${id}`}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
+            >
+              새 스냅샷 등록
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* 포지션: 표 형태로 압축해서 한눈에 스캔되도록 하고, 기본은 접어둔다. */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="flex justify-between items-center p-6 pb-4">
           <button
             type="button"
             onClick={() => setPositionsCollapsed((prev) => !prev)}
@@ -142,151 +213,175 @@ export default function GranaryDetail() {
           </Link>
         </div>
 
-        {positionsCollapsed ? null : positions.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">등록된 포지션이 없습니다.</p>
-        ) : (
-          <div className="space-y-3">
-            {positions.map((position) => (
-              <div key={position.id} className="border rounded-md p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-semibold text-gray-900">{position.name} ({position.symbol})</p>
-                    <p className="text-sm text-gray-600 mt-1">
-                      평가금액: {getPositionMarketValue(position) !== null
-                        ? formatCurrency(getPositionMarketValue(position)!, granary.currency)
-                        : '-'}
-                    </p>
-                    {position.currentUnitPrice !== null && position.currentUnitPrice !== undefined && (
-                      <p className="text-sm text-gray-600">
-                        현재가: {formatCurrency(position.currentUnitPrice, granary.currency)}
-                        {position.currentPriceAsOf ? ` · ${formatDate(position.currentPriceAsOf)}` : ''}
-                        {getPriceSourceLabel(position.currentPriceSource) ? ` · ${getPriceSourceLabel(position.currentPriceSource)}` : ''}
-                      </p>
-                    )}
-                    {position.currentPriceChangeRate !== null && position.currentPriceChangeRate !== undefined && (
-                      <p className="text-sm text-gray-600">
-                        등락률: {position.currentPriceChangeRate > 0 ? '+' : ''}{position.currentPriceChangeRate.toFixed(2)}%
-                      </p>
-                    )}
-                    <p className="text-sm text-gray-600">
-                      공개: {position.isPublic ? 'ON' : 'OFF'}
-                      {position.isPublic && position.publicThesis ? ` · ${position.publicThesis}` : ''}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setExpandedIndicators((prev) => {
-                        const next = new Set(prev);
-                        next.has(position.id) ? next.delete(position.id) : next.add(position.id);
-                        return next;
-                      })}
-                      className="text-gray-500 hover:text-gray-700 text-xs border border-gray-300 rounded px-2 py-1"
-                    >
-                      {expandedIndicators.has(position.id) ? '지표 닫기' : '지표 보기'}
-                    </button>
-                    <Link to={`/positions/${position.id}/edit`} className="text-blue-600 hover:underline text-sm">
-                      수정
-                    </Link>
-                    <button
-                      onClick={async () => {
-                        if (!window.confirm('포지션을 삭제하시겠습니까?')) return;
-                        await deletePosition(position.id);
-                        setPositions((prev) => prev.filter((p) => p.id !== position.id));
-                      }}
-                      className="text-red-600 hover:underline text-sm"
-                    >
-                      삭제
-                    </button>
-                  </div>
-                </div>
-                {expandedIndicators.has(position.id) && (
-                  <TechnicalIndicators symbol={position.symbol} market={position.market} />
-                )}
-              </div>
-            ))}
-          </div>
+        {!positionsCollapsed && (
+          positions.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">등록된 포지션이 없습니다.</p>
+          ) : (
+            <div className="overflow-x-auto border-t">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-gray-500 border-b">
+                    <th className="px-6 py-2 font-medium">종목</th>
+                    <th className="px-6 py-2 font-medium text-right">수량</th>
+                    <th className="px-6 py-2 font-medium text-right">현재가</th>
+                    <th className="px-6 py-2 font-medium text-right">등락</th>
+                    <th className="px-6 py-2 font-medium text-right">평가액</th>
+                    <th className="px-6 py-2 font-medium text-right">관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {positions.map((position) => {
+                    const marketValue = getPositionMarketValue(position);
+                    const rate = position.currentPriceChangeRate;
+                    const isExpanded = expandedIndicators.has(position.id);
+                    return (
+                      <Fragment key={position.id}>
+                        <tr className="border-b last:border-0 hover:bg-gray-50">
+                          <td className="px-6 py-3">
+                            <div className="font-medium text-gray-900 flex items-center gap-2">
+                              {position.name}
+                              {position.isPublic && (
+                                <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
+                                  공개
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {position.symbol}
+                              {position.currentPriceAsOf ? ` · ${formatDate(position.currentPriceAsOf)}` : ''}
+                              {getPriceSourceLabel(position.currentPriceSource) ? ` · ${getPriceSourceLabel(position.currentPriceSource)}` : ''}
+                            </div>
+                          </td>
+                          <td className="px-6 py-3 text-right tabular-nums">{position.quantity ?? '-'}</td>
+                          <td className="px-6 py-3 text-right tabular-nums">
+                            {position.currentUnitPrice !== null && position.currentUnitPrice !== undefined
+                              ? formatCurrency(position.currentUnitPrice, granary.currency)
+                              : '-'}
+                          </td>
+                          <td
+                            className={`px-6 py-3 text-right tabular-nums font-medium ${
+                              rate === null || rate === undefined
+                                ? 'text-gray-400'
+                                : rate > 0
+                                ? 'text-green-600'
+                                : rate < 0
+                                ? 'text-red-600'
+                                : 'text-gray-500'
+                            }`}
+                          >
+                            {rate === null || rate === undefined ? '-' : `${rate > 0 ? '+' : ''}${rate.toFixed(2)}%`}
+                          </td>
+                          <td className="px-6 py-3 text-right tabular-nums font-semibold">
+                            {marketValue !== null ? formatCurrency(marketValue, granary.currency) : '-'}
+                          </td>
+                          <td className="px-6 py-3 text-right whitespace-nowrap">
+                            <button
+                              onClick={() => setExpandedIndicators((prev) => {
+                                const next = new Set(prev);
+                                next.has(position.id) ? next.delete(position.id) : next.add(position.id);
+                                return next;
+                              })}
+                              className="text-gray-500 hover:text-gray-700 text-xs border border-gray-300 rounded px-2 py-1 mr-2"
+                            >
+                              {isExpanded ? '지표 닫기' : '지표 보기'}
+                            </button>
+                            <Link to={`/positions/${position.id}/edit`} className="text-blue-600 hover:underline text-xs mr-2">
+                              수정
+                            </Link>
+                            <button
+                              onClick={async () => {
+                                if (!window.confirm('포지션을 삭제하시겠습니까?')) return;
+                                await deletePosition(position.id);
+                                setPositions((prev) => prev.filter((p) => p.id !== position.id));
+                              }}
+                              className="text-red-600 hover:underline text-xs"
+                            >
+                              삭제
+                            </button>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan={6} className="px-6 pb-4 bg-gray-50">
+                              <TechnicalIndicators symbol={position.symbol} market={position.market} />
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )
         )}
       </div>
 
-      {granary.latestSnapshot && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">최신 스냅샷</h2>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-600">날짜:</span>
-              <span className="font-medium">{formatDate(granary.latestSnapshot.date)}</span>
+      {/* 스냅샷 기록: 추이는 위에서 이미 확인했으니, 여기는 날짜별 정확한 숫자가 필요할 때만 펼쳐보는 상세 자료. */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setSnapshotsCollapsed((prev) => !prev)}
+          className="w-full flex items-center gap-2 text-lg font-semibold text-gray-900 p-6 pb-4"
+        >
+          <span className="text-gray-400 text-sm">{snapshotsCollapsed ? '▶' : '▼'}</span>
+          스냅샷 기록 {snapshots.length > 0 && <span className="text-sm text-gray-400 font-normal">({snapshots.length})</span>}
+        </button>
+
+        {!snapshotsCollapsed && (
+          snapshots.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">아직 스냅샷이 없습니다.</p>
+          ) : (
+            <div className="overflow-x-auto border-t">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-gray-500 border-b">
+                    <th className="px-6 py-2 font-medium">날짜</th>
+                    <th className="px-6 py-2 font-medium text-right">평가금액</th>
+                    <th className="px-6 py-2 font-medium text-right">전기 대비</th>
+                    <th className="px-6 py-2 font-medium">메모</th>
+                    <th className="px-6 py-2 font-medium text-right">관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {snapshots.map((snapshot, index) => {
+                    const prior = snapshots[index + 1];
+                    const change = prior ? snapshot.totalAmount - prior.totalAmount : null;
+                    return (
+                      <tr key={snapshot.id} className="border-b last:border-0 hover:bg-gray-50">
+                        <td className="px-6 py-3 whitespace-nowrap">{formatDate(snapshot.date)}</td>
+                        <td className="px-6 py-3 text-right tabular-nums font-semibold">
+                          {formatCurrency(snapshot.totalAmount, granary.currency)}
+                        </td>
+                        <td
+                          className={`px-6 py-3 text-right tabular-nums ${
+                            change === null ? 'text-gray-400' : change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-500'
+                          }`}
+                        >
+                          {change === null
+                            ? '—'
+                            : `${change > 0 ? '+' : ''}${formatCurrency(change, granary.currency)}`}
+                        </td>
+                        <td className="px-6 py-3 text-gray-600">{snapshot.memo || ''}</td>
+                        <td className="px-6 py-3 text-right whitespace-nowrap">
+                          <Link
+                            to={`/snapshots/${snapshot.id}/edit?granaryId=${granary.id}`}
+                            className="text-blue-600 hover:underline text-xs"
+                          >
+                            수정
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">총 평가 금액:</span>
-              <span className="font-bold text-lg">
-                {formatCurrency(granary.latestSnapshot.totalAmount, granary.currency)}
-              </span>
-            </div>
-            {granary.latestSnapshot.availableBalance !== undefined && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">예수금:</span>
-                <span className="font-medium">
-                  {formatCurrency(granary.latestSnapshot.availableBalance, granary.currency)}
-                </span>
-              </div>
-            )}
-            {granary.latestSnapshot.memo && (
-              <div className="mt-4 pt-4 border-t">
-                <p className="text-gray-600 text-sm">{granary.latestSnapshot.memo}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+          )
+        )}
+      </div>
 
       <CashFlowManager granaryId={granary.id} currency={granary.currency} />
-
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-4">
-          <button
-            type="button"
-            onClick={() => setSnapshotsCollapsed((prev) => !prev)}
-            className="flex items-center gap-2 text-lg font-semibold text-gray-900"
-          >
-            <span className="text-gray-400 text-sm">{snapshotsCollapsed ? '▶' : '▼'}</span>
-            스냅샷 기록 {snapshots.length > 0 && <span className="text-sm text-gray-400 font-normal">({snapshots.length})</span>}
-          </button>
-          <Link
-            to={`/snapshots/new?granaryId=${id}`}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-          >
-            새 스냅샷 추가
-          </Link>
-        </div>
-
-        {snapshotsCollapsed ? null : snapshots.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">아직 스냅샷이 없습니다.</p>
-        ) : (
-          <div className="space-y-4">
-            {snapshots.map((snapshot) => (
-              <div key={snapshot.id} className="border-b pb-4 last:border-0">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <p className="font-medium">{formatDate(snapshot.date)}</p>
-                    <p className="text-2xl font-bold mt-1">
-                      {formatCurrency(snapshot.totalAmount, granary.currency)}
-                    </p>
-                    {snapshot.memo && (
-                      <p className="text-gray-600 text-sm mt-2">{snapshot.memo}</p>
-                    )}
-                  </div>
-                  <Link
-                    to={`/snapshots/${snapshot.id}/edit?granaryId=${granary.id}`}
-                    className="ml-4 px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                  >
-                    수정
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
