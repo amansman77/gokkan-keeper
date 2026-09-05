@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { createCashFlow, deleteCashFlow } from '../lib/api';
+import { deleteCashFlow } from '../lib/api';
 import type { CashFlow } from '../lib/types';
 import { formatCurrency, formatDate } from '@gokkan-keeper/shared';
 
 interface CashFlowManagerProps {
-  granaryId: string;
   currency: string;
   /** Owned by the parent, which needs the same records for the snapshot delta
    *  and the collapsed-row summary — so this component does not fetch them
@@ -13,39 +12,10 @@ interface CashFlowManagerProps {
   onChanged: () => void | Promise<void>;
 }
 
-export default function CashFlowManager({ granaryId, currency, cashFlows, onChanged }: CashFlowManagerProps) {
+/** Read/delete list. Adding happens on /cash-flows/new, reached from the same
+ *  add menu as snapshots and positions. */
+export default function CashFlowManager({ currency, cashFlows, onChanged }: CashFlowManagerProps) {
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [type, setType] = useState<'DEPOSIT' | 'WITHDRAWAL'>('DEPOSIT');
-  const [amount, setAmount] = useState('');
-  const [memo, setMemo] = useState('');
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    const amountValue = Number(amount);
-    if (!date || Number.isNaN(amountValue) || amountValue <= 0) return;
-
-    setSubmitting(true);
-    setError(null);
-    try {
-      await createCashFlow({
-        granaryId,
-        date,
-        type,
-        amount: amountValue,
-        memo: memo || undefined,
-      });
-      setAmount('');
-      setMemo('');
-      await onChanged();
-    } catch (err: any) {
-      setError(err.message || '입출금 기록 등록에 실패했습니다.');
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   async function handleDelete(id: string) {
     try {
@@ -96,59 +66,6 @@ export default function CashFlowManager({ granaryId, currency, cashFlows, onChan
         <p className="px-4 sm:px-5 py-4 text-sm text-ink-faint">아직 입출금 기록이 없습니다.</p>
       )}
 
-      <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-2 px-4 sm:px-5 py-3 bg-surface-2 border-t border-line-soft">
-        <div className="gk-field">
-          <label className="gk-label-sm">날짜</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            className="border border-line rounded-md px-2 py-1.5 text-sm"
-          />
-        </div>
-        <div className="gk-field">
-          <label className="gk-label-sm">구분</label>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as 'DEPOSIT' | 'WITHDRAWAL')}
-            className="border border-line rounded-md px-2 py-1.5 text-sm"
-          >
-            <option value="DEPOSIT">입금</option>
-            <option value="WITHDRAWAL">출금</option>
-          </select>
-        </div>
-        <div className="gk-field">
-          <label className="gk-label-sm">금액</label>
-          <input
-            type="number"
-            step="any"
-            min="0"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="예: 4000000"
-            required
-            className="border border-line rounded-md px-2 py-1.5 text-sm w-32"
-          />
-        </div>
-        <div className="gk-field">
-          <label className="gk-label-sm">메모(선택)</label>
-          <input
-            type="text"
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            placeholder="예: 정기 적립"
-            className="border border-line rounded-md px-2 py-1.5 text-sm w-36"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={submitting || !date || !amount}
-          className="bg-accent text-accent-contrast px-4 py-1.5 rounded-md text-sm font-medium hover:bg-accent-ink disabled:opacity-50"
-        >
-          {submitting ? '추가 중...' : '추가'}
-        </button>
-      </form>
     </div>
   );
 }

@@ -572,12 +572,18 @@ export default function GranaryDetail() {
             }
           />
           {!cashFlowsCollapsed && (
-            <CashFlowManager
-              granaryId={granary.id}
-              currency={granary.currency}
-              cashFlows={cashFlows}
-              onChanged={reloadCashFlows}
-            />
+            <>
+              <CashFlowManager
+                currency={granary.currency}
+                cashFlows={cashFlows}
+                onChanged={reloadCashFlows}
+              />
+              <div className="gk-section-actions">
+                <Link to={`/cash-flows/new?granaryId=${granary.id}`} className="gk-btn gk-btn-primary">
+                  입출금 추가
+                </Link>
+              </div>
+            </>
           )}
         </div>
       </div>

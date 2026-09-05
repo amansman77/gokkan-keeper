@@ -72,6 +72,10 @@ export default function GranaryAddMenu({ granaryId }: { granaryId: string }) {
             <span className="block font-semibold text-accent">포지션 추가</span>
             <span className="mt-1 block text-sm text-ink-muted">이 곳간에 보유 자산을 추가합니다.</span>
           </Link>
+          <Link to={`/cash-flows/new?granaryId=${granaryId}`} onClick={close} className="block rounded-lg border border-line p-4 hover:bg-accent-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+            <span className="block font-semibold text-accent">입출금 추가</span>
+            <span className="mt-1 block text-sm text-ink-muted">곳간에 넣거나 뺀 돈을 기록합니다.</span>
+          </Link>
         </div>
       </dialog>
     </>
