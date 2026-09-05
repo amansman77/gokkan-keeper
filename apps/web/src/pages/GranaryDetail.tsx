@@ -1,23 +1,27 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { deletePosition, getGranary, getGranaryExport, getPositions, getSnapshots } from '../lib/api';
-import type { GranaryWithLatestSnapshot, Snapshot, Position } from '../lib/types';
+import { deletePosition, getCashFlows, getGranary, getGranaryExport, getPositions, getSnapshots } from '../lib/api';
+import type { CashFlow, GranaryWithLatestSnapshot, Snapshot, Position } from '../lib/types';
 import { formatCurrency, formatDate, getPositionMarketValue } from '@gokkan-keeper/shared';
 import TechnicalIndicators from '../components/TechnicalIndicators';
 import CashFlowManager from '../components/CashFlowManager';
 import Sparkline from '../components/Sparkline';
+
+const SNAPSHOT_PAGE_SIZE = 10;
 
 export default function GranaryDetail() {
   const { id } = useParams<{ id: string }>();
   const [granary, setGranary] = useState<GranaryWithLatestSnapshot | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
+  const [cashFlows, setCashFlows] = useState<CashFlow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [expandedIndicators, setExpandedIndicators] = useState<Set<string>>(new Set());
   const [positionsCollapsed, setPositionsCollapsed] = useState(true);
   const [snapshotsCollapsed, setSnapshotsCollapsed] = useState(true);
+  const [visibleSnapshotCount, setVisibleSnapshotCount] = useState(SNAPSHOT_PAGE_SIZE);
 
   useEffect(() => {
     if (!id) {
@@ -31,14 +35,16 @@ export default function GranaryDetail() {
     async function loadData() {
       try {
         setLoading(true);
-        const [granaryData, snapshotsData, positionsData] = await Promise.all([
+        const [granaryData, snapshotsData, positionsData, cashFlowsData] = await Promise.all([
           getGranary(granaryId),
           getSnapshots(granaryId),
           getPositions(granaryId),
+          getCashFlows(granaryId),
         ]);
         setGranary(granaryData);
         setSnapshots(snapshotsData);
         setPositions(positionsData);
+        setCashFlows(cashFlowsData);
       } catch (err: any) {
         setError(err.message || '데이터를 불러오는데 실패했습니다.');
       } finally {
@@ -48,9 +54,20 @@ export default function GranaryDetail() {
     loadData();
   }, [id]);
 
-  // Snapshots come back newest-first; the trend chart and delta math both want oldest-first.
+  // Snapshots come back newest-first; the trend chart wants oldest-first.
   const snapshotsAsc = useMemo(() => [...snapshots].reverse(), [snapshots]);
   const previousSnapshot = snapshots[1];
+  const latestSnapshot = snapshots[0];
+
+  // Cash moved in/out between the two snapshots being compared — without this, a deposit or
+  // withdrawal reads as investment performance in the delta below (the same conflation the
+  // cash-flow ledger exists to untangle for TWR).
+  const netCashFlowSincePrevious = useMemo(() => {
+    if (!latestSnapshot || !previousSnapshot) return 0;
+    return cashFlows
+      .filter((cf) => cf.date > previousSnapshot.date && cf.date <= latestSnapshot.date)
+      .reduce((sum, cf) => sum + (cf.type === 'DEPOSIT' ? cf.amount : -cf.amount), 0);
+  }, [cashFlows, latestSnapshot, previousSnapshot]);
 
   if (loading) {
     return (
@@ -101,8 +118,15 @@ export default function GranaryDetail() {
   };
 
   const latest = granary.latestSnapshot;
-  const delta = latest && previousSnapshot ? latest.totalAmount - previousSnapshot.totalAmount : null;
-  const deltaPct = delta !== null && previousSnapshot ? (delta / previousSnapshot.totalAmount) * 100 : null;
+  // Raw total change includes any deposit/withdrawal between the two snapshots.
+  const rawDelta = latest && previousSnapshot ? latest.totalAmount - previousSnapshot.totalAmount : null;
+  // Net out the cash flow so the headline number reflects investment performance, not funding.
+  const adjustedBase = previousSnapshot ? previousSnapshot.totalAmount + netCashFlowSincePrevious : null;
+  const performanceDelta =
+    latest && adjustedBase !== null ? latest.totalAmount - adjustedBase : null;
+  const performancePct =
+    performanceDelta !== null && adjustedBase ? (performanceDelta / adjustedBase) * 100 : null;
+  const hasCashFlowInPeriod = netCashFlowSincePrevious !== 0;
 
   return (
     <div className="space-y-6">
@@ -143,23 +167,31 @@ export default function GranaryDetail() {
                 <span className="text-3xl font-bold text-gray-900">
                   {formatCurrency(latest.totalAmount, granary.currency)}
                 </span>
-                {delta !== null && deltaPct !== null && (
+                {performanceDelta !== null && performancePct !== null && (
                   <span
                     className={`text-sm font-semibold px-2 py-0.5 rounded-full ${
-                      delta > 0
+                      performanceDelta > 0
                         ? 'bg-green-50 text-green-700'
-                        : delta < 0
+                        : performanceDelta < 0
                         ? 'bg-red-50 text-red-700'
                         : 'bg-gray-100 text-gray-500'
                     }`}
                   >
-                    {delta > 0 ? '▲' : delta < 0 ? '▼' : '–'} {Math.abs(deltaPct).toFixed(1)}% (직전 스냅샷 대비)
+                    {performanceDelta > 0 ? '▲' : performanceDelta < 0 ? '▼' : '–'} {Math.abs(performancePct).toFixed(1)}%
+                    {hasCashFlowInPeriod ? ' (입출금 반영 실질)' : ' (직전 스냅샷 대비)'}
                   </span>
                 )}
               </div>
               {latest.availableBalance !== undefined && (
                 <p className="text-sm text-gray-600 mt-2">
                   예수금 {formatCurrency(latest.availableBalance, granary.currency)}
+                </p>
+              )}
+              {hasCashFlowInPeriod && rawDelta !== null && performanceDelta !== null && (
+                <p className="text-xs text-gray-400 mt-1">
+                  이 구간 총 변동 {rawDelta > 0 ? '+' : ''}{formatCurrency(rawDelta, granary.currency)} =
+                  {' '}실질 {performanceDelta > 0 ? '+' : ''}{formatCurrency(performanceDelta, granary.currency)}
+                  {' '}+ 입출금 {netCashFlowSincePrevious > 0 ? '+' : ''}{formatCurrency(netCashFlowSincePrevious, granary.currency)}
                 </p>
               )}
             </div>
@@ -223,7 +255,7 @@ export default function GranaryDetail() {
                   <tr className="text-left text-xs text-gray-500 border-b">
                     <th className="px-6 py-2 font-medium">종목</th>
                     <th className="px-6 py-2 font-medium text-right">수량</th>
-                    <th className="px-6 py-2 font-medium text-right">현재가</th>
+                    <th className="px-6 py-2 font-medium text-right hidden sm:table-cell">현재가</th>
                     <th className="px-6 py-2 font-medium text-right">등락</th>
                     <th className="px-6 py-2 font-medium text-right">평가액</th>
                     <th className="px-6 py-2 font-medium text-right">관리</th>
@@ -248,12 +280,14 @@ export default function GranaryDetail() {
                             </div>
                             <div className="text-xs text-gray-400">
                               {position.symbol}
-                              {position.currentPriceAsOf ? ` · ${formatDate(position.currentPriceAsOf)}` : ''}
-                              {getPriceSourceLabel(position.currentPriceSource) ? ` · ${getPriceSourceLabel(position.currentPriceSource)}` : ''}
+                              <span className="hidden sm:inline">
+                                {position.currentPriceAsOf ? ` · ${formatDate(position.currentPriceAsOf)}` : ''}
+                                {getPriceSourceLabel(position.currentPriceSource) ? ` · ${getPriceSourceLabel(position.currentPriceSource)}` : ''}
+                              </span>
                             </div>
                           </td>
                           <td className="px-6 py-3 text-right tabular-nums">{position.quantity ?? '-'}</td>
-                          <td className="px-6 py-3 text-right tabular-nums">
+                          <td className="px-6 py-3 text-right tabular-nums hidden sm:table-cell">
                             {position.currentUnitPrice !== null && position.currentUnitPrice !== undefined
                               ? formatCurrency(position.currentUnitPrice, granary.currency)
                               : '-'}
@@ -274,7 +308,7 @@ export default function GranaryDetail() {
                           <td className="px-6 py-3 text-right tabular-nums font-semibold">
                             {marketValue !== null ? formatCurrency(marketValue, granary.currency) : '-'}
                           </td>
-                          <td className="px-6 py-3 text-right whitespace-nowrap">
+                          <td className="px-6 py-3 text-right whitespace-normal sm:whitespace-nowrap">
                             <button
                               onClick={() => setExpandedIndicators((prev) => {
                                 const next = new Set(prev);
@@ -339,14 +373,17 @@ export default function GranaryDetail() {
                     <th className="px-6 py-2 font-medium">날짜</th>
                     <th className="px-6 py-2 font-medium text-right">평가금액</th>
                     <th className="px-6 py-2 font-medium text-right">전기 대비</th>
-                    <th className="px-6 py-2 font-medium">메모</th>
+                    <th className="px-6 py-2 font-medium hidden sm:table-cell">메모</th>
                     <th className="px-6 py-2 font-medium text-right">관리</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {snapshots.map((snapshot, index) => {
+                  {snapshots.slice(0, visibleSnapshotCount).map((snapshot, index) => {
                     const prior = snapshots[index + 1];
                     const change = prior ? snapshot.totalAmount - prior.totalAmount : null;
+                    const hadCashFlow = prior
+                      ? cashFlows.some((cf) => cf.date > prior.date && cf.date <= snapshot.date)
+                      : false;
                     return (
                       <tr key={snapshot.id} className="border-b last:border-0 hover:bg-gray-50">
                         <td className="px-6 py-3 whitespace-nowrap">{formatDate(snapshot.date)}</td>
@@ -361,8 +398,16 @@ export default function GranaryDetail() {
                           {change === null
                             ? '—'
                             : `${change > 0 ? '+' : ''}${formatCurrency(change, granary.currency)}`}
+                          {hadCashFlow && (
+                            <span
+                              className="ml-1.5 text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full align-middle"
+                              title="이 구간에 입출금 기록이 있어요 — 변동액에 순수 매매 손익 외에 입출금 금액도 섞여 있습니다."
+                            >
+                              입출금
+                            </span>
+                          )}
                         </td>
-                        <td className="px-6 py-3 text-gray-600">{snapshot.memo || ''}</td>
+                        <td className="px-6 py-3 text-gray-600 hidden sm:table-cell">{snapshot.memo || ''}</td>
                         <td className="px-6 py-3 text-right whitespace-nowrap">
                           <Link
                             to={`/snapshots/${snapshot.id}/edit?granaryId=${granary.id}`}
@@ -374,6 +419,19 @@ export default function GranaryDetail() {
                       </tr>
                     );
                   })}
+                  {visibleSnapshotCount < snapshots.length && (
+                    <tr>
+                      <td colSpan={5} className="p-0">
+                        <button
+                          type="button"
+                          onClick={() => setVisibleSnapshotCount((n) => n + SNAPSHOT_PAGE_SIZE)}
+                          className="w-full text-center py-3 text-sm text-blue-600 hover:bg-gray-50"
+                        >
+                          이전 {snapshots.length - visibleSnapshotCount}건 더 보기
+                        </button>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

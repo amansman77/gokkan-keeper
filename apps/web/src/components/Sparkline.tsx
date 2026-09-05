@@ -37,21 +37,26 @@ export default function Sparkline({ points, width = 72, height = 24, color, form
   const hovered = hoverIndex !== null ? points[hoverIndex] : null;
   const hoveredCoord = hoverIndex !== null ? coords[hoverIndex] : null;
 
+  function updateHoverFromClientX(container: Element, clientX: number) {
+    const rect = container.getBoundingClientRect();
+    const relX = clientX - rect.left;
+    const stepX = width / (points.length - 1);
+    const idx = Math.min(points.length - 1, Math.max(0, Math.round(relX / stepX)));
+    setHoverIndex(idx);
+  }
+
   return (
     <div className="relative inline-block" style={{ width, height }}>
       <svg
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
-        className="overflow-visible"
+        className="overflow-visible touch-none"
         onMouseLeave={() => setHoverIndex(null)}
-        onMouseMove={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const relX = e.clientX - rect.left;
-          const stepX = width / (points.length - 1);
-          const idx = Math.min(points.length - 1, Math.max(0, Math.round(relX / stepX)));
-          setHoverIndex(idx);
-        }}
+        onMouseMove={(e) => updateHoverFromClientX(e.currentTarget, e.clientX)}
+        onTouchStart={(e) => updateHoverFromClientX(e.currentTarget, e.touches[0].clientX)}
+        onTouchMove={(e) => updateHoverFromClientX(e.currentTarget, e.touches[0].clientX)}
+        onTouchEnd={() => setHoverIndex(null)}
       >
         <path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
         {hoveredCoord && (
