@@ -135,6 +135,35 @@ Tailwind 클래스 이름은 CSS 변수(`--gk-*`)를 가리킵니다. 정의는
 | 입출금 | `text-flow`, `bg-flow-tint` |
 | 반전 표면 | `bg-inverse`, `text-inverse-ink` |
 
+### 의미 클래스를 먼저 쓰세요
+
+`src/styles/components.css`에 **이름이 의미를 담는 클래스**가 정의돼 있습니다.
+유틸리티 문자열은 "어떻게 보이는지"만 말하고 "이게 뭔지"는 말해주지 않아서,
+고칠 때마다 모양을 보고 의도를 역추적해야 하고 그 과정에서 실수가 납니다.
+**새 UI를 만들 때 아래에 해당하는 게 있으면 유틸리티를 나열하지 말고 이 클래스를 쓰세요.**
+
+| 용도 | 클래스 |
+| --- | --- |
+| 카드·패널 | `gk-card`, `gk-card-pad`, `gk-card-clip` |
+| 페이지 뼈대 | `gk-stack`, `gk-narrow`, `gk-page-title`, `gk-section-heading`, `gk-loading` |
+| 폼 | `gk-field`, `gk-label`, `gk-label-sm`, `gk-input` |
+| 버튼 | `gk-btn` + `gk-btn-primary` / `gk-btn-secondary` / `gk-btn-danger` / `gk-btn-sm` |
+| 오류 | `gk-alert`, `gk-error-text` |
+| 접기 섹션 | `gk-section-row`, `gk-section-row-title`, `gk-section-row-summary`, `gk-chevron`(+`gk-chevron-open`), `gk-section-actions` |
+| 배지 | `gk-chip` + `gk-chip-count` / `gk-chip-accent` / `gk-chip-gain` / `gk-chip-loss` / `gk-chip-flow` |
+| 표 | `gk-table`, `gk-table-scroll`, `gk-num` |
+| 방향·보조 텍스트 | `gk-up`, `gk-down`, `gk-flat`, `gk-meta`, `gk-hint` |
+| 좁은 화면 | `gk-hide-narrow` |
+
+Tailwind는 일회성 레이아웃(`flex`, `gap-3`, `mt-4` 등)에만 남겨두고 있고,
+색·타이포·컴포넌트 모양은 위 클래스와 토큰이 담당합니다. `text-ink-muted`처럼
+**토큰 이름 한 개짜리** 유틸리티는 그 자체로 의미가 있으니 그대로 써도 됩니다.
+
+> **`@import`는 반드시 파일 맨 위에.** CSS 규격상 `@import`는 다른 규칙보다
+> 앞에 와야 합니다. `@tailwind` 아래에 뒀더니 **빌드 에러 없이 스타일시트가
+> 통째로 사라졌습니다**(클래스가 하나도 번들에 안 들어감). 스타일 파일을 추가할 땐
+> 빌드 후 `dist/assets/*.css`에서 클래스가 실제로 나오는지 확인하세요.
+
 판단일지 조판은 `MarkdownContent`의 `variant` prop으로 전환합니다 —
 `variant="prose"`(본문), `variant="lead"`(요약). 기본값은 카드·미리보기에 쓰는
 압축 세팅입니다.

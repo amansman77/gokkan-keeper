@@ -35,7 +35,7 @@ export default function MarketIndices() {
     return (
       <div className="bg-surface rounded-lg shadow p-4 mb-6">
         <h2 className="text-sm font-semibold text-ink-faint mb-3">시장 지수</h2>
-        <div className="text-sm text-ink-faint">로딩 중...</div>
+        <div className="gk-meta text-sm">로딩 중...</div>
       </div>
     );
   }
@@ -48,7 +48,7 @@ export default function MarketIndices() {
     <div className="bg-surface rounded-lg shadow p-4 mb-6">
       <div className="flex items-baseline justify-between mb-3">
         <h2 className="text-sm font-semibold text-ink-faint">시장 지수</h2>
-        <span className="text-xs text-ink-faint">최근 8주 추이</span>
+        <span className="gk-meta">최근 8주 추이</span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {indices.map((index) => {
@@ -60,7 +60,7 @@ export default function MarketIndices() {
             weeklyUp === null ? 'var(--gk-ink-faint)' : weeklyUp ? 'var(--gk-gain)' : 'var(--gk-loss)';
           return (
             <div key={index.symbol} className="gk-field">
-              <span className="text-xs text-ink-faint font-medium">{index.name}</span>
+              <span className="gk-meta font-medium">{index.name}</span>
               <span className="text-sm font-bold text-ink">{formatValue(index)}</span>
               {index.change !== null && (
                 <span className={`text-xs ${changeColor}`}>

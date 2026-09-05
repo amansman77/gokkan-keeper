@@ -96,7 +96,7 @@ export default function AlertThresholdManager() {
     return (
       <div className="bg-surface rounded-lg shadow p-4">
         <h2 className="text-sm font-semibold text-ink-faint mb-3">알림 트리거 관리</h2>
-        <div className="text-sm text-ink-faint">로딩 중...</div>
+        <div className="gk-meta text-sm">로딩 중...</div>
       </div>
     );
   }

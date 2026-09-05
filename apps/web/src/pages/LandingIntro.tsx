@@ -84,7 +84,7 @@ function HeroSection() {
 function EmpathySection() {
   return (
     <section className="border-t border-line-soft py-20">
-      <h2 className="text-2xl font-bold text-ink">이런 경험 있으신가요?</h2>
+      <h2 className="gk-section-heading text-2xl">이런 경험 있으신가요?</h2>
       <div className="mt-6">
         <BulletList
           items={[
@@ -104,7 +104,7 @@ function EmpathySection() {
 function MethodSection() {
   return (
     <section className="border-t border-line-soft py-20">
-      <h2 className="text-2xl font-bold text-ink">{UI_TERMS.brandName}의 방식</h2>
+      <h2 className="gk-section-heading text-2xl">{UI_TERMS.brandName}의 방식</h2>
       <div className="mt-6">
         <BulletList
           items={[
@@ -177,7 +177,7 @@ function TrackRecordSummary() {
 
   return (
     <section className="border-t border-line-soft py-20">
-      <h2 className="text-2xl font-bold text-ink">말이 아니라 기록입니다.</h2>
+      <h2 className="gk-section-heading text-2xl">말이 아니라 기록입니다.</h2>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           label="공개 포지션 수"

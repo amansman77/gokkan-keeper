@@ -101,17 +101,17 @@ export default function PublicPortfolio() {
         <h2 className="text-xl font-semibold text-ink">현재 수익률 요약</h2>
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="rounded-md border border-line-soft p-4">
-            <p className="text-xs text-ink-faint">공개 포지션 수</p>
+            <p className="gk-meta">공개 포지션 수</p>
             <p className="text-2xl font-bold text-ink mt-1">{portfolio.length}</p>
           </div>
           <div className="rounded-md border border-line-soft p-4">
-            <p className="text-xs text-ink-faint">평균 가중 수익률</p>
+            <p className="gk-meta">평균 가중 수익률</p>
             <p className={`text-2xl font-bold mt-1 ${weightedReturn !== null && weightedReturn < 0 ? 'text-loss' : 'text-gain'}`}>
               {formatPercent(weightedReturn)}
             </p>
           </div>
           <div className="rounded-md border border-line-soft p-4">
-            <p className="text-xs text-ink-faint">연동 기준</p>
+            <p className="gk-meta">연동 기준</p>
             <p className="text-sm text-ink-muted mt-1">
               {pricingMeta.integratedCount > 0
                 ? `${pricingMeta.latestAsOf ? `${pricingMeta.latestAsOf} 기준 ` : ''}금융위/Yahoo Finance 시세 연동`
@@ -173,7 +173,7 @@ export default function PublicPortfolio() {
                     {item.currentPriceSource === 'FSC_STOCK_PRICE_API' || item.currentPriceSource === 'YAHOO_FINANCE' ? (
                       <div>
                         <p className="font-medium text-accent">{formatPriceSourceLabel(item.currentPriceSource)}</p>
-                        <p className="text-xs text-ink-faint">
+                        <p className="gk-meta">
                           {item.currentPriceAsOf || '-'}
                           {item.currentUnitPrice !== null && item.currentUnitPrice !== undefined
                             ? ` · ${item.currentUnitPrice.toLocaleString()}`

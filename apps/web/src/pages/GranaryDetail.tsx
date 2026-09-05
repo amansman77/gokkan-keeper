@@ -250,7 +250,7 @@ export default function GranaryDetail() {
         {latest ? (
           <div className="min-w-0 space-y-4">
             <div className="min-w-0">
-              <p className="text-sm text-ink-faint">{formatDate(latest.date)} 기준 평가금액</p>
+              <p className="gk-meta text-sm">{formatDate(latest.date)} 기준 평가금액</p>
               <div className="flex items-baseline gap-3 mt-1 flex-wrap">
                 <span className="text-2xl sm:text-3xl font-bold text-ink tabular-nums break-all">
                   {formatCurrency(latest.totalAmount, granary.currency)}
@@ -276,7 +276,7 @@ export default function GranaryDetail() {
                 </p>
               )}
               {hasCashFlowInPeriod && rawDelta !== null && performanceDelta !== null && (
-                <p className="text-xs text-ink-faint mt-1">
+                <p className="gk-meta mt-1">
                   이 구간 총 변동 {rawDelta > 0 ? '+' : ''}{formatCurrency(rawDelta, granary.currency)} =
                   {' '}실질 {performanceDelta > 0 ? '+' : ''}{formatCurrency(performanceDelta, granary.currency)}
                   {' '}+ 입출금 {netCashFlowSincePrevious > 0 ? '+' : ''}{formatCurrency(netCashFlowSincePrevious, granary.currency)}
@@ -330,15 +330,15 @@ export default function GranaryDetail() {
                 <p className="text-ink-faint text-center py-8">등록된 포지션이 없습니다.</p>
               ) : (
                 <div className="overflow-x-auto border-t">
-                  <table className="w-full text-sm">
+                  <table className="gk-table">
                     <thead>
                       <tr className="text-left text-xs text-ink-faint border-b">
-                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap">종목</th>
-                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">수량</th>
-                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right hidden sm:table-cell">현재가</th>
-                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">등락</th>
-                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">평가액</th>
-                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">관리</th>
+                        <th>종목</th>
+                        <th className="gk-num">수량</th>
+                        <th className="gk-num gk-hide-narrow">현재가</th>
+                        <th className="gk-num">등락</th>
+                        <th className="gk-num">평가액</th>
+                        <th className="gk-num">관리</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -349,7 +349,7 @@ export default function GranaryDetail() {
                         return (
                           <Fragment key={position.id}>
                             <tr className="border-b last:border-0 hover:bg-surface-2">
-                              <td className="px-2 sm:px-4 py-3">
+                              <td>
                                 <div className="font-medium text-ink flex items-center gap-2">
                                   {position.name}
                                   {position.isPublic && (
@@ -358,7 +358,7 @@ export default function GranaryDetail() {
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-xs text-ink-faint">
+                                <div className="gk-meta">
                                   {position.symbol}
                                   <span className="hidden sm:inline">
                                     {position.currentPriceAsOf ? ` · ${formatDate(position.currentPriceAsOf)}` : ''}
@@ -366,14 +366,14 @@ export default function GranaryDetail() {
                                   </span>
                                 </div>
                               </td>
-                              <td className="px-2 sm:px-4 py-3 text-right tabular-nums">{position.quantity ?? '-'}</td>
-                              <td className="px-2 sm:px-4 py-3 text-right tabular-nums hidden sm:table-cell">
+                              <td className="gk-num">{position.quantity ?? '-'}</td>
+                              <td className="gk-num gk-hide-narrow">
                                 {position.currentUnitPrice !== null && position.currentUnitPrice !== undefined
                                   ? formatCurrency(position.currentUnitPrice, granary.currency)
                                   : '-'}
                               </td>
                               <td
-                                className={`px-2 sm:px-4 py-3 text-right tabular-nums font-medium ${
+                                className={`px-2 sm:px-4 py-3 gk-num font-medium ${
                                   rate === null || rate === undefined
                                     ? 'text-ink-faint'
                                     : rate > 0
@@ -385,10 +385,10 @@ export default function GranaryDetail() {
                               >
                                 {rate === null || rate === undefined ? '-' : `${rate > 0 ? '+' : ''}${rate.toFixed(2)}%`}
                               </td>
-                              <td className="px-2 sm:px-4 py-3 text-right tabular-nums font-semibold">
+                              <td className="gk-num font-semibold">
                                 {marketValue !== null ? formatCurrency(marketValue, granary.currency) : '-'}
                               </td>
-                              <td className="px-2 sm:px-4 py-3">
+                              <td>
                                 <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-2">
                                   <button
                                     onClick={() => setExpandedIndicators((prev) => {
@@ -433,7 +433,7 @@ export default function GranaryDetail() {
               <div className="gk-section-actions">
                 <Link
                   to={`/positions/new?granaryId=${granary.id}`}
-                  className="bg-accent text-accent-contrast px-4 py-2 rounded-md text-sm font-medium hover:bg-accent-ink"
+                  className="gk-btn gk-btn-primary"
                 >
                   새 포지션 추가
                 </Link>
@@ -472,14 +472,14 @@ export default function GranaryDetail() {
                 <p className="text-ink-faint text-center py-8">아직 스냅샷이 없습니다.</p>
               ) : (
                 <div className="overflow-x-auto border-t">
-                  <table className="w-full text-sm">
+                  <table className="gk-table">
                     <thead>
                       <tr className="text-left text-xs text-ink-faint border-b">
-                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap">날짜</th>
-                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">평가금액</th>
-                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">전기 대비</th>
-                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap hidden sm:table-cell">메모</th>
-                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">관리</th>
+                        <th>날짜</th>
+                        <th className="gk-num">평가금액</th>
+                        <th className="gk-num">전기 대비</th>
+                        <th className="gk-hide-narrow">메모</th>
+                        <th className="gk-num">관리</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -491,12 +491,12 @@ export default function GranaryDetail() {
                           : false;
                         return (
                           <tr key={snapshot.id} className="border-b last:border-0 hover:bg-surface-2">
-                            <td className="px-2 sm:px-4 py-3 whitespace-nowrap">{formatDate(snapshot.date)}</td>
-                            <td className="px-2 sm:px-4 py-3 text-right tabular-nums font-semibold">
+                            <td className="whitespace-nowrap">{formatDate(snapshot.date)}</td>
+                            <td className="gk-num font-semibold">
                               {formatCurrency(snapshot.totalAmount, granary.currency)}
                             </td>
                             <td
-                              className={`px-2 sm:px-4 py-3 text-right tabular-nums ${
+                              className={`px-2 sm:px-4 py-3 gk-num ${
                                 change === null ? 'text-ink-faint' : change > 0 ? 'text-gain' : change < 0 ? 'text-loss' : 'text-ink-faint'
                               }`}
                             >
@@ -512,8 +512,8 @@ export default function GranaryDetail() {
                                 </span>
                               )}
                             </td>
-                            <td className="px-2 sm:px-4 py-3 text-ink-muted hidden sm:table-cell">{snapshot.memo || ''}</td>
-                            <td className="px-2 sm:px-4 py-3 text-right whitespace-nowrap">
+                            <td className="text-ink-muted gk-hide-narrow">{snapshot.memo || ''}</td>
+                            <td className="gk-num">
                               <Link
                                 to={`/snapshots/${snapshot.id}/edit?granaryId=${granary.id}`}
                                 className="text-accent hover:underline text-xs"
@@ -544,7 +544,7 @@ export default function GranaryDetail() {
               <div className="gk-section-actions">
                 <Link
                   to={`/snapshots/new?granaryId=${id}`}
-                  className="bg-accent text-accent-contrast px-4 py-2 rounded-md text-sm font-medium hover:bg-accent-ink"
+                  className="gk-btn gk-btn-primary"
                 >
                   새 스냅샷 추가
                 </Link>

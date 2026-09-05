@@ -66,7 +66,7 @@ export default function Alerts() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="gk-stack">
       <div>
         <h1 className="text-3xl font-bold text-ink mb-2">알림</h1>
         <p className="text-ink-muted">알림 트리거를 관리하고, 발송된 알림 이력을 확인합니다</p>
@@ -90,7 +90,7 @@ export default function Alerts() {
                     {alert.priority}
                   </span>
                   <span className="font-medium text-ink">{ruleTitle(alert.ruleId)}</span>
-                  <span className="text-sm text-ink-muted">
+                  <span className="gk-hint">
                     {symbolNames[alert.symbol] ? `${symbolNames[alert.symbol]} ` : ''}
                     <span className="text-ink-faint">({alert.symbol})</span>
                   </span>

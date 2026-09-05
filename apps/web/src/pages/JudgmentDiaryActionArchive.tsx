@@ -51,7 +51,7 @@ export default function JudgmentDiaryActionArchive() {
   }, [normalizedAction]);
 
   return (
-    <div className="space-y-6">
+    <div className="gk-stack">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="gk-page-title">{normalizedAction} 판단 모음</h1>
@@ -68,11 +68,11 @@ export default function JudgmentDiaryActionArchive() {
       {loading ? (
         <div className="text-ink-muted">로딩 중...</div>
       ) : error ? (
-        <div className="bg-danger-tint border border-danger rounded-md p-4 text-danger">{error}</div>
+        <div className="gk-alert">{error}</div>
       ) : entries.length === 0 ? (
         <div className="text-center py-16 text-ink-faint">아직 등록된 판단일지가 없습니다.</div>
       ) : (
-        <div className="space-y-6">
+        <div className="gk-stack">
           {entries.map((entry) => (
             <JudgmentDiaryCard key={entry.id} entry={entry} />
           ))}

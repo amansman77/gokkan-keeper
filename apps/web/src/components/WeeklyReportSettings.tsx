@@ -44,7 +44,7 @@ export default function WeeklyReportSettings() {
     return (
       <div className="bg-surface rounded-lg shadow p-4">
         <h2 className="text-sm font-semibold text-ink-faint mb-3">주간 후보군 리포트 설정</h2>
-        <div className="text-sm text-ink-faint">로딩 중...</div>
+        <div className="gk-meta text-sm">로딩 중...</div>
       </div>
     );
   }

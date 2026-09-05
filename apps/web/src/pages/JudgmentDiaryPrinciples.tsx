@@ -47,7 +47,7 @@ export default function JudgmentDiaryPrinciples() {
   }, [entries]);
 
   return (
-    <div className="space-y-6">
+    <div className="gk-stack">
       <div>
         <h1 className="gk-page-title">내가 반복하는 투자 원칙 15가지</h1>
         <p className="text-ink-muted">
@@ -59,7 +59,7 @@ export default function JudgmentDiaryPrinciples() {
       {loading ? (
         <div className="text-ink-muted">로딩 중...</div>
       ) : error ? (
-        <div className="bg-danger-tint border border-danger rounded-md p-4 text-danger">{error}</div>
+        <div className="gk-alert">{error}</div>
       ) : principles.length === 0 ? (
         <div className="text-center py-16 text-ink-faint">아직 정리할 원칙이 없습니다.</div>
       ) : (

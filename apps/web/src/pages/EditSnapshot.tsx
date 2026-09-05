@@ -79,7 +79,7 @@ export default function EditSnapshot() {
 
   if (error || !snapshot) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="gk-narrow">
         <div className="gk-alert">
           <p className="text-danger">{error || '스냅샷을 찾을 수 없습니다.'}</p>
           <button
@@ -96,7 +96,7 @@ export default function EditSnapshot() {
   const granary = granaries.find((g) => g.id === snapshot.granaryId);
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="gk-narrow">
       <div className="mb-4">
         <button
           onClick={() => navigate(`/granaries/${snapshot.granaryId}`)}
@@ -125,7 +125,7 @@ export default function EditSnapshot() {
 
       {granary && (
         <div className="mb-6 p-4 bg-surface-2 rounded-lg">
-          <p className="text-sm text-ink-muted">곳간</p>
+          <p className="gk-hint">곳간</p>
           <p className="font-medium">{granary.name} ({granary.purpose})</p>
         </div>
       )}
@@ -236,14 +236,14 @@ export default function EditSnapshot() {
           <button
             type="button"
             onClick={() => navigate(`/granaries/${snapshot.granaryId}`)}
-            className="flex-1 px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
+            className="gk-btn gk-btn-secondary flex-1"
           >
             취소
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 px-4 py-2 bg-accent text-accent-contrast rounded-md hover:bg-accent-ink disabled:opacity-50"
+            className="gk-btn gk-btn-primary flex-1"
           >
             {saving ? '저장 중...' : '저장하기'}
           </button>

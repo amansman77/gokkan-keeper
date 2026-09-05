@@ -24,7 +24,7 @@ export default function JudgmentDiaryStrategyArchive() {
   }, [strategy, description]);
 
   return (
-    <div className="space-y-6">
+    <div className="gk-stack">
       <div>
         <h1 className="gk-page-title">전략별 판단 모음</h1>
         <p className="text-ink-muted">

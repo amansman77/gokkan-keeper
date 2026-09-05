@@ -32,13 +32,13 @@ export default function GranaryCard({ granary }: GranaryCardProps) {
       {granary.latestSnapshot ? (
         <div className="space-y-2">
           <div className="flex justify-between items-baseline">
-            <span className="text-sm text-ink-muted">최신 기록</span>
-            <span className="text-2xl font-bold text-ink">
+            <span className="gk-hint">최신 기록</span>
+            <span className="gk-section-heading text-2xl">
               {formatCurrency(granary.latestSnapshot.totalAmount, granary.currency)}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <p className="text-xs text-ink-faint">
+            <p className="gk-meta">
               {formatDate(granary.latestSnapshot.date)}
             </p>
             {comparison && (
@@ -50,7 +50,7 @@ export default function GranaryCard({ granary }: GranaryCardProps) {
         </div>
       ) : (
         <div className="text-center py-4">
-          <p className="text-sm text-ink-faint">아직 스냅샷이 없습니다</p>
+          <p className="gk-meta text-sm">아직 스냅샷이 없습니다</p>
         </div>
       )}
     </Link>

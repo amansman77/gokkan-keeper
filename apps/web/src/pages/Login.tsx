@@ -94,7 +94,7 @@ export default function Login() {
 
   return (
     <div className="max-w-md mx-auto bg-surface rounded-lg border border-line-soft p-6">
-      <h1 className="text-2xl font-bold text-ink">로그인</h1>
+      <h1 className="gk-section-heading text-2xl">로그인</h1>
       <p className="text-sm text-ink-muted mt-2">Google 계정으로 private 페이지에 로그인합니다.</p>
 
       {GOOGLE_CLIENT_ID ? (

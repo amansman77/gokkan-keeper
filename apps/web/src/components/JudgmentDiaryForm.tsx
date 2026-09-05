@@ -106,14 +106,14 @@ export default function JudgmentDiaryForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
+          className="gk-btn gk-btn-secondary flex-1"
         >
           취소
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 px-4 py-2 bg-accent text-accent-contrast rounded-md hover:bg-accent-ink disabled:opacity-50"
+          className="gk-btn gk-btn-primary flex-1"
         >
           {loading ? submittingLabel : submitLabel}
         </button>

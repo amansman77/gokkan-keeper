@@ -13,12 +13,12 @@ export default function StatusSummaryComponent({ status }: StatusSummaryProps) {
       
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
-          <p className="text-sm text-ink-muted">총 곳간 수</p>
-          <p className="text-2xl font-bold text-ink">{status.totalGranaries}</p>
+          <p className="gk-hint">총 곳간 수</p>
+          <p className="gk-section-heading text-2xl">{status.totalGranaries}</p>
         </div>
         <div>
-          <p className="text-sm text-ink-muted">총 스냅샷 수</p>
-          <p className="text-2xl font-bold text-ink">{status.totalSnapshots}</p>
+          <p className="gk-hint">총 스냅샷 수</p>
+          <p className="gk-section-heading text-2xl">{status.totalSnapshots}</p>
         </div>
       </div>
 
@@ -32,7 +32,7 @@ export default function StatusSummaryComponent({ status }: StatusSummaryProps) {
             >
               {status.oldestUnupdatedGranary.granary.name}
             </Link>
-            <span className="text-sm text-ink-muted">
+            <span className="gk-hint">
               {status.oldestUnupdatedGranary.daysSinceUpdate}일 전
             </span>
           </div>

@@ -126,7 +126,7 @@ export default function ConsultingRequestForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form onSubmit={onSubmit} className="gk-stack">
       <div className="grid gap-6">
         <div>
           <label htmlFor="consulting-email" className="mb-2 block text-sm font-semibold text-ink">

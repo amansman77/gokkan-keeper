@@ -21,6 +21,13 @@
   margin-top: 0.75rem;
 }
 
+/* Centred single-column container for form pages. */
+.gk-narrow {
+  max-width: 42rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .gk-page-title {
   font-size: 1.875rem;
   line-height: 2.25rem;
@@ -36,6 +43,18 @@
 }
 
 /* Centred spinner/placeholder area while a route loads. */
+/* Small secondary text: timestamps, source labels, field hints. */
+.gk-meta {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--gk-ink-faint);
+}
+.gk-hint {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--gk-ink-muted);
+}
+
 .gk-loading {
   display: flex;
   align-items: center;

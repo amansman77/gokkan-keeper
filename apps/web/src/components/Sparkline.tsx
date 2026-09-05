@@ -31,7 +31,7 @@ export default function Sparkline({ points, width = 72, height = 24, color, form
   }, [points, width, height]);
 
   if (points.length < 2) {
-    return <div className="text-xs text-ink-faint" style={{ width, height }} />;
+    return <div className="gk-meta" style={{ width, height }} />;
   }
 
   const hovered = hoverIndex !== null ? points[hoverIndex] : null;

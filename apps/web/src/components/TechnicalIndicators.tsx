@@ -59,7 +59,7 @@ export default function TechnicalIndicators({ symbol, market }: Props) {
   return (
     <div className="mt-3 pt-3 border-t border-line-soft">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs text-ink-faint">기술적 지표 · {data.asOfDate} 기준</p>
+        <p className="gk-meta">기술적 지표 · {data.asOfDate} 기준</p>
         <div className="flex text-xs border border-line-soft rounded overflow-hidden">
           <button
             onClick={() => setInterval('1d')}
@@ -78,53 +78,53 @@ export default function TechnicalIndicators({ symbol, market }: Props) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* RSI */}
         <div className="bg-surface-2 rounded p-2">
-          <p className="text-xs text-ink-faint font-medium">RSI (14)</p>
+          <p className="gk-meta font-medium">RSI (14)</p>
           {data.rsi !== null ? (
             <>
               <p className="text-base font-bold text-ink">{data.rsi.toFixed(1)}</p>
               <p className={`text-xs ${rsiInfo!.color}`}>{rsiInfo!.text}</p>
             </>
-          ) : <p className="text-xs text-ink-faint">데이터 부족</p>}
+          ) : <p className="gk-meta">데이터 부족</p>}
         </div>
 
         {/* MACD OSC */}
         <div className="bg-surface-2 rounded p-2">
-          <p className="text-xs text-ink-faint font-medium">MACD OSC</p>
+          <p className="gk-meta font-medium">MACD OSC</p>
           {data.macdOsc !== null ? (
             <>
               <p className={`text-base font-bold ${data.macdOsc >= 0 ? 'text-gain' : 'text-loss'}`}>
                 {data.macdOsc >= 0 ? '+' : ''}{data.macdOsc.toFixed(3)}
               </p>
-              <p className="text-xs text-ink-faint">{data.macdOsc >= 0 ? '상승 모멘텀' : '하락 모멘텀'}</p>
+              <p className="gk-meta">{data.macdOsc >= 0 ? '상승 모멘텀' : '하락 모멘텀'}</p>
             </>
-          ) : <p className="text-xs text-ink-faint">데이터 부족</p>}
+          ) : <p className="gk-meta">데이터 부족</p>}
         </div>
 
         {/* OBV */}
         <div className="bg-surface-2 rounded p-2">
-          <p className="text-xs text-ink-faint font-medium">OBV</p>
+          <p className="gk-meta font-medium">OBV</p>
           {data.obv !== null ? (
             <>
               <p className="text-base font-bold text-ink">{formatObv(data.obv)}</p>
-              <p className="text-xs text-ink-faint">{data.obv >= 0 ? '매수 우위' : '매도 우위'}</p>
+              <p className="gk-meta">{data.obv >= 0 ? '매수 우위' : '매도 우위'}</p>
             </>
-          ) : <p className="text-xs text-ink-faint">데이터 부족</p>}
+          ) : <p className="gk-meta">데이터 부족</p>}
         </div>
 
         {/* ADX */}
         <div className="bg-surface-2 rounded p-2">
-          <p className="text-xs text-ink-faint font-medium">ADX (14)</p>
+          <p className="gk-meta font-medium">ADX (14)</p>
           {data.adx !== null ? (
             <>
               <p className="text-base font-bold text-ink">{data.adx.toFixed(1)}</p>
-              <p className="text-xs text-ink-faint">{adxLabel(data.adx)}</p>
+              <p className="gk-meta">{adxLabel(data.adx)}</p>
               {data.diPlus !== null && data.diMinus !== null && (
-                <p className="text-xs text-ink-faint">
+                <p className="gk-meta">
                   +DI {data.diPlus.toFixed(1)} / -DI {data.diMinus.toFixed(1)}
                 </p>
               )}
             </>
-          ) : <p className="text-xs text-ink-faint">데이터 부족</p>}
+          ) : <p className="gk-meta">데이터 부족</p>}
         </div>
       </div>
     </div>

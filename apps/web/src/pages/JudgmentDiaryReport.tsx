@@ -49,7 +49,7 @@ export default function JudgmentDiaryReport() {
   }, [month]);
 
   return (
-    <div className="space-y-6">
+    <div className="gk-stack">
       <div>
         <h1 className="gk-page-title">{monthLabel} 투자 판단 리포트</h1>
         <p className="text-ink-muted">{monthLabel}에 기록된 판단일지를 모아 태도의 흐름을 요약합니다.</p>
@@ -58,11 +58,11 @@ export default function JudgmentDiaryReport() {
       {loading ? (
         <div className="text-ink-muted">로딩 중...</div>
       ) : error ? (
-        <div className="bg-danger-tint border border-danger rounded-md p-4 text-danger">{error}</div>
+        <div className="gk-alert">{error}</div>
       ) : entries.length === 0 ? (
         <div className="text-center py-16 text-ink-faint">해당 월에 기록이 없습니다.</div>
       ) : (
-        <div className="space-y-6">
+        <div className="gk-stack">
           {entries.map((entry) => (
             <JudgmentDiaryCard key={entry.id} entry={entry} />
           ))}

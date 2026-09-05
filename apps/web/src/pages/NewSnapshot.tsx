@@ -95,7 +95,7 @@ export default function NewSnapshot() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="gk-narrow">
       <h1 className="gk-page-title mb-8">새 스냅샷 추가</h1>
 
       <form onSubmit={handleSubmit} className="gk-card gk-card-pad gk-stack">
@@ -264,14 +264,14 @@ export default function NewSnapshot() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="flex-1 px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
+            className="gk-btn gk-btn-secondary flex-1"
           >
             취소
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 px-4 py-2 bg-accent text-accent-contrast rounded-md hover:bg-accent-ink disabled:opacity-50"
+            className="gk-btn gk-btn-primary flex-1"
           >
             {loading ? '생성 중...' : '추가하기'}
           </button>
