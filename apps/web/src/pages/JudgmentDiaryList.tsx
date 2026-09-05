@@ -89,7 +89,7 @@ export default function JudgmentDiaryList() {
       {loading ? (
         <div className="text-ink-muted">로딩 중...</div>
       ) : error ? (
-        <div className="bg-loss-tint border border-loss rounded-md p-4 text-loss">{error}</div>
+        <div className="bg-danger-tint border border-danger rounded-md p-4 text-danger">{error}</div>
       ) : entries.length === 0 ? (
         <div className="text-center py-16 text-ink-faint">아직 등록된 판단일지가 없습니다.</div>
       ) : (

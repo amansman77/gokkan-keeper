@@ -33,6 +33,7 @@ export default {
           ink: token('accent-ink'),
           contrast: token('accent-contrast'),
         },
+        // Directional (Korean market convention: rise = red, fall = blue).
         gain: {
           DEFAULT: token('gain'),
           tint: token('gain-tint'),
@@ -40,6 +41,16 @@ export default {
         loss: {
           DEFAULT: token('loss'),
           tint: token('loss-tint'),
+        },
+        // Status. Kept separate from the directional pair so that flipping the
+        // market convention never turns an error message blue.
+        danger: {
+          DEFAULT: token('danger'),
+          tint: token('danger-tint'),
+        },
+        success: {
+          DEFAULT: token('success'),
+          tint: token('success-tint'),
         },
         flow: {
           DEFAULT: token('flow'),

@@ -97,8 +97,8 @@ export default function GranaryDetail() {
 
   if (error || !granary) {
     return (
-      <div className="bg-loss-tint border border-loss rounded-md p-4">
-        <p className="text-loss">{error || '곳간을 찾을 수 없습니다.'}</p>
+      <div className="bg-danger-tint border border-danger rounded-md p-4">
+        <p className="text-danger">{error || '곳간을 찾을 수 없습니다.'}</p>
         <Link to="/dashboard" className="text-accent hover:underline mt-2 inline-block">
           대시보드로 돌아가기
         </Link>
@@ -349,7 +349,7 @@ export default function GranaryDetail() {
                                   await deletePosition(position.id);
                                   setPositions((prev) => prev.filter((p) => p.id !== position.id));
                                 }}
-                                className="text-loss hover:underline text-xs whitespace-nowrap"
+                                className="text-danger hover:underline text-xs whitespace-nowrap"
                               >
                                 삭제
                               </button>

@@ -53,14 +53,11 @@ export default function MarketIndices() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {indices.map((index) => {
           const isUp = (index.change ?? 0) >= 0;
-          const changeColor = index.change === null ? 'text-ink-faint' : isUp ? 'text-loss' : 'text-accent';
+          const changeColor = index.change === null ? 'text-ink-faint' : isUp ? 'text-gain' : 'text-loss';
           const series = index.weeklySeries ?? [];
           const weeklyUp = series.length >= 2 ? series[series.length - 1].value >= series[0].value : null;
-          // Korean market convention: rising is red, falling is blue — matching
-          // `changeColor` above. Deliberately not the gain/loss green used on
-          // position tables.
           const sparklineColor =
-            weeklyUp === null ? 'var(--gk-ink-faint)' : weeklyUp ? 'var(--gk-loss)' : 'var(--gk-accent)';
+            weeklyUp === null ? 'var(--gk-ink-faint)' : weeklyUp ? 'var(--gk-gain)' : 'var(--gk-loss)';
           return (
             <div key={index.symbol} className="flex flex-col">
               <span className="text-xs text-ink-faint font-medium">{index.name}</span>

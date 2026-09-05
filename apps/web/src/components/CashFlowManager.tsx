@@ -90,7 +90,7 @@ export default function CashFlowManager({ granaryId, currency }: CashFlowManager
             나중에 실제 투자 성과(시간가중수익률)를 원금 증가분과 분리해서 계산할 수 있어요.
           </p>
 
-          {error && <p className="text-sm text-loss mb-3">{error}</p>}
+          {error && <p className="text-sm text-danger mb-3">{error}</p>}
 
           {loading ? (
             <div className="text-sm text-ink-faint">로딩 중...</div>
@@ -109,7 +109,7 @@ export default function CashFlowManager({ granaryId, currency }: CashFlowManager
                   <button
                     type="button"
                     onClick={() => handleDelete(cf.id)}
-                    className="text-xs text-ink-faint hover:text-loss px-2 py-1"
+                    className="text-xs text-ink-faint hover:text-danger px-2 py-1"
                     aria-label="입출금 기록 삭제"
                   >
                     삭제

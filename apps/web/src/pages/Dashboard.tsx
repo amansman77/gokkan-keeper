@@ -45,18 +45,18 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="bg-loss-tint border border-loss rounded-md p-4">
-        <p className="text-loss font-semibold mb-2">오류 발생</p>
-        <p className="text-loss text-sm">{error}</p>
+      <div className="bg-danger-tint border border-danger rounded-md p-4">
+        <p className="text-danger font-semibold mb-2">오류 발생</p>
+        <p className="text-danger text-sm">{error}</p>
         {import.meta.env.DEV ? (
-          <div className="mt-4 text-xs text-loss">
+          <div className="mt-4 text-xs text-danger">
             <p>API URL: {API_BASE_URL}</p>
             <p>Raw env: {import.meta.env.VITE_API_BASE_URL || '(undefined)'}</p>
           </div>
         ) : null}
         <button
           onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 bg-loss text-accent-contrast rounded-md hover:bg-loss text-sm"
+          className="mt-4 px-4 py-2 bg-danger text-accent-contrast rounded-md hover:bg-danger text-sm"
         >
           다시 시도
         </button>

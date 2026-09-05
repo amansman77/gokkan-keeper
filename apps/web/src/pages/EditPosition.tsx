@@ -49,8 +49,8 @@ export default function EditPosition() {
 
   if (error || !position) {
     return (
-      <div className="bg-loss-tint border border-loss rounded-md p-4">
-        <p className="text-loss">{error || '포지션을 찾을 수 없습니다.'}</p>
+      <div className="bg-danger-tint border border-danger rounded-md p-4">
+        <p className="text-danger">{error || '포지션을 찾을 수 없습니다.'}</p>
       </div>
     );
   }

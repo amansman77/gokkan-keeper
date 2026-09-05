@@ -102,11 +102,11 @@ export default function Login() {
           <div ref={buttonContainerRef} />
         </div>
       ) : (
-        <p className="mt-6 text-sm text-loss">Google Client ID가 설정되지 않았습니다.</p>
+        <p className="mt-6 text-sm text-danger">Google Client ID가 설정되지 않았습니다.</p>
       )}
 
       {submitting ? <p className="mt-4 text-sm text-ink-muted text-center">로그인 처리 중...</p> : null}
-      {error ? <p className="mt-4 text-sm text-loss text-center">{error}</p> : null}
+      {error ? <p className="mt-4 text-sm text-danger text-center">{error}</p> : null}
 
       <div className="mt-6 text-sm">
         <Link to="/" className="text-accent hover:underline">

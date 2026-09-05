@@ -53,7 +53,7 @@ function BulletList({ items }: { items: string[] }) {
     <ul className="space-y-2 text-base leading-relaxed text-ink-muted">
       {items.map((item) => (
         <li key={item} className="flex items-start gap-2">
-          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-gain" aria-hidden />
+          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
           <span>{item}</span>
         </li>
       ))}
@@ -69,7 +69,7 @@ function HeroSection() {
         <br />
         종목 선택이 아닙니다.
       </h1>
-      <p className="mt-5 text-2xl font-semibold text-gain">흔들리지 않는 구조입니다.</p>
+      <p className="mt-5 text-2xl font-semibold text-accent">흔들리지 않는 구조입니다.</p>
       <p className="mt-6 whitespace-pre-line text-lg leading-relaxed text-ink-muted">
         {`시장에 따라 사고 팔지만,\n구조 없이 버티는 투자는 오래가지 않습니다.\n\n${UI_TERMS.brandName}는\n중장기 포트폴리오를 유지하며\n시장 변동 속에서도 방향을 관리합니다.`}
       </p>
@@ -193,7 +193,7 @@ function TrackRecordSummary() {
           description={data?.snapshotReferenceText}
         />
       </div>
-      {error ? <p className="mt-4 text-sm text-loss">{error}</p> : null}
+      {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
       <div className="mt-8">
         <SecondaryButton to="/judgment-diary">전체 판단일지 보기</SecondaryButton>
       </div>

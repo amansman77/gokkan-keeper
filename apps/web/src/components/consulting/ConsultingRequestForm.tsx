@@ -146,7 +146,7 @@ export default function ConsultingRequestForm() {
             placeholder="you@example.com"
           />
           <p className="mt-2 text-sm text-ink-faint">검토 후 답변을 받을 메일 주소입니다.</p>
-          {errors.email ? <p className="mt-2 text-sm text-loss">{errors.email}</p> : null}
+          {errors.email ? <p className="mt-2 text-sm text-danger">{errors.email}</p> : null}
         </div>
 
         <ScreenshotUploadField fileName={screenshot?.name ?? null} error={errors.screenshot} onChange={handleScreenshotChange} />
@@ -154,7 +154,7 @@ export default function ConsultingRequestForm() {
       </div>
 
       {submitError ? (
-        <div className="rounded-2xl border border-loss bg-loss-tint p-4 text-sm text-loss">{submitError}</div>
+        <div className="rounded-2xl border border-danger bg-danger-tint p-4 text-sm text-danger">{submitError}</div>
       ) : null}
 
       <button

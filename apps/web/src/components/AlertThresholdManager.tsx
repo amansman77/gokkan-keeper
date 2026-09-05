@@ -106,7 +106,7 @@ export default function AlertThresholdManager() {
       <h2 className="text-sm font-semibold text-ink-faint mb-3">알림 트리거 관리</h2>
       <p className="text-xs text-ink-faint mb-4">시장 지수가 기준값을 처음 넘는 순간에 1회 디스코드로 알림이 갑니다.</p>
 
-      {error && <p className="text-sm text-loss mb-3">{error}</p>}
+      {error && <p className="text-sm text-danger mb-3">{error}</p>}
 
       {thresholds.length > 0 && (
         <div className="divide-y divide-line-soft mb-4">
@@ -130,7 +130,7 @@ export default function AlertThresholdManager() {
               <button
                 type="button"
                 onClick={() => handleDelete(t.id)}
-                className="text-xs text-ink-faint hover:text-loss px-2 py-1"
+                className="text-xs text-ink-faint hover:text-danger px-2 py-1"
                 aria-label={`${t.label} 삭제`}
               >
                 삭제

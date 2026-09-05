@@ -24,7 +24,7 @@ function ruleTypeEmoji(ruleId: string): string {
 }
 
 const PRIORITY_STYLE: Record<string, string> = {
-  P0: 'bg-loss-tint text-loss',
+  P0: 'bg-danger-tint text-danger',
   P1: 'bg-flow-tint text-flow',
   P2: 'bg-flow-tint text-flow',
 };
@@ -58,9 +58,9 @@ export default function Alerts() {
 
   if (error) {
     return (
-      <div className="bg-loss-tint border border-loss rounded-md p-4">
-        <p className="text-loss font-semibold mb-2">오류 발생</p>
-        <p className="text-loss text-sm">{error}</p>
+      <div className="bg-danger-tint border border-danger rounded-md p-4">
+        <p className="text-danger font-semibold mb-2">오류 발생</p>
+        <p className="text-danger text-sm">{error}</p>
       </div>
     );
   }

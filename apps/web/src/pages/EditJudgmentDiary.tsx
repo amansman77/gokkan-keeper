@@ -40,7 +40,7 @@ export default function EditJudgmentDiary() {
   }
 
   if (error || !entry) {
-    return <div className="bg-loss-tint border border-loss rounded-md p-4 text-loss">{error || '데이터 없음'}</div>;
+    return <div className="bg-danger-tint border border-danger rounded-md p-4 text-danger">{error || '데이터 없음'}</div>;
   }
 
   return (

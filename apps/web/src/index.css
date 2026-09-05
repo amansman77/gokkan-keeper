@@ -28,10 +28,17 @@
   --gk-accent-tint: #E4EDEE;
   --gk-accent-ink: #17454E;
   --gk-accent-contrast: #FFFFFF;
-  --gk-gain: #17714D;
-  --gk-gain-tint: #E6F2EC;
-  --gk-loss: #B03A2E;
-  --gk-loss-tint: #F9EAE8;
+  /* Korean market convention: a rise is red and a fall is blue — the opposite
+     of the Western green/red. `gain`/`loss` are therefore directional colors,
+     NOT status colors; use danger/success below for errors and confirmations. */
+  --gk-gain: #B03A2E;
+  --gk-gain-tint: #F9EAE8;
+  --gk-loss: #1552A0;
+  --gk-loss-tint: #E8EEF7;
+  --gk-danger: #B03A2E;
+  --gk-danger-tint: #F9EAE8;
+  --gk-success: #17714D;
+  --gk-success-tint: #E6F2EC;
   --gk-flow: #8A6212;
   --gk-flow-tint: #F5EEDD;
   --gk-closed-tint: #EDEFEE;
@@ -56,10 +63,14 @@
     --gk-accent-tint: #1B3238;
     --gk-accent-ink: #8CC0CA;
     --gk-accent-contrast: #10201F;
-    --gk-gain: #4CBE8B;
-    --gk-gain-tint: #14271F;
-    --gk-loss: #E0776B;
-    --gk-loss-tint: #2F1D1B;
+    --gk-gain: #E0776B;
+    --gk-gain-tint: #2F1D1B;
+    --gk-loss: #82B4E6;
+    --gk-loss-tint: #1A2432;
+    --gk-danger: #E0776B;
+    --gk-danger-tint: #2F1D1B;
+    --gk-success: #4CBE8B;
+    --gk-success-tint: #14271F;
     --gk-flow: #CBA453;
     --gk-flow-tint: #2D2717;
     --gk-closed-tint: #212626;
@@ -82,10 +93,14 @@
   --gk-accent-tint: #1B3238;
   --gk-accent-ink: #8CC0CA;
   --gk-accent-contrast: #10201F;
-  --gk-gain: #4CBE8B;
-  --gk-gain-tint: #14271F;
-  --gk-loss: #E0776B;
-  --gk-loss-tint: #2F1D1B;
+  --gk-gain: #E0776B;
+  --gk-gain-tint: #2F1D1B;
+  --gk-loss: #82B4E6;
+  --gk-loss-tint: #1A2432;
+  --gk-danger: #E0776B;
+  --gk-danger-tint: #2F1D1B;
+  --gk-success: #4CBE8B;
+  --gk-success-tint: #14271F;
   --gk-flow: #CBA453;
   --gk-flow-tint: #2D2717;
   --gk-closed-tint: #212626;

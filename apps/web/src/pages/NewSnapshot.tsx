@@ -232,7 +232,7 @@ export default function NewSnapshot() {
                   setIsTotalAmountManual(false);
                   setFormData((prev) => ({ ...prev, profitLoss: positionProfitLossTotal }));
                 }}
-                className="mt-2 text-sm text-gain hover:text-gain"
+                className="mt-2 text-sm text-success hover:text-success"
               >
                 포지션 합산 적용 ({formatCurrency(positionProfitLossTotal, selectedGranary.currency)})
               </button>
@@ -255,8 +255,8 @@ export default function NewSnapshot() {
         </div>
 
         {error && (
-          <div className="bg-loss-tint border border-loss rounded-md p-4">
-            <p className="text-loss text-sm">{error}</p>
+          <div className="bg-danger-tint border border-danger rounded-md p-4">
+            <p className="text-danger text-sm">{error}</p>
           </div>
         )}
 

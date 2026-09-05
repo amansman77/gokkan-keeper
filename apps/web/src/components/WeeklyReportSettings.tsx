@@ -56,7 +56,7 @@ export default function WeeklyReportSettings() {
         매주 토요일 발행되는 후보군 지표 리포트에서 RSI 과매수/과매도로 언급할 기준값입니다.
       </p>
 
-      {error && <p className="text-sm text-loss mb-3">{error}</p>}
+      {error && <p className="text-sm text-danger mb-3">{error}</p>}
 
       <form onSubmit={handleSave} className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col">
@@ -86,7 +86,7 @@ export default function WeeklyReportSettings() {
         >
           {saving ? '저장 중...' : '저장'}
         </button>
-        {saved && <span className="text-sm text-gain">저장됨</span>}
+        {saved && <span className="text-sm text-success">저장됨</span>}
       </form>
     </div>
   );

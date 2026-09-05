@@ -90,8 +90,8 @@ export default function NewGranary() {
         </div>
 
         {error && (
-          <div className="bg-loss-tint border border-loss rounded-md p-4">
-            <p className="text-loss text-sm">{error}</p>
+          <div className="bg-danger-tint border border-danger rounded-md p-4">
+            <p className="text-danger text-sm">{error}</p>
           </div>
         )}
 

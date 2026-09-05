@@ -288,8 +288,8 @@ export default function PositionForm({
       </div>
 
       {(clientError || error) && (
-        <div className="bg-loss-tint border border-loss rounded-md p-4">
-          <p className="text-loss text-sm">{clientError || error}</p>
+        <div className="bg-danger-tint border border-danger rounded-md p-4">
+          <p className="text-danger text-sm">{clientError || error}</p>
         </div>
       )}
 

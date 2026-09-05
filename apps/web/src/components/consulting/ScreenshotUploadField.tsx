@@ -30,7 +30,7 @@ export default function ScreenshotUploadField({ fileName, error, onChange }: Scr
         className="sr-only"
         onChange={(e) => onChange(e.target.files?.[0] ?? null)}
       />
-      {error ? <p className="mt-2 text-sm text-loss">{error}</p> : null}
+      {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
     </div>
   );
 }

@@ -8,8 +8,8 @@ interface Props {
 }
 
 function rsiLabel(rsi: number): { text: string; color: string } {
-  if (rsi >= 70) return { text: '과매수', color: 'text-loss' };
-  if (rsi <= 30) return { text: '과매도', color: 'text-accent' };
+  if (rsi >= 70) return { text: '과매수', color: 'text-gain' };
+  if (rsi <= 30) return { text: '과매도', color: 'text-loss' };
   return { text: '중립', color: 'text-ink-muted' };
 }
 
@@ -92,7 +92,7 @@ export default function TechnicalIndicators({ symbol, market }: Props) {
           <p className="text-xs text-ink-faint font-medium">MACD OSC</p>
           {data.macdOsc !== null ? (
             <>
-              <p className={`text-base font-bold ${data.macdOsc >= 0 ? 'text-loss' : 'text-accent'}`}>
+              <p className={`text-base font-bold ${data.macdOsc >= 0 ? 'text-gain' : 'text-loss'}`}>
                 {data.macdOsc >= 0 ? '+' : ''}{data.macdOsc.toFixed(3)}
               </p>
               <p className="text-xs text-ink-faint">{data.macdOsc >= 0 ? '상승 모멘텀' : '하락 모멘텀'}</p>

@@ -83,9 +83,9 @@ export default function PublicPortfolio() {
 
   if (error) {
     return (
-      <div className="bg-loss-tint border border-loss rounded-md p-4">
-        <p className="text-loss font-semibold mb-2">오류 발생</p>
-        <p className="text-loss text-sm">{error}</p>
+      <div className="bg-danger-tint border border-danger rounded-md p-4">
+        <p className="text-danger font-semibold mb-2">오류 발생</p>
+        <p className="text-danger text-sm">{error}</p>
       </div>
     );
   }
@@ -172,7 +172,7 @@ export default function PublicPortfolio() {
                   <td className="py-3 text-sm text-ink-muted">
                     {item.currentPriceSource === 'FSC_STOCK_PRICE_API' || item.currentPriceSource === 'YAHOO_FINANCE' ? (
                       <div>
-                        <p className="font-medium text-gain">{formatPriceSourceLabel(item.currentPriceSource)}</p>
+                        <p className="font-medium text-accent">{formatPriceSourceLabel(item.currentPriceSource)}</p>
                         <p className="text-xs text-ink-faint">
                           {item.currentPriceAsOf || '-'}
                           {item.currentUnitPrice !== null && item.currentUnitPrice !== undefined

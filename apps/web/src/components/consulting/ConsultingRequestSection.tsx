@@ -8,7 +8,7 @@ export default function ConsultingRequestSection({ children }: ConsultingRequest
   return (
     <section className="mx-auto max-w-3xl rounded-[28px] border border-line-soft bg-surface p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] sm:p-8">
       <div className="rounded-[24px] bg-surface-2 p-5 sm:p-8">
-        <p className="text-sm font-semibold tracking-[0.18em] text-gain">FREE 1-TIME REVIEW</p>
+        <p className="text-sm font-semibold tracking-[0.18em] text-accent">FREE 1-TIME REVIEW</p>
         <h1 className="mt-3 text-3xl font-bold leading-tight text-ink sm:text-4xl">
           포트폴리오 스크린샷과 고민만 보내주세요.
         </h1>

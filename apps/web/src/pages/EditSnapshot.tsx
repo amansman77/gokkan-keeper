@@ -80,8 +80,8 @@ export default function EditSnapshot() {
   if (error || !snapshot) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-loss-tint border border-loss rounded-md p-4">
-          <p className="text-loss">{error || '스냅샷을 찾을 수 없습니다.'}</p>
+        <div className="bg-danger-tint border border-danger rounded-md p-4">
+          <p className="text-danger">{error || '스냅샷을 찾을 수 없습니다.'}</p>
           <button
             onClick={() => navigate(-1)}
             className="text-accent hover:underline mt-2 inline-block"
@@ -212,8 +212,8 @@ export default function EditSnapshot() {
         </div>
 
         {error && (
-          <div className="bg-loss-tint border border-loss rounded-md p-4">
-            <p className="text-loss text-sm">{error}</p>
+          <div className="bg-danger-tint border border-danger rounded-md p-4">
+            <p className="text-danger text-sm">{error}</p>
           </div>
         )}
 
