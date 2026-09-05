@@ -13,7 +13,7 @@ export default function NewJudgmentDiary() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-ink mb-8">새 판단일지</h1>
+      <h1 className="gk-page-title mb-8">새 판단일지</h1>
       <JudgmentDiaryForm
         onSubmit={handleSubmit}
         onCancel={() => navigate('/judgment-diary')}

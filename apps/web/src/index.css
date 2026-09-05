@@ -4,9 +4,13 @@
    woff2 files referenced inside it. */
 @import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 
+/* Semantic component classes — named by what a thing IS, not how it looks. */
+@import './styles/components.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 
 /* Design tokens — see docs/DESIGN_SYSTEM.md.
    Light is the base palette on bare :root. Dark redefines only the token values,
@@ -182,3 +186,18 @@ main {
   padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
 }
 
+
+.granary-add-sheet::backdrop {
+  background: color-mix(in srgb, var(--gk-inverse) 45%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .granary-add-sheet[open] {
+    animation: granary-sheet-enter 180ms ease-out;
+  }
+}
+
+@keyframes granary-sheet-enter {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

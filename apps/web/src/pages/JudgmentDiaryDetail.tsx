@@ -135,12 +135,12 @@ export default function JudgmentDiaryDetail() {
     <div className="space-y-6 max-w-3xl">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-ink">{entry.title}</h1>
+          <h1 className="gk-page-title">{entry.title}</h1>
         </div>
         {authenticated ? (
           <Link
             to={`/judgment-diary/${entry.id}/edit`}
-            className="inline-flex items-center justify-center px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
+            className="gk-btn gk-btn-secondary"
           >
             수정
           </Link>
@@ -150,37 +150,37 @@ export default function JudgmentDiaryDetail() {
       <div className="flex flex-wrap gap-3">
         <Link
           to="/judgment-diary"
-          className="inline-flex items-center justify-center px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
+          className="gk-btn gk-btn-secondary"
         >
           전체 판단일지
         </Link>
         <Link
           to="/archive"
-          className="inline-flex items-center justify-center px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
+          className="gk-btn gk-btn-secondary"
         >
           공개 기록 보기
         </Link>
       </div>
 
-      <div className="bg-surface rounded-lg shadow p-6 space-y-6">
+      <div className="gk-card gk-card-pad gk-stack">
         <section>
-          <h2 className="text-lg font-semibold text-ink mb-2">한 줄 판단</h2>
+          <h2 className="gk-section-heading mb-2">한 줄 판단</h2>
           <MarkdownContent content={entry.summary} variant="lead" />
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-ink mb-2">작성일</h2>
+          <h2 className="gk-section-heading mb-2">작성일</h2>
           <p className="text-ink-muted">{formatWrittenDate(entry.createdAt)}</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-ink mb-2">본문</h2>
+          <h2 className="gk-section-heading mb-2">본문</h2>
           <MarkdownContent content={entry.mainContent} variant="prose" />
         </section>
 
         {keywords.length > 0 ? (
           <section>
-            <h2 className="text-lg font-semibold text-ink mb-2">핵심 키워드</h2>
+            <h2 className="gk-section-heading mb-2">핵심 키워드</h2>
             <div className="flex flex-wrap gap-2">
               {keywords.map((keyword) => (
                 <span key={keyword} className="inline-flex rounded-full bg-surface-2 px-3 py-1 text-sm text-ink-muted">
@@ -200,7 +200,7 @@ export default function JudgmentDiaryDetail() {
       </div>
 
       {relatedEntries.length > 0 ? (
-        <section className="bg-surface rounded-lg shadow p-6">
+        <section className="gk-card gk-card-pad">
           <h2 className="text-lg font-semibold text-ink mb-3">관련 판단일지</h2>
           <ul className="space-y-2">
             {relatedEntries.map((item) => (

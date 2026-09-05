@@ -45,7 +45,7 @@ export default function EditJudgmentDiary() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-ink mb-8">판단일지 수정</h1>
+      <h1 className="gk-page-title mb-8">판단일지 수정</h1>
       <JudgmentDiaryForm
         initialValue={entry}
         onSubmit={handleSubmit}

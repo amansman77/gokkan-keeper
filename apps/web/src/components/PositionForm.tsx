@@ -148,14 +148,14 @@ export default function PositionForm({
   }, [canAutoPrice, enableQuoteAutoFill, formData.assetType, formData.market, formData.symbol]);
 
   return (
-    <form onSubmit={handleSubmit} className="bg-surface rounded-lg shadow p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="gk-card gk-card-pad gk-stack">
       <div>
-        <label htmlFor="granaryId" className="block text-sm font-medium text-ink-muted mb-2">곳간(선택)</label>
+        <label htmlFor="granaryId" className="gk-label">곳간(선택)</label>
         <select
           id="granaryId"
           value={formData.granaryId || ''}
           onChange={(e) => setFormData({ ...formData, granaryId: e.target.value || null })}
-          className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+          className="gk-input"
         >
           <option value="">미분류</option>
           {granaries.map((granary) => (
@@ -168,23 +168,23 @@ export default function PositionForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-ink-muted mb-2">종목명</label>
+          <label htmlFor="name" className="gk-label">종목명</label>
           <input
             id="name"
             required
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
           />
         </div>
         <div>
-          <label htmlFor="symbol" className="block text-sm font-medium text-ink-muted mb-2">심볼</label>
+          <label htmlFor="symbol" className="gk-label">심볼</label>
           <input
             id="symbol"
             required
             value={formData.symbol}
             onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
             placeholder="005930 / AAPL / 7203.T"
           />
           <p className="mt-1 text-xs text-ink-faint">국내 6자리 코드 또는 해외 Yahoo Finance 심볼을 입력하면 저장 후 현재가를 자동 조회합니다.</p>
@@ -207,12 +207,12 @@ export default function PositionForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="market" className="block text-sm font-medium text-ink-muted mb-2">시장(선택)</label>
+          <label htmlFor="market" className="gk-label">시장(선택)</label>
           <select
             id="market"
             value={formData.market || ''}
             onChange={(e) => setFormData({ ...formData, market: e.target.value || null })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
           >
             <option value="">선택 안 함</option>
             {POSITION_MARKETS.map((market) => (
@@ -224,12 +224,12 @@ export default function PositionForm({
           </select>
         </div>
         <div>
-          <label htmlFor="assetType" className="block text-sm font-medium text-ink-muted mb-2">자산유형(선택)</label>
+          <label htmlFor="assetType" className="gk-label">자산유형(선택)</label>
           <select
             id="assetType"
             value={formData.assetType || ''}
             onChange={(e) => setFormData({ ...formData, assetType: e.target.value || null })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
           >
             <option value="">선택 안 함</option>
             {POSITION_ASSET_TYPES.map((assetType) => (
@@ -244,25 +244,25 @@ export default function PositionForm({
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label htmlFor="quantity" className="block text-sm font-medium text-ink-muted mb-2">수량(선택)</label>
+          <label htmlFor="quantity" className="gk-label">수량(선택)</label>
           <input
             id="quantity"
             type="number"
             step="0.0001"
             value={formData.quantity ?? ''}
             onChange={(e) => setFormData({ ...formData, quantity: parseNullableNumber(e.target.value) })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
           />
         </div>
         <div>
-          <label htmlFor="avgCost" className="block text-sm font-medium text-ink-muted mb-2">평균단가(선택)</label>
+          <label htmlFor="avgCost" className="gk-label">평균단가(선택)</label>
           <input
             id="avgCost"
             type="number"
             step="0.0001"
             value={formData.avgCost ?? ''}
             onChange={(e) => setFormData({ ...formData, avgCost: parseNullableNumber(e.target.value) })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
           />
         </div>
         <PositionPricingSection
@@ -277,19 +277,19 @@ export default function PositionForm({
       <PositionPublicSection formData={formData} setFormData={setFormData} />
 
       <div>
-        <label htmlFor="note" className="block text-sm font-medium text-ink-muted mb-2">메모(비공개)</label>
+        <label htmlFor="note" className="gk-label">메모(비공개)</label>
         <textarea
           id="note"
           rows={3}
           value={formData.note || ''}
           onChange={(e) => setFormData({ ...formData, note: e.target.value || null })}
-          className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+          className="gk-input"
         />
       </div>
 
       {(clientError || error) && (
-        <div className="bg-danger-tint border border-danger rounded-md p-4">
-          <p className="text-danger text-sm">{clientError || error}</p>
+        <div className="gk-alert">
+          <p className="gk-error-text">{clientError || error}</p>
         </div>
       )}
 

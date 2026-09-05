@@ -26,7 +26,7 @@ export default function JudgmentDiaryStrategyArchive() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-ink">전략별 판단 모음</h1>
+        <h1 className="gk-page-title">전략별 판단 모음</h1>
         <p className="text-ink-muted">
           {description || '전략 태그 기반 자동 생성 페이지입니다. 현재는 구조만 제공합니다.'}
         </p>
@@ -36,7 +36,7 @@ export default function JudgmentDiaryStrategyArchive() {
       </div>
       <Link
         to="/judgment-diary"
-        className="inline-flex items-center justify-center px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
+        className="gk-btn gk-btn-secondary"
       >
         전체 판단일지
       </Link>

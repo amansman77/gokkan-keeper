@@ -59,8 +59,8 @@ export default function WeeklyReportSettings() {
       {error && <p className="text-sm text-danger mb-3">{error}</p>}
 
       <form onSubmit={handleSave} className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col">
-          <label className="text-xs text-ink-faint mb-1">RSI 과매수 기준</label>
+        <div className="gk-field">
+          <label className="gk-label-sm">RSI 과매수 기준</label>
           <input
             type="number"
             step="any"
@@ -69,8 +69,8 @@ export default function WeeklyReportSettings() {
             className="border border-line rounded-md px-2 py-1.5 text-sm w-24"
           />
         </div>
-        <div className="flex flex-col">
-          <label className="text-xs text-ink-faint mb-1">RSI 과매도 기준</label>
+        <div className="gk-field">
+          <label className="gk-label-sm">RSI 과매도 기준</label>
           <input
             type="number"
             step="any"

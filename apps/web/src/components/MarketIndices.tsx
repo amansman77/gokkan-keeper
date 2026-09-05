@@ -59,7 +59,7 @@ export default function MarketIndices() {
           const sparklineColor =
             weeklyUp === null ? 'var(--gk-ink-faint)' : weeklyUp ? 'var(--gk-gain)' : 'var(--gk-loss)';
           return (
-            <div key={index.symbol} className="flex flex-col">
+            <div key={index.symbol} className="gk-field">
               <span className="text-xs text-ink-faint font-medium">{index.name}</span>
               <span className="text-sm font-bold text-ink">{formatValue(index)}</span>
               {index.change !== null && (

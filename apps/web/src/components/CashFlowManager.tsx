@@ -97,8 +97,8 @@ export default function CashFlowManager({ granaryId, currency, cashFlows, onChan
       )}
 
       <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-2 px-4 sm:px-5 py-3 bg-surface-2 border-t border-line-soft">
-        <div className="flex flex-col">
-          <label className="text-xs text-ink-faint mb-1">날짜</label>
+        <div className="gk-field">
+          <label className="gk-label-sm">날짜</label>
           <input
             type="date"
             value={date}
@@ -107,8 +107,8 @@ export default function CashFlowManager({ granaryId, currency, cashFlows, onChan
             className="border border-line rounded-md px-2 py-1.5 text-sm"
           />
         </div>
-        <div className="flex flex-col">
-          <label className="text-xs text-ink-faint mb-1">구분</label>
+        <div className="gk-field">
+          <label className="gk-label-sm">구분</label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value as 'DEPOSIT' | 'WITHDRAWAL')}
@@ -118,8 +118,8 @@ export default function CashFlowManager({ granaryId, currency, cashFlows, onChan
             <option value="WITHDRAWAL">출금</option>
           </select>
         </div>
-        <div className="flex flex-col">
-          <label className="text-xs text-ink-faint mb-1">금액</label>
+        <div className="gk-field">
+          <label className="gk-label-sm">금액</label>
           <input
             type="number"
             step="any"
@@ -131,8 +131,8 @@ export default function CashFlowManager({ granaryId, currency, cashFlows, onChan
             className="border border-line rounded-md px-2 py-1.5 text-sm w-32"
           />
         </div>
-        <div className="flex flex-col">
-          <label className="text-xs text-ink-faint mb-1">메모(선택)</label>
+        <div className="gk-field">
+          <label className="gk-label-sm">메모(선택)</label>
           <input
             type="text"
             value={memo}

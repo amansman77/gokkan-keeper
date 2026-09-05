@@ -50,7 +50,7 @@ export function PositionPricingSection({
             </div>
             {showManualCurrentValue && (
               <div className="mt-4">
-                <label htmlFor="currentValue" className="block text-sm font-medium text-ink-muted mb-2">현재 단가/평가금액 (수동 대체값)</label>
+                <label htmlFor="currentValue" className="gk-label">현재 단가/평가금액 (수동 대체값)</label>
                 <input
                   id="currentValue"
                   type="number"
@@ -64,14 +64,14 @@ export function PositionPricingSection({
           </div>
         ) : (
           <div>
-            <label htmlFor="currentValue" className="block text-sm font-medium text-ink-muted mb-2">현재 단가/평가금액 (수동 입력)</label>
+            <label htmlFor="currentValue" className="gk-label">현재 단가/평가금액 (수동 입력)</label>
             <input
               id="currentValue"
               type="number"
               step="0.01"
               value={formData.currentValue ?? ''}
               onChange={(e) => setFormData((prev) => ({ ...prev, currentValue: parseNullableNumber(e.target.value) }))}
-              className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+              className="gk-input"
             />
             <p className="mt-1 text-xs text-ink-faint">수량이 있으면 단가, 없으면 총 평가금액으로 사용합니다.</p>
           </div>

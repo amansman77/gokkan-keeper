@@ -63,7 +63,7 @@ export default function EditGranary() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="gk-loading">
         <div className="text-ink-muted">로딩 중...</div>
       </div>
     );
@@ -72,7 +72,7 @@ export default function EditGranary() {
   if (error || !granary) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-danger-tint border border-danger rounded-md p-4">
+        <div className="gk-alert">
           <p className="text-danger">{error || '곳간을 찾을 수 없습니다.'}</p>
           <button
             onClick={() => navigate(-1)}
@@ -111,11 +111,11 @@ export default function EditGranary() {
         </button>
       </div>
 
-      <h1 className="text-3xl font-bold text-ink mb-8">곳간 수정</h1>
+      <h1 className="gk-page-title mb-8">곳간 수정</h1>
 
-      <form onSubmit={handleSubmit} className="bg-surface rounded-lg shadow p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="gk-card gk-card-pad gk-stack">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-ink-muted mb-2">
+          <label htmlFor="name" className="gk-label">
             곳간 이름
           </label>
           <input
@@ -124,13 +124,13 @@ export default function EditGranary() {
             required
             value={formData.name || ''}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
             placeholder="예: 비상금 곳간"
           />
         </div>
 
         <div>
-          <label htmlFor="purpose" className="block text-sm font-medium text-ink-muted mb-2">
+          <label htmlFor="purpose" className="gk-label">
             목적
           </label>
           <select
@@ -138,7 +138,7 @@ export default function EditGranary() {
             required
             value={formData.purpose || ''}
             onChange={(e) => setFormData({ ...formData, purpose: e.target.value as any })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
           >
             {GRANARY_PURPOSES.map((purpose) => (
               <option key={purpose} value={purpose}>
@@ -149,7 +149,7 @@ export default function EditGranary() {
         </div>
 
         <div>
-          <label htmlFor="currency" className="block text-sm font-medium text-ink-muted mb-2">
+          <label htmlFor="currency" className="gk-label">
             통화
           </label>
           <select
@@ -157,7 +157,7 @@ export default function EditGranary() {
             required
             value={formData.currency || ''}
             onChange={(e) => setFormData({ ...formData, currency: e.target.value as any })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
           >
             {CURRENCIES.map((currency) => (
               <option key={currency} value={currency}>
@@ -168,8 +168,8 @@ export default function EditGranary() {
         </div>
 
         {error && (
-          <div className="bg-danger-tint border border-danger rounded-md p-4">
-            <p className="text-danger text-sm">{error}</p>
+          <div className="gk-alert">
+            <p className="gk-error-text">{error}</p>
           </div>
         )}
 

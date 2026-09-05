@@ -71,7 +71,7 @@ export default function EditSnapshot() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="gk-loading">
         <div className="text-ink-muted">로딩 중...</div>
       </div>
     );
@@ -80,7 +80,7 @@ export default function EditSnapshot() {
   if (error || !snapshot) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-danger-tint border border-danger rounded-md p-4">
+        <div className="gk-alert">
           <p className="text-danger">{error || '스냅샷을 찾을 수 없습니다.'}</p>
           <button
             onClick={() => navigate(-1)}
@@ -121,7 +121,7 @@ export default function EditSnapshot() {
         </button>
       </div>
 
-      <h1 className="text-3xl font-bold text-ink mb-8">스냅샷 수정</h1>
+      <h1 className="gk-page-title mb-8">스냅샷 수정</h1>
 
       {granary && (
         <div className="mb-6 p-4 bg-surface-2 rounded-lg">
@@ -130,9 +130,9 @@ export default function EditSnapshot() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-surface rounded-lg shadow p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="gk-card gk-card-pad gk-stack">
         <div>
-          <label htmlFor="date" className="block text-sm font-medium text-ink-muted mb-2">
+          <label htmlFor="date" className="gk-label">
             날짜
           </label>
           <input
@@ -141,12 +141,12 @@ export default function EditSnapshot() {
             required
             value={formData.date || ''}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
           />
         </div>
 
         <div>
-          <label htmlFor="totalAmount" className="block text-sm font-medium text-ink-muted mb-2">
+          <label htmlFor="totalAmount" className="gk-label">
             총 평가 금액
           </label>
           <input
@@ -157,12 +157,12 @@ export default function EditSnapshot() {
             step="0.01"
             value={formData.totalAmount || ''}
             onChange={(e) => setFormData({ ...formData, totalAmount: parseFloat(e.target.value) || 0 })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
           />
         </div>
 
         <div>
-          <label htmlFor="availableBalance" className="block text-sm font-medium text-ink-muted mb-2">
+          <label htmlFor="availableBalance" className="gk-label">
             예수금 (선택)
           </label>
           <input
@@ -172,7 +172,7 @@ export default function EditSnapshot() {
             step="0.01"
             value={formData.availableBalance ?? ''}
             onChange={(e) => setFormData({ ...formData, availableBalance: e.target.value ? parseFloat(e.target.value) : undefined })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
           />
           <button
             type="button"
@@ -184,7 +184,7 @@ export default function EditSnapshot() {
         </div>
 
         <div>
-          <label htmlFor="profitLoss" className="block text-sm font-medium text-ink-muted mb-2">
+          <label htmlFor="profitLoss" className="gk-label">
             평가 손익 (선택)
           </label>
           <input
@@ -193,7 +193,7 @@ export default function EditSnapshot() {
             step="0.01"
             value={formData.profitLoss ?? ''}
             onChange={(e) => setFormData({ ...formData, profitLoss: e.target.value ? parseFloat(e.target.value) : undefined })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
             placeholder="양수: 수익, 음수: 손실"
           />
           <button
@@ -206,7 +206,7 @@ export default function EditSnapshot() {
         </div>
 
         <div>
-          <label htmlFor="memo" className="block text-sm font-medium text-ink-muted mb-2">
+          <label htmlFor="memo" className="gk-label">
             메모 (선택)
           </label>
           <textarea
@@ -214,7 +214,7 @@ export default function EditSnapshot() {
             rows={3}
             value={formData.memo || ''}
             onChange={(e) => setFormData({ ...formData, memo: e.target.value || undefined })}
-            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            className="gk-input"
             placeholder="간단한 메모를 남기세요"
           />
           <button
@@ -227,8 +227,8 @@ export default function EditSnapshot() {
         </div>
 
         {error && (
-          <div className="bg-danger-tint border border-danger rounded-md p-4">
-            <p className="text-danger text-sm">{error}</p>
+          <div className="gk-alert">
+            <p className="gk-error-text">{error}</p>
           </div>
         )}
 

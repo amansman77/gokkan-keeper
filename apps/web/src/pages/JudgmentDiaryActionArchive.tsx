@@ -54,12 +54,12 @@ export default function JudgmentDiaryActionArchive() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-ink">{normalizedAction} 판단 모음</h1>
+          <h1 className="gk-page-title">{normalizedAction} 판단 모음</h1>
           <p className="text-ink-muted">{actionDescriptions[normalizedAction]}</p>
         </div>
         <Link
           to="/judgment-diary"
-          className="inline-flex items-center justify-center px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
+          className="gk-btn gk-btn-secondary"
         >
           전체 판단일지
         </Link>

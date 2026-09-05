@@ -51,7 +51,7 @@ export default function JudgmentDiaryReport() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-ink">{monthLabel} 투자 판단 리포트</h1>
+        <h1 className="gk-page-title">{monthLabel} 투자 판단 리포트</h1>
         <p className="text-ink-muted">{monthLabel}에 기록된 판단일지를 모아 태도의 흐름을 요약합니다.</p>
       </div>
 
@@ -71,7 +71,7 @@ export default function JudgmentDiaryReport() {
 
       <Link
         to="/judgment-diary"
-        className="inline-flex items-center justify-center px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
+        className="gk-btn gk-btn-secondary"
       >
         전체 판단일지
       </Link>

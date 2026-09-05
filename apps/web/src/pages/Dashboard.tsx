@@ -37,7 +37,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="gk-loading">
         <div className="text-ink-muted">로딩 중...</div>
       </div>
     );
@@ -45,9 +45,9 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="bg-danger-tint border border-danger rounded-md p-4">
+      <div className="gk-alert">
         <p className="text-danger font-semibold mb-2">오류 발생</p>
-        <p className="text-danger text-sm">{error}</p>
+        <p className="gk-error-text">{error}</p>
         {import.meta.env.DEV ? (
           <div className="mt-4 text-xs text-danger">
             <p>API URL: {API_BASE_URL}</p>

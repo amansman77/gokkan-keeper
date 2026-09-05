@@ -6,6 +6,7 @@ import { formatCurrency, formatDate, getPositionMarketValue } from '@gokkan-keep
 import TechnicalIndicators from '../components/TechnicalIndicators';
 import CashFlowManager from '../components/CashFlowManager';
 import Sparkline from '../components/Sparkline';
+import GranaryAddMenu from '../components/GranaryAddMenu';
 
 const SNAPSHOT_PAGE_SIZE = 10;
 
@@ -21,31 +22,15 @@ interface SectionRowProps {
 
 function SectionRow({ title, count, expanded, onToggle, summary }: SectionRowProps) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={expanded}
-      className="w-full flex items-center gap-3 px-4 sm:px-5 py-4 text-left hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
-    >
-      <svg
-        viewBox="0 0 16 16"
-        fill="none"
-        aria-hidden="true"
-        className={`w-4 h-4 shrink-0 text-ink-faint transition-transform duration-150 ${expanded ? 'rotate-90' : ''}`}
-      >
+    <button type="button" onClick={onToggle} aria-expanded={expanded} className="gk-section-row">
+      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className={`gk-chevron ${expanded ? 'gk-chevron-open' : ''}`}>
         <path d="M6 3.5 10.5 8 6 12.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span className="font-semibold text-ink flex items-center gap-2 shrink-0">
+      <span className="gk-section-row-title">
         {title}
-        {count > 0 && (
-          <span className="text-xs font-medium text-ink-muted bg-surface-2 rounded-full px-2 py-0.5 tabular-nums">
-            {count}
-          </span>
-        )}
+        {count > 0 && <span className="gk-chip gk-chip-count">{count}</span>}
       </span>
-      <span className="ml-auto flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-ink-muted tabular-nums justify-end whitespace-nowrap">
-        {summary}
-      </span>
+      <span className="gk-section-row-summary">{summary}</span>
     </button>
   );
 }
@@ -154,7 +139,7 @@ export default function GranaryDetail() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="gk-loading">
         <div className="text-ink-muted">로딩 중...</div>
       </div>
     );
@@ -162,7 +147,7 @@ export default function GranaryDetail() {
 
   if (error || !granary) {
     return (
-      <div className="bg-danger-tint border border-danger rounded-md p-4">
+      <div className="gk-alert">
         <p className="text-danger">{error || '곳간을 찾을 수 없습니다.'}</p>
         <Link to="/dashboard" className="text-accent hover:underline mt-2 inline-block">
           대시보드로 돌아가기
@@ -212,7 +197,7 @@ export default function GranaryDetail() {
   const hasCashFlowInPeriod = netCashFlowSincePrevious !== 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
       <div>
         <div className="flex items-center justify-between gap-2 mb-3">
           <Link
@@ -261,53 +246,45 @@ export default function GranaryDetail() {
       </div>
 
       {/* 평가금액 + 추이: 가장 자주 확인하는 정보라 항상 펼쳐진 채로 맨 위에 둔다. */}
-      <div className="bg-surface rounded-lg shadow p-6">
+      <div className="bg-surface rounded-lg shadow p-4 sm:p-6">
         {latest ? (
-          <div>
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-sm text-ink-faint">{formatDate(latest.date)} 기준 평가금액</p>
-                <div className="flex items-baseline gap-3 mt-1 flex-wrap">
-                  <span className="text-3xl font-bold text-ink">
-                    {formatCurrency(latest.totalAmount, granary.currency)}
+          <div className="min-w-0 space-y-4">
+            <div className="min-w-0">
+              <p className="text-sm text-ink-faint">{formatDate(latest.date)} 기준 평가금액</p>
+              <div className="flex items-baseline gap-3 mt-1 flex-wrap">
+                <span className="text-2xl sm:text-3xl font-bold text-ink tabular-nums break-all">
+                  {formatCurrency(latest.totalAmount, granary.currency)}
+                </span>
+                {performanceDelta !== null && performancePct !== null && (
+                  <span
+                    className={`text-sm font-semibold px-2 py-0.5 rounded-full ${
+                      performanceDelta > 0
+                        ? 'bg-gain-tint text-gain'
+                        : performanceDelta < 0
+                        ? 'bg-loss-tint text-loss'
+                        : 'bg-surface-2 text-ink-faint'
+                    }`}
+                  >
+                    {performanceDelta > 0 ? '▲' : performanceDelta < 0 ? '▼' : '–'} {Math.abs(performancePct).toFixed(1)}%
+                    {hasCashFlowInPeriod ? ' (입출금 반영 실질)' : ' (직전 스냅샷 대비)'}
                   </span>
-                  {performanceDelta !== null && performancePct !== null && (
-                    <span
-                      className={`text-sm font-semibold px-2 py-0.5 rounded-full ${
-                        performanceDelta > 0
-                          ? 'bg-gain-tint text-gain'
-                          : performanceDelta < 0
-                          ? 'bg-loss-tint text-loss'
-                          : 'bg-surface-2 text-ink-faint'
-                      }`}
-                    >
-                      {performanceDelta > 0 ? '▲' : performanceDelta < 0 ? '▼' : '–'} {Math.abs(performancePct).toFixed(1)}%
-                      {hasCashFlowInPeriod ? ' (입출금 반영 실질)' : ' (직전 스냅샷 대비)'}
-                    </span>
-                  )}
-                </div>
-                {latest.availableBalance !== undefined && (
-                  <p className="text-sm text-ink-muted mt-2">
-                    예수금 {formatCurrency(latest.availableBalance, granary.currency)}
-                  </p>
-                )}
-                {hasCashFlowInPeriod && rawDelta !== null && performanceDelta !== null && (
-                  <p className="text-xs text-ink-faint mt-1">
-                    이 구간 총 변동 {rawDelta > 0 ? '+' : ''}{formatCurrency(rawDelta, granary.currency)} =
-                    {' '}실질 {performanceDelta > 0 ? '+' : ''}{formatCurrency(performanceDelta, granary.currency)}
-                    {' '}+ 입출금 {netCashFlowSincePrevious > 0 ? '+' : ''}{formatCurrency(netCashFlowSincePrevious, granary.currency)}
-                  </p>
                 )}
               </div>
-              <Link
-                to={`/snapshots/new?granaryId=${id}`}
-                className="bg-accent text-accent-contrast px-4 py-2 rounded-md text-sm font-medium hover:bg-accent-ink whitespace-nowrap"
-              >
-                새 스냅샷 등록
-              </Link>
+              {latest.availableBalance !== undefined && (
+                <p className="text-sm text-ink-muted mt-2">
+                  예수금 {formatCurrency(latest.availableBalance, granary.currency)}
+                </p>
+              )}
+              {hasCashFlowInPeriod && rawDelta !== null && performanceDelta !== null && (
+                <p className="text-xs text-ink-faint mt-1">
+                  이 구간 총 변동 {rawDelta > 0 ? '+' : ''}{formatCurrency(rawDelta, granary.currency)} =
+                  {' '}실질 {performanceDelta > 0 ? '+' : ''}{formatCurrency(performanceDelta, granary.currency)}
+                  {' '}+ 입출금 {netCashFlowSincePrevious > 0 ? '+' : ''}{formatCurrency(netCashFlowSincePrevious, granary.currency)}
+                </p>
+              )}
             </div>
             {snapshotsAsc.length >= 2 && (
-              <div className="mt-6 w-full" ref={chartContainerRef}>
+              <div className="min-w-0 w-full" ref={chartContainerRef}>
                 <Sparkline
                   points={snapshotsAsc.map((s) => ({ date: s.date, value: s.totalAmount }))}
                   width={chartWidth}
@@ -319,15 +296,7 @@ export default function GranaryDetail() {
             )}
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-ink-faint">아직 스냅샷이 없습니다. 첫 스냅샷을 등록해 평가금액을 기록해보세요.</p>
-            <Link
-              to={`/snapshots/new?granaryId=${id}`}
-              className="bg-accent text-accent-contrast px-4 py-2 rounded-md text-sm font-medium hover:bg-accent-ink whitespace-nowrap"
-            >
-              새 스냅샷 등록
-            </Link>
-          </div>
+          <p className="text-ink-faint">아직 스냅샷이 없습니다. 첫 스냅샷을 등록해 평가금액을 기록해보세요.</p>
         )}
       </div>
 
@@ -349,8 +318,8 @@ export default function GranaryDetail() {
                   <span>
                     평가액 <b className="text-ink font-semibold">{formatCurrency(positionsTotalValue, granary.currency)}</b>
                   </span>
-                  {positionsUpCount > 0 && <span className="text-gain font-semibold">▲ {positionsUpCount}종</span>}
-                  {positionsDownCount > 0 && <span className="text-loss font-semibold">▼ {positionsDownCount}종</span>}
+                  {positionsUpCount > 0 && <span className="gk-up">▲ {positionsUpCount}종</span>}
+                  {positionsDownCount > 0 && <span className="gk-down">▼ {positionsDownCount}종</span>}
                 </>
               )
             }
@@ -461,7 +430,7 @@ export default function GranaryDetail() {
                   </table>
                 </div>
               )}
-              <div className="flex justify-end px-4 py-3 bg-surface-2 border-t border-line-soft">
+              <div className="gk-section-actions">
                 <Link
                   to={`/positions/new?granaryId=${granary.id}`}
                   className="bg-accent text-accent-contrast px-4 py-2 rounded-md text-sm font-medium hover:bg-accent-ink"
@@ -489,7 +458,7 @@ export default function GranaryDetail() {
                     최근 <b className="text-ink font-semibold">{formatDate(latestSnapshot.date)}</b>
                   </span>
                   {rawDelta !== null && (
-                    <span className={rawDelta > 0 ? 'text-gain font-semibold' : rawDelta < 0 ? 'text-loss font-semibold' : 'text-ink-faint'}>
+                    <span className={rawDelta > 0 ? 'gk-up' : rawDelta < 0 ? 'gk-down' : 'gk-flat'}>
                       {rawDelta > 0 ? '▲' : rawDelta < 0 ? '▼' : '–'} {formatCurrency(Math.abs(rawDelta), granary.currency)}
                     </span>
                   )}
@@ -572,7 +541,7 @@ export default function GranaryDetail() {
                   </table>
                 </div>
               )}
-              <div className="flex justify-end px-4 py-3 bg-surface-2 border-t border-line-soft">
+              <div className="gk-section-actions">
                 <Link
                   to={`/snapshots/new?granaryId=${id}`}
                   className="bg-accent text-accent-contrast px-4 py-2 rounded-md text-sm font-medium hover:bg-accent-ink"
@@ -612,6 +581,7 @@ export default function GranaryDetail() {
           )}
         </div>
       </div>
+      <GranaryAddMenu granaryId={granary.id} />
     </div>
   );
 }

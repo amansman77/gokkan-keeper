@@ -75,7 +75,7 @@ export default function PublicPortfolio() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="gk-loading">
         <div className="text-ink-muted">로딩 중...</div>
       </div>
     );
@@ -83,9 +83,9 @@ export default function PublicPortfolio() {
 
   if (error) {
     return (
-      <div className="bg-danger-tint border border-danger rounded-md p-4">
+      <div className="gk-alert">
         <p className="text-danger font-semibold mb-2">오류 발생</p>
-        <p className="text-danger text-sm">{error}</p>
+        <p className="gk-error-text">{error}</p>
       </div>
     );
   }
@@ -93,7 +93,7 @@ export default function PublicPortfolio() {
   return (
     <div className="space-y-8">
       <section className="bg-surface rounded-lg border border-line-soft p-6">
-        <h1 className="text-3xl font-bold text-ink">{UI_TERMS.publicArchive}</h1>
+        <h1 className="gk-page-title">{UI_TERMS.publicArchive}</h1>
         <p className="text-ink-muted mt-2">추천이 아닌 기록. 판단과 배분, 결과를 투명하게 남깁니다.</p>
       </section>
 

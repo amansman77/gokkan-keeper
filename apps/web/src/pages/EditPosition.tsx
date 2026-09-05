@@ -41,7 +41,7 @@ export default function EditPosition() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="gk-loading">
         <div className="text-ink-muted">로딩 중...</div>
       </div>
     );
@@ -49,7 +49,7 @@ export default function EditPosition() {
 
   if (error || !position) {
     return (
-      <div className="bg-danger-tint border border-danger rounded-md p-4">
+      <div className="gk-alert">
         <p className="text-danger">{error || '포지션을 찾을 수 없습니다.'}</p>
       </div>
     );
@@ -89,7 +89,7 @@ export default function EditPosition() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold text-ink mb-8">포지션 수정</h1>
+      <h1 className="gk-page-title mb-8">포지션 수정</h1>
       <PositionForm
         granaries={granaries}
         initialData={initialData}

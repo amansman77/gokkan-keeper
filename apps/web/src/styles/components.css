@@ -1,0 +1,302 @@
+/* Semantic component classes.
+ *
+ * Why these exist: a utility string like
+ *   "flex items-center gap-3 px-4 sm:px-5 py-4 hover:bg-surface-2"
+ * says how something looks but not what it is, so anyone editing it — person
+ * or agent — has to infer the intent and frequently infers wrong. A named
+ * class carries the intent, so `.gk-section-row` can be changed with
+ * confidence about what it affects.
+ *
+ * Colors come from the tokens in index.css; never hardcode a value here.
+ * See docs/DESIGN_SYSTEM.md.
+ */
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+
+/* Vertical rhythm between the major blocks of a page. */
+.gk-stack > * + * {
+  margin-top: 1.5rem;
+}
+.gk-stack-sm > * + * {
+  margin-top: 0.75rem;
+}
+
+.gk-page-title {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 700;
+  color: var(--gk-ink);
+}
+
+.gk-section-heading {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  color: var(--gk-ink);
+}
+
+/* Centred spinner/placeholder area while a route loads. */
+.gk-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16rem;
+  color: var(--gk-ink-muted);
+}
+
+/* ── Surfaces ───────────────────────────────────────────────────────────── */
+
+.gk-card {
+  background-color: var(--gk-surface);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+.gk-card-pad {
+  padding: 1.5rem;
+}
+/* Card that clips its children, e.g. so a table's edges follow the radius. */
+.gk-card-clip {
+  overflow: hidden;
+}
+
+/* ── Messages ───────────────────────────────────────────────────────────── */
+
+.gk-alert {
+  background-color: var(--gk-danger-tint);
+  border: 1px solid var(--gk-danger);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  color: var(--gk-danger);
+}
+.gk-error-text {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--gk-danger);
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+
+.gk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.gk-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.gk-btn-primary {
+  background-color: var(--gk-accent);
+  color: var(--gk-accent-contrast);
+}
+.gk-btn-primary:hover:not(:disabled) {
+  background-color: var(--gk-accent-ink);
+}
+.gk-btn-secondary {
+  border-color: var(--gk-border);
+  color: var(--gk-ink-muted);
+  background-color: transparent;
+}
+.gk-btn-secondary:hover:not(:disabled) {
+  background-color: var(--gk-surface-2);
+}
+.gk-btn-danger {
+  background-color: var(--gk-danger);
+  color: var(--gk-accent-contrast);
+}
+.gk-btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+/* ── Forms ──────────────────────────────────────────────────────────────── */
+
+.gk-label {
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--gk-ink-muted);
+  margin-bottom: 0.5rem;
+}
+.gk-label-sm {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--gk-ink-faint);
+  margin-bottom: 0.25rem;
+}
+.gk-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--gk-border);
+  border-radius: 0.375rem;
+  background-color: var(--gk-surface);
+  color: var(--gk-ink);
+  font-family: inherit;
+  font-size: inherit;
+}
+.gk-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--gk-accent);
+  border-color: transparent;
+}
+.gk-field {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Collapsible section rows (곳간 상세) ───────────────────────────────── */
+
+.gk-section-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--gk-ink);
+}
+@media (min-width: 640px) {
+  .gk-section-row { padding: 1rem 1.25rem; }
+}
+.gk-section-row:hover {
+  background-color: var(--gk-surface-2);
+}
+.gk-section-row:focus-visible {
+  outline: 2px solid var(--gk-accent);
+  outline-offset: -2px;
+}
+.gk-section-row-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--gk-ink);
+  flex-shrink: 0;
+}
+/* Stays visible while collapsed — the point of the pattern. */
+.gk-section-row-summary {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  font-size: 0.75rem;
+  color: var(--gk-ink-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+@media (min-width: 640px) {
+  .gk-section-row-summary { gap: 0.75rem; font-size: 0.875rem; }
+}
+.gk-chevron {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: var(--gk-ink-faint);
+  transition: transform 0.15s ease;
+}
+.gk-chevron-open {
+  transform: rotate(90deg);
+}
+/* Action bar at the bottom of an expanded section. */
+.gk-section-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 1rem;
+  background-color: var(--gk-surface-2);
+  border-top: 1px solid var(--gk-border-soft);
+}
+
+/* ── Badges ─────────────────────────────────────────────────────────────── */
+
+.gk-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+.gk-chip-count {
+  font-weight: 500;
+  color: var(--gk-ink-muted);
+  background-color: var(--gk-surface-2);
+  font-variant-numeric: tabular-nums;
+}
+.gk-chip-accent { background-color: var(--gk-accent-tint); color: var(--gk-accent-ink); }
+.gk-chip-gain   { background-color: var(--gk-gain-tint);   color: var(--gk-gain); }
+.gk-chip-loss   { background-color: var(--gk-loss-tint);   color: var(--gk-loss); }
+.gk-chip-flow   { background-color: var(--gk-flow-tint);   color: var(--gk-flow); }
+
+/* ── Data tables ────────────────────────────────────────────────────────── */
+
+.gk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.gk-table th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--gk-ink-faint);
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--gk-border-soft);
+  white-space: nowrap;
+}
+.gk-table td {
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--gk-border-soft);
+}
+@media (min-width: 640px) {
+  .gk-table th, .gk-table td { padding-left: 1rem; padding-right: 1rem; }
+}
+.gk-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.gk-table tbody tr:hover td {
+  background-color: var(--gk-surface-2);
+}
+/* Numeric cells line up column-wise. */
+.gk-table .gk-num,
+.gk-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* Wide tables scroll inside their own container, never the page body. */
+.gk-table-scroll {
+  overflow-x: auto;
+}
+
+/* ── Directional / status text ──────────────────────────────────────────── */
+
+.gk-up   { color: var(--gk-gain); font-weight: 600; }
+.gk-down { color: var(--gk-loss); font-weight: 600; }
+.gk-flat { color: var(--gk-ink-faint); }
+
+/* ── Responsive helpers ─────────────────────────────────────────────────── */
+
+/* Secondary info that would otherwise force horizontal scroll on a phone. */
+.gk-hide-narrow { display: none; }
+@media (min-width: 640px) {
+  .gk-hide-narrow { display: initial; }
+  th.gk-hide-narrow, td.gk-hide-narrow { display: table-cell; }
+}

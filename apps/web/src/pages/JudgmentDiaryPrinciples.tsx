@@ -49,7 +49,7 @@ export default function JudgmentDiaryPrinciples() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-ink">내가 반복하는 투자 원칙 15가지</h1>
+        <h1 className="gk-page-title">내가 반복하는 투자 원칙 15가지</h1>
         <p className="text-ink-muted">
           판단일지에서 반복되는 한 줄 판단을 모아 나의 투자 원칙을 정리합니다. 아직은 단순 추출이지만,
           누적될수록 태도의 패턴이 더 선명해집니다.
@@ -74,7 +74,7 @@ export default function JudgmentDiaryPrinciples() {
 
       <Link
         to="/judgment-diary"
-        className="inline-flex items-center justify-center px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
+        className="gk-btn gk-btn-secondary"
       >
         전체 판단일지
       </Link>

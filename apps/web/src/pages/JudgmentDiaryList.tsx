@@ -44,7 +44,7 @@ export default function JudgmentDiaryList() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-ink">판단일지</h1>
+          <h1 className="gk-page-title">판단일지</h1>
           <p className="text-ink-muted">
             추세 투자자가 시장을 대하는 태도를 기록하는 아카이브입니다.
             <br />

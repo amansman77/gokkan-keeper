@@ -141,8 +141,8 @@ export default function AlertThresholdManager() {
       )}
 
       <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-2">
-        <div className="flex flex-col">
-          <label className="text-xs text-ink-faint mb-1">지수</label>
+        <div className="gk-field">
+          <label className="gk-label-sm">지수</label>
           <select
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
@@ -155,8 +155,8 @@ export default function AlertThresholdManager() {
             ))}
           </select>
         </div>
-        <div className="flex flex-col">
-          <label className="text-xs text-ink-faint mb-1">조건</label>
+        <div className="gk-field">
+          <label className="gk-label-sm">조건</label>
           <select
             value={direction}
             onChange={(e) => setDirection(e.target.value as 'below' | 'above')}
@@ -166,8 +166,8 @@ export default function AlertThresholdManager() {
             <option value="above">이상으로 상승 시</option>
           </select>
         </div>
-        <div className="flex flex-col">
-          <label className="text-xs text-ink-faint mb-1">기준값</label>
+        <div className="gk-field">
+          <label className="gk-label-sm">기준값</label>
           <input
             type="number"
             step="any"

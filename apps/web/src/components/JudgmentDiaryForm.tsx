@@ -46,42 +46,42 @@ export default function JudgmentDiaryForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-surface rounded-lg shadow p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="gk-card gk-card-pad gk-stack">
       <div>
-        <label className="block text-sm font-medium text-ink-muted mb-2">제목</label>
+        <label className="gk-label">제목</label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+          className="gk-input"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-ink-muted mb-2">한 줄 판단</label>
+        <label className="gk-label">한 줄 판단</label>
         <textarea
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
           rows={2}
-          className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+          className="gk-input"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-ink-muted mb-2">메인 컨텐츠</label>
+        <label className="gk-label">메인 컨텐츠</label>
         <textarea
           value={mainContent}
           onChange={(e) => setMainContent(e.target.value)}
           rows={12}
-          className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+          className="gk-input"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-ink-muted mb-2">실행(Action)</label>
+        <label className="gk-label">실행(Action)</label>
         <select
           value={action}
           onChange={(e) => setAction(e.target.value as any)}
@@ -97,8 +97,8 @@ export default function JudgmentDiaryForm({
       </div>
 
       {error && (
-        <div className="bg-danger-tint border border-danger rounded-md p-4">
-          <p className="text-danger text-sm">{error}</p>
+        <div className="gk-alert">
+          <p className="gk-error-text">{error}</p>
         </div>
       )}
 
