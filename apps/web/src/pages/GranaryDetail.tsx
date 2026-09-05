@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { deletePosition, getCashFlows, getGranary, getGranaryExport, getPositions, getSnapshots } from '../lib/api';
 import type { CashFlow, GranaryWithLatestSnapshot, Snapshot, Position } from '../lib/types';
@@ -23,19 +23,22 @@ export default function GranaryDetail() {
   const [snapshotsCollapsed, setSnapshotsCollapsed] = useState(true);
   const [visibleSnapshotCount, setVisibleSnapshotCount] = useState(SNAPSHOT_PAGE_SIZE);
   const [chartWidth, setChartWidth] = useState(720);
-  const chartContainerRef = useRef<HTMLDivElement | null>(null);
+  const chartResizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // The trend chart fills whatever width its card actually has, instead of a fixed size that
-  // leaves a large blank gap on wide screens (or forces a scrollbar on narrow ones).
-  useEffect(() => {
-    const el = chartContainerRef.current;
+  // leaves a large blank gap on wide screens (or forces a scrollbar on narrow ones). A callback
+  // ref (rather than useEffect + useRef) because the container only exists once snapshots have
+  // loaded — a mount-time effect would run before that div exists and never observe anything.
+  const chartContainerRef = useCallback((el: HTMLDivElement | null) => {
+    chartResizeObserverRef.current?.disconnect();
+    chartResizeObserverRef.current = null;
     if (!el || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width;
       if (width) setChartWidth(Math.max(240, Math.floor(width)));
     });
     observer.observe(el);
-    return () => observer.disconnect();
+    chartResizeObserverRef.current = observer;
   }, []);
 
   useEffect(() => {
@@ -270,12 +273,12 @@ export default function GranaryDetail() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs text-gray-500 border-b">
-                    <th className="px-6 py-2 font-medium">종목</th>
-                    <th className="px-6 py-2 font-medium text-right">수량</th>
-                    <th className="px-6 py-2 font-medium text-right hidden sm:table-cell">현재가</th>
-                    <th className="px-6 py-2 font-medium text-right">등락</th>
-                    <th className="px-6 py-2 font-medium text-right">평가액</th>
-                    <th className="px-6 py-2 font-medium text-right">관리</th>
+                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap">종목</th>
+                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">수량</th>
+                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right hidden sm:table-cell">현재가</th>
+                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">등락</th>
+                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">평가액</th>
+                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">관리</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -286,7 +289,7 @@ export default function GranaryDetail() {
                     return (
                       <Fragment key={position.id}>
                         <tr className="border-b last:border-0 hover:bg-gray-50">
-                          <td className="px-6 py-3">
+                          <td className="px-2 sm:px-4 py-3">
                             <div className="font-medium text-gray-900 flex items-center gap-2">
                               {position.name}
                               {position.isPublic && (
@@ -303,14 +306,14 @@ export default function GranaryDetail() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-6 py-3 text-right tabular-nums">{position.quantity ?? '-'}</td>
-                          <td className="px-6 py-3 text-right tabular-nums hidden sm:table-cell">
+                          <td className="px-2 sm:px-4 py-3 text-right tabular-nums">{position.quantity ?? '-'}</td>
+                          <td className="px-2 sm:px-4 py-3 text-right tabular-nums hidden sm:table-cell">
                             {position.currentUnitPrice !== null && position.currentUnitPrice !== undefined
                               ? formatCurrency(position.currentUnitPrice, granary.currency)
                               : '-'}
                           </td>
                           <td
-                            className={`px-6 py-3 text-right tabular-nums font-medium ${
+                            className={`px-2 sm:px-4 py-3 text-right tabular-nums font-medium ${
                               rate === null || rate === undefined
                                 ? 'text-gray-400'
                                 : rate > 0
@@ -322,33 +325,35 @@ export default function GranaryDetail() {
                           >
                             {rate === null || rate === undefined ? '-' : `${rate > 0 ? '+' : ''}${rate.toFixed(2)}%`}
                           </td>
-                          <td className="px-6 py-3 text-right tabular-nums font-semibold">
+                          <td className="px-2 sm:px-4 py-3 text-right tabular-nums font-semibold">
                             {marketValue !== null ? formatCurrency(marketValue, granary.currency) : '-'}
                           </td>
-                          <td className="px-6 py-3 text-right whitespace-normal sm:whitespace-nowrap">
-                            <button
-                              onClick={() => setExpandedIndicators((prev) => {
-                                const next = new Set(prev);
-                                next.has(position.id) ? next.delete(position.id) : next.add(position.id);
-                                return next;
-                              })}
-                              className="text-gray-500 hover:text-gray-700 text-xs border border-gray-300 rounded px-2 py-1 mr-2"
-                            >
-                              {isExpanded ? '지표 닫기' : '지표 보기'}
-                            </button>
-                            <Link to={`/positions/${position.id}/edit`} className="text-blue-600 hover:underline text-xs mr-2">
-                              수정
-                            </Link>
-                            <button
-                              onClick={async () => {
-                                if (!window.confirm('포지션을 삭제하시겠습니까?')) return;
-                                await deletePosition(position.id);
-                                setPositions((prev) => prev.filter((p) => p.id !== position.id));
-                              }}
-                              className="text-red-600 hover:underline text-xs"
-                            >
-                              삭제
-                            </button>
+                          <td className="px-2 sm:px-4 py-3">
+                            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-2">
+                              <button
+                                onClick={() => setExpandedIndicators((prev) => {
+                                  const next = new Set(prev);
+                                  next.has(position.id) ? next.delete(position.id) : next.add(position.id);
+                                  return next;
+                                })}
+                                className="text-gray-500 hover:text-gray-700 text-xs border border-gray-300 rounded px-1.5 py-0.5 whitespace-nowrap"
+                              >
+                                {isExpanded ? '지표 닫기' : '지표 보기'}
+                              </button>
+                              <Link to={`/positions/${position.id}/edit`} className="text-blue-600 hover:underline text-xs whitespace-nowrap">
+                                수정
+                              </Link>
+                              <button
+                                onClick={async () => {
+                                  if (!window.confirm('포지션을 삭제하시겠습니까?')) return;
+                                  await deletePosition(position.id);
+                                  setPositions((prev) => prev.filter((p) => p.id !== position.id));
+                                }}
+                                className="text-red-600 hover:underline text-xs whitespace-nowrap"
+                              >
+                                삭제
+                              </button>
+                            </div>
                           </td>
                         </tr>
                         {isExpanded && (
@@ -387,11 +392,11 @@ export default function GranaryDetail() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs text-gray-500 border-b">
-                    <th className="px-6 py-2 font-medium">날짜</th>
-                    <th className="px-6 py-2 font-medium text-right">평가금액</th>
-                    <th className="px-6 py-2 font-medium text-right">전기 대비</th>
-                    <th className="px-6 py-2 font-medium hidden sm:table-cell">메모</th>
-                    <th className="px-6 py-2 font-medium text-right">관리</th>
+                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap">날짜</th>
+                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">평가금액</th>
+                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">전기 대비</th>
+                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap hidden sm:table-cell">메모</th>
+                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">관리</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -403,12 +408,12 @@ export default function GranaryDetail() {
                       : false;
                     return (
                       <tr key={snapshot.id} className="border-b last:border-0 hover:bg-gray-50">
-                        <td className="px-6 py-3 whitespace-nowrap">{formatDate(snapshot.date)}</td>
-                        <td className="px-6 py-3 text-right tabular-nums font-semibold">
+                        <td className="px-2 sm:px-4 py-3 whitespace-nowrap">{formatDate(snapshot.date)}</td>
+                        <td className="px-2 sm:px-4 py-3 text-right tabular-nums font-semibold">
                           {formatCurrency(snapshot.totalAmount, granary.currency)}
                         </td>
                         <td
-                          className={`px-6 py-3 text-right tabular-nums ${
+                          className={`px-2 sm:px-4 py-3 text-right tabular-nums ${
                             change === null ? 'text-gray-400' : change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-500'
                           }`}
                         >
@@ -424,8 +429,8 @@ export default function GranaryDetail() {
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-3 text-gray-600 hidden sm:table-cell">{snapshot.memo || ''}</td>
-                        <td className="px-6 py-3 text-right whitespace-nowrap">
+                        <td className="px-2 sm:px-4 py-3 text-gray-600 hidden sm:table-cell">{snapshot.memo || ''}</td>
+                        <td className="px-2 sm:px-4 py-3 text-right whitespace-nowrap">
                           <Link
                             to={`/snapshots/${snapshot.id}/edit?granaryId=${granary.id}`}
                             className="text-blue-600 hover:underline text-xs"
