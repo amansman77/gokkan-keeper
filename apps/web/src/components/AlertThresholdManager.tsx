@@ -94,22 +94,22 @@ export default function AlertThresholdManager() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-4">
-        <h2 className="text-sm font-semibold text-gray-500 mb-3">알림 트리거 관리</h2>
-        <div className="text-sm text-gray-400">로딩 중...</div>
+      <div className="bg-surface rounded-lg shadow p-4">
+        <h2 className="text-sm font-semibold text-ink-faint mb-3">알림 트리거 관리</h2>
+        <div className="text-sm text-ink-faint">로딩 중...</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
-      <h2 className="text-sm font-semibold text-gray-500 mb-3">알림 트리거 관리</h2>
-      <p className="text-xs text-gray-400 mb-4">시장 지수가 기준값을 처음 넘는 순간에 1회 디스코드로 알림이 갑니다.</p>
+    <div className="bg-surface rounded-lg shadow p-4">
+      <h2 className="text-sm font-semibold text-ink-faint mb-3">알림 트리거 관리</h2>
+      <p className="text-xs text-ink-faint mb-4">시장 지수가 기준값을 처음 넘는 순간에 1회 디스코드로 알림이 갑니다.</p>
 
-      {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+      {error && <p className="text-sm text-loss mb-3">{error}</p>}
 
       {thresholds.length > 0 && (
-        <div className="divide-y divide-gray-100 mb-4">
+        <div className="divide-y divide-line-soft mb-4">
           {thresholds.map((t) => (
             <div key={t.id} className="flex items-center gap-3 py-2">
               <input
@@ -120,17 +120,17 @@ export default function AlertThresholdManager() {
                 aria-label={`${t.label} 활성화 여부`}
               />
               <div className="flex-1 min-w-0">
-                <span className={`text-sm font-medium ${t.enabled ? 'text-gray-900' : 'text-gray-400'}`}>
+                <span className={`text-sm font-medium ${t.enabled ? 'text-ink' : 'text-ink-faint'}`}>
                   {t.label}
                 </span>
-                <span className={`text-sm ml-2 ${t.enabled ? 'text-gray-600' : 'text-gray-400'}`}>
+                <span className={`text-sm ml-2 ${t.enabled ? 'text-ink-muted' : 'text-ink-faint'}`}>
                   {t.threshold.toLocaleString('ko-KR')}원 {directionLabel(t.direction)}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => handleDelete(t.id)}
-                className="text-xs text-gray-400 hover:text-red-600 px-2 py-1"
+                className="text-xs text-ink-faint hover:text-loss px-2 py-1"
                 aria-label={`${t.label} 삭제`}
               >
                 삭제
@@ -142,11 +142,11 @@ export default function AlertThresholdManager() {
 
       <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-2">
         <div className="flex flex-col">
-          <label className="text-xs text-gray-500 mb-1">지수</label>
+          <label className="text-xs text-ink-faint mb-1">지수</label>
           <select
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
-            className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+            className="border border-line rounded-md px-2 py-1.5 text-sm"
           >
             {indices.map((idx) => (
               <option key={idx.symbol} value={idx.symbol}>
@@ -156,18 +156,18 @@ export default function AlertThresholdManager() {
           </select>
         </div>
         <div className="flex flex-col">
-          <label className="text-xs text-gray-500 mb-1">조건</label>
+          <label className="text-xs text-ink-faint mb-1">조건</label>
           <select
             value={direction}
             onChange={(e) => setDirection(e.target.value as 'below' | 'above')}
-            className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+            className="border border-line rounded-md px-2 py-1.5 text-sm"
           >
             <option value="below">이하로 하락 시</option>
             <option value="above">이상으로 상승 시</option>
           </select>
         </div>
         <div className="flex flex-col">
-          <label className="text-xs text-gray-500 mb-1">기준값</label>
+          <label className="text-xs text-ink-faint mb-1">기준값</label>
           <input
             type="number"
             step="any"
@@ -175,13 +175,13 @@ export default function AlertThresholdManager() {
             onChange={(e) => setValue(e.target.value)}
             placeholder="예: 870"
             required
-            className="border border-gray-300 rounded-md px-2 py-1.5 text-sm w-28"
+            className="border border-line rounded-md px-2 py-1.5 text-sm w-28"
           />
         </div>
         <button
           type="submit"
           disabled={submitting || !symbol || !value}
-          className="bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+          className="bg-accent text-accent-contrast px-4 py-1.5 rounded-md text-sm font-medium hover:bg-accent-ink disabled:opacity-50"
         >
           {submitting ? '추가 중...' : '추가'}
         </button>

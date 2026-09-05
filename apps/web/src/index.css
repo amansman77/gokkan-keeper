@@ -1,19 +1,166 @@
+/* Pretendard variable, self-hosted (no CDN). The dynamic-subset build splits the
+   family across unicode-ranges so a browser only downloads the ranges a page
+   actually renders, instead of one ~2MB file. Vite resolves and hashes the
+   woff2 files referenced inside it. */
+@import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Design tokens — see docs/DESIGN_SYSTEM.md.
+   Light is the base palette on bare :root. Dark redefines only the token values,
+   never component rules, so a component never needs to know which theme is live.
+   Both the media query (OS setting, the default "system" state stamps no
+   attribute) and the [data-theme] attribute are covered, each guarded so an
+   explicit choice beats the OS preference in either direction. */
+:root {
+  color-scheme: light;
+  --gk-bg: #F3F5F4;
+  --gk-surface: #FFFFFF;
+  --gk-surface-2: #EDF0EF;
+  --gk-border: #DFE4E3;
+  --gk-border-soft: #E9EDEC;
+  --gk-ink: #15181A;
+  --gk-ink-muted: #5F676A;
+  --gk-ink-faint: #666E71;
+  --gk-accent: #1D5560;
+  --gk-accent-tint: #E4EDEE;
+  --gk-accent-ink: #17454E;
+  --gk-accent-contrast: #FFFFFF;
+  --gk-gain: #17714D;
+  --gk-gain-tint: #E6F2EC;
+  --gk-loss: #B03A2E;
+  --gk-loss-tint: #F9EAE8;
+  --gk-flow: #8A6212;
+  --gk-flow-tint: #F5EEDD;
+  --gk-closed-tint: #EDEFEE;
+  /* Deliberately inverted surfaces (code blocks, chart tooltips) — must stay
+     legible in both themes rather than being a fixed near-black. */
+  --gk-inverse: #15181A;
+  --gk-inverse-ink: #F3F5F4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --gk-bg: #141717;
+    --gk-surface: #1C2021;
+    --gk-surface-2: #232829;
+    --gk-border: #303637;
+    --gk-border-soft: #282E2F;
+    --gk-ink: #EAEDEC;
+    --gk-ink-muted: #9EA7A8;
+    --gk-ink-faint: #8A9496;
+    --gk-accent: #6DA9B4;
+    --gk-accent-tint: #1B3238;
+    --gk-accent-ink: #8CC0CA;
+    --gk-accent-contrast: #10201F;
+    --gk-gain: #4CBE8B;
+    --gk-gain-tint: #14271F;
+    --gk-loss: #E0776B;
+    --gk-loss-tint: #2F1D1B;
+    --gk-flow: #CBA453;
+    --gk-flow-tint: #2D2717;
+    --gk-closed-tint: #212626;
+    --gk-inverse: #0B0D0D;
+    --gk-inverse-ink: #EAEDEC;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --gk-bg: #141717;
+  --gk-surface: #1C2021;
+  --gk-surface-2: #232829;
+  --gk-border: #303637;
+  --gk-border-soft: #282E2F;
+  --gk-ink: #EAEDEC;
+  --gk-ink-muted: #9EA7A8;
+  --gk-ink-faint: #8A9496;
+  --gk-accent: #6DA9B4;
+  --gk-accent-tint: #1B3238;
+  --gk-accent-ink: #8CC0CA;
+  --gk-accent-contrast: #10201F;
+  --gk-gain: #4CBE8B;
+  --gk-gain-tint: #14271F;
+  --gk-loss: #E0776B;
+  --gk-loss-tint: #2F1D1B;
+  --gk-flow: #CBA453;
+  --gk-flow-tint: #2D2717;
+  --gk-closed-tint: #212626;
+  --gk-inverse: #0B0D0D;
+  --gk-inverse-ink: #EAEDEC;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  background-color: var(--gk-bg);
+  color: var(--gk-ink);
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont,
+    'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-input[type="date"] {
-  background-color: white;
+/* Data screens: numbers must line up column-wise. The Judgment Diary opts out
+   of this (see .gk-prose) because its numbers sit inside running prose. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Judgment Diary reading setting — same typeface as the data screens, separated
+   only by weight/size/leading/measure. 380 is a mid-weight the variable font
+   allows and a static family could not offer. */
+.gk-prose {
+  font-weight: 380;
+  font-size: 16.5px;
+  line-height: 1.88;
+  color: var(--gk-ink);
+}
+/* The lead paragraph sits a step heavier than the body so it reads as a summary
+   without changing size. */
+.gk-prose-lead {
+  font-weight: 450;
+  font-size: 16.5px;
+  line-height: 1.7;
+  color: var(--gk-ink-muted);
+}
+/* Bounds the line length of running prose only. Tables and data screens are
+   deliberately excluded — they need the full width.
+   NOTE: `ch` is the width of the "0" glyph (~10px here), not of a Hangul
+   syllable (~14.3px), so `44ch` would render only ~31 Korean characters. The
+   design system's "44자" target is therefore expressed in `em`, where one unit
+   tracks roughly one Hangul character. */
+.gk-prose-measure {
+  max-width: 38em;
+}
+/* Headings inside prose stay heavier than the 380 body weight they inherit. */
+.gk-prose :is(h1, h2, h3, strong, b) {
+  font-weight: 600;
+}
+
+/* color-scheme above makes the UA paint native controls for the active theme;
+   these keep them on the exact token colors rather than the UA approximation. */
+input,
+select,
+textarea {
+  background-color: var(--gk-surface);
+  color: var(--gk-ink);
+}
+
+input[type='date'] {
   -webkit-appearance: none;
+}
+
+/* Keep native form controls and the date picker indicator legible in dark. */
+:root[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
 }
 
 main {

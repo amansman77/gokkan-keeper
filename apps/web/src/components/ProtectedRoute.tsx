@@ -6,7 +6,7 @@ export default function ProtectedRoute() {
   const location = useLocation();
 
   if (loading) {
-    return <div className="text-gray-600">인증 확인 중...</div>;
+    return <div className="text-ink-muted">인증 확인 중...</div>;
   }
 
   if (!authenticated) {

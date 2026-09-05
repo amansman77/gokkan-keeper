@@ -49,21 +49,21 @@ export default function JudgmentDiaryPrinciples() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">내가 반복하는 투자 원칙 15가지</h1>
-        <p className="text-gray-600">
+        <h1 className="text-3xl font-bold text-ink">내가 반복하는 투자 원칙 15가지</h1>
+        <p className="text-ink-muted">
           판단일지에서 반복되는 한 줄 판단을 모아 나의 투자 원칙을 정리합니다. 아직은 단순 추출이지만,
           누적될수록 태도의 패턴이 더 선명해집니다.
         </p>
       </div>
 
       {loading ? (
-        <div className="text-gray-600">로딩 중...</div>
+        <div className="text-ink-muted">로딩 중...</div>
       ) : error ? (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 text-red-800">{error}</div>
+        <div className="bg-loss-tint border border-loss rounded-md p-4 text-loss">{error}</div>
       ) : principles.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">아직 정리할 원칙이 없습니다.</div>
+        <div className="text-center py-16 text-ink-faint">아직 정리할 원칙이 없습니다.</div>
       ) : (
-        <ol className="list-decimal list-inside space-y-3 text-gray-800">
+        <ol className="list-decimal list-inside space-y-3 text-ink">
           {principles.map((item) => (
             <li key={item} className="text-lg">
               {item}
@@ -74,7 +74,7 @@ export default function JudgmentDiaryPrinciples() {
 
       <Link
         to="/judgment-diary"
-        className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+        className="inline-flex items-center justify-center px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
       >
         전체 판단일지
       </Link>

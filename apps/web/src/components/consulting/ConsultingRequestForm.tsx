@@ -129,7 +129,7 @@ export default function ConsultingRequestForm() {
     <form onSubmit={onSubmit} className="space-y-6">
       <div className="grid gap-6">
         <div>
-          <label htmlFor="consulting-email" className="mb-2 block text-sm font-semibold text-slate-800">
+          <label htmlFor="consulting-email" className="mb-2 block text-sm font-semibold text-ink">
             답변 받을 이메일
           </label>
           <input
@@ -142,11 +142,11 @@ export default function ConsultingRequestForm() {
               setEmail(e.target.value);
               setErrors((current) => ({ ...current, email: undefined }));
             }}
-            className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className="w-full rounded-2xl border border-line bg-surface px-4 py-3 text-base text-ink shadow-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent"
             placeholder="you@example.com"
           />
-          <p className="mt-2 text-sm text-slate-500">검토 후 답변을 받을 메일 주소입니다.</p>
-          {errors.email ? <p className="mt-2 text-sm text-rose-700">{errors.email}</p> : null}
+          <p className="mt-2 text-sm text-ink-faint">검토 후 답변을 받을 메일 주소입니다.</p>
+          {errors.email ? <p className="mt-2 text-sm text-loss">{errors.email}</p> : null}
         </div>
 
         <ScreenshotUploadField fileName={screenshot?.name ?? null} error={errors.screenshot} onChange={handleScreenshotChange} />
@@ -154,13 +154,13 @@ export default function ConsultingRequestForm() {
       </div>
 
       {submitError ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{submitError}</div>
+        <div className="rounded-2xl border border-loss bg-loss-tint p-4 text-sm text-loss">{submitError}</div>
       ) : null}
 
       <button
         type="submit"
         disabled={loading}
-        className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl bg-slate-900 px-5 py-4 text-base font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[240px]"
+        className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl bg-accent px-5 py-4 text-base font-semibold text-accent-contrast transition hover:bg-accent-ink disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[240px]"
       >
         {loading ? '전송 중...' : '무료 구조 점검 요청 보내기'}
       </button>

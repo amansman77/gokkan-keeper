@@ -46,46 +46,46 @@ export default function JudgmentDiaryForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="bg-surface rounded-lg shadow p-6 space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">제목</label>
+        <label className="block text-sm font-medium text-ink-muted mb-2">제목</label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">한 줄 판단</label>
+        <label className="block text-sm font-medium text-ink-muted mb-2">한 줄 판단</label>
         <textarea
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
           rows={2}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">메인 컨텐츠</label>
+        <label className="block text-sm font-medium text-ink-muted mb-2">메인 컨텐츠</label>
         <textarea
           value={mainContent}
           onChange={(e) => setMainContent(e.target.value)}
           rows={12}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">실행(Action)</label>
+        <label className="block text-sm font-medium text-ink-muted mb-2">실행(Action)</label>
         <select
           value={action}
           onChange={(e) => setAction(e.target.value as any)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          className="w-full px-3 py-2 border border-line rounded-md"
           required
         >
           {JUDGMENT_ACTIONS.map((item) => (
@@ -97,8 +97,8 @@ export default function JudgmentDiaryForm({
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <p className="text-red-800 text-sm">{error}</p>
+        <div className="bg-loss-tint border border-loss rounded-md p-4">
+          <p className="text-loss text-sm">{error}</p>
         </div>
       )}
 
@@ -106,14 +106,14 @@ export default function JudgmentDiaryForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          className="flex-1 px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
         >
           취소
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className="flex-1 px-4 py-2 bg-accent text-accent-contrast rounded-md hover:bg-accent-ink disabled:opacity-50"
         >
           {loading ? submittingLabel : submitLabel}
         </button>

@@ -148,14 +148,14 @@ export default function PositionForm({
   }, [canAutoPrice, enableQuoteAutoFill, formData.assetType, formData.market, formData.symbol]);
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="bg-surface rounded-lg shadow p-6 space-y-6">
       <div>
-        <label htmlFor="granaryId" className="block text-sm font-medium text-gray-700 mb-2">곳간(선택)</label>
+        <label htmlFor="granaryId" className="block text-sm font-medium text-ink-muted mb-2">곳간(선택)</label>
         <select
           id="granaryId"
           value={formData.granaryId || ''}
           onChange={(e) => setFormData({ ...formData, granaryId: e.target.value || null })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
         >
           <option value="">미분류</option>
           {granaries.map((granary) => (
@@ -168,35 +168,35 @@ export default function PositionForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">종목명</label>
+          <label htmlFor="name" className="block text-sm font-medium text-ink-muted mb-2">종목명</label>
           <input
             id="name"
             required
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
         <div>
-          <label htmlFor="symbol" className="block text-sm font-medium text-gray-700 mb-2">심볼</label>
+          <label htmlFor="symbol" className="block text-sm font-medium text-ink-muted mb-2">심볼</label>
           <input
             id="symbol"
             required
             value={formData.symbol}
             onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
             placeholder="005930 / AAPL / 7203.T"
           />
-          <p className="mt-1 text-xs text-gray-500">국내 6자리 코드 또는 해외 Yahoo Finance 심볼을 입력하면 저장 후 현재가를 자동 조회합니다.</p>
-          {quoteLoading && <p className="mt-1 text-xs text-blue-600">현재가 자동 조회 중...</p>}
+          <p className="mt-1 text-xs text-ink-faint">국내 6자리 코드 또는 해외 Yahoo Finance 심볼을 입력하면 저장 후 현재가를 자동 조회합니다.</p>
+          {quoteLoading && <p className="mt-1 text-xs text-accent">현재가 자동 조회 중...</p>}
           {!quoteLoading && quoteMessage && (
             <p
               className={`mt-1 text-xs ${
                 quoteMessage.includes('완료')
-                  ? 'text-green-700'
+                  ? 'text-gain'
                   : quoteMessage.includes('수동 입력')
-                    ? 'text-gray-500'
-                    : 'text-amber-700'
+                    ? 'text-ink-faint'
+                    : 'text-flow'
               }`}
             >
               {quoteMessage}
@@ -207,12 +207,12 @@ export default function PositionForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="market" className="block text-sm font-medium text-gray-700 mb-2">시장(선택)</label>
+          <label htmlFor="market" className="block text-sm font-medium text-ink-muted mb-2">시장(선택)</label>
           <select
             id="market"
             value={formData.market || ''}
             onChange={(e) => setFormData({ ...formData, market: e.target.value || null })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           >
             <option value="">선택 안 함</option>
             {POSITION_MARKETS.map((market) => (
@@ -224,12 +224,12 @@ export default function PositionForm({
           </select>
         </div>
         <div>
-          <label htmlFor="assetType" className="block text-sm font-medium text-gray-700 mb-2">자산유형(선택)</label>
+          <label htmlFor="assetType" className="block text-sm font-medium text-ink-muted mb-2">자산유형(선택)</label>
           <select
             id="assetType"
             value={formData.assetType || ''}
             onChange={(e) => setFormData({ ...formData, assetType: e.target.value || null })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           >
             <option value="">선택 안 함</option>
             {POSITION_ASSET_TYPES.map((assetType) => (
@@ -244,25 +244,25 @@ export default function PositionForm({
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">수량(선택)</label>
+          <label htmlFor="quantity" className="block text-sm font-medium text-ink-muted mb-2">수량(선택)</label>
           <input
             id="quantity"
             type="number"
             step="0.0001"
             value={formData.quantity ?? ''}
             onChange={(e) => setFormData({ ...formData, quantity: parseNullableNumber(e.target.value) })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
         <div>
-          <label htmlFor="avgCost" className="block text-sm font-medium text-gray-700 mb-2">평균단가(선택)</label>
+          <label htmlFor="avgCost" className="block text-sm font-medium text-ink-muted mb-2">평균단가(선택)</label>
           <input
             id="avgCost"
             type="number"
             step="0.0001"
             value={formData.avgCost ?? ''}
             onChange={(e) => setFormData({ ...formData, avgCost: parseNullableNumber(e.target.value) })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
         <PositionPricingSection
@@ -277,19 +277,19 @@ export default function PositionForm({
       <PositionPublicSection formData={formData} setFormData={setFormData} />
 
       <div>
-        <label htmlFor="note" className="block text-sm font-medium text-gray-700 mb-2">메모(비공개)</label>
+        <label htmlFor="note" className="block text-sm font-medium text-ink-muted mb-2">메모(비공개)</label>
         <textarea
           id="note"
           rows={3}
           value={formData.note || ''}
           onChange={(e) => setFormData({ ...formData, note: e.target.value || null })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
         />
       </div>
 
       {(clientError || error) && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <p className="text-red-800 text-sm">{clientError || error}</p>
+        <div className="bg-loss-tint border border-loss rounded-md p-4">
+          <p className="text-loss text-sm">{clientError || error}</p>
         </div>
       )}
 
@@ -297,14 +297,14 @@ export default function PositionForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          className="flex-1 px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
         >
           취소
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className="flex-1 px-4 py-2 bg-accent text-accent-contrast rounded-md hover:bg-accent-ink disabled:opacity-50"
         >
           {loading ? '저장 중...' : submitLabel}
         </button>

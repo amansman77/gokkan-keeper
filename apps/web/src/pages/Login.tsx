@@ -85,7 +85,7 @@ export default function Login() {
   }, [authenticated, loading, loginWithGoogleCredential, navigate, nextPath]);
 
   if (loading) {
-    return <div className="text-gray-600">인증 확인 중...</div>;
+    return <div className="text-ink-muted">인증 확인 중...</div>;
   }
 
   if (authenticated) {
@@ -93,23 +93,23 @@ export default function Login() {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white rounded-lg border border-gray-200 p-6">
-      <h1 className="text-2xl font-bold text-gray-900">로그인</h1>
-      <p className="text-sm text-gray-600 mt-2">Google 계정으로 private 페이지에 로그인합니다.</p>
+    <div className="max-w-md mx-auto bg-surface rounded-lg border border-line-soft p-6">
+      <h1 className="text-2xl font-bold text-ink">로그인</h1>
+      <p className="text-sm text-ink-muted mt-2">Google 계정으로 private 페이지에 로그인합니다.</p>
 
       {GOOGLE_CLIENT_ID ? (
         <div className="mt-6 flex justify-center">
           <div ref={buttonContainerRef} />
         </div>
       ) : (
-        <p className="mt-6 text-sm text-red-700">Google Client ID가 설정되지 않았습니다.</p>
+        <p className="mt-6 text-sm text-loss">Google Client ID가 설정되지 않았습니다.</p>
       )}
 
-      {submitting ? <p className="mt-4 text-sm text-gray-600 text-center">로그인 처리 중...</p> : null}
-      {error ? <p className="mt-4 text-sm text-red-700 text-center">{error}</p> : null}
+      {submitting ? <p className="mt-4 text-sm text-ink-muted text-center">로그인 처리 중...</p> : null}
+      {error ? <p className="mt-4 text-sm text-loss text-center">{error}</p> : null}
 
       <div className="mt-6 text-sm">
-        <Link to="/" className="text-blue-600 hover:underline">
+        <Link to="/" className="text-accent hover:underline">
           랜딩 페이지로 돌아가기
         </Link>
       </div>

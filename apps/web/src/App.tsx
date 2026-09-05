@@ -22,7 +22,7 @@ function RouteSeoController() {
 
 function RouteFallback() {
   return (
-    <div className="flex min-h-[16rem] items-center justify-center text-gray-600">
+    <div className="flex min-h-[16rem] items-center justify-center text-ink-muted">
       페이지를 불러오는 중...
     </div>
   );
@@ -34,8 +34,8 @@ function AppContent() {
   const [menuOpen, setMenuOpen] = useState(false);
   const isDashboardSection = isAssetJournalPath(location.pathname);
   const navBaseClass = 'px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap';
-  const navInactiveClass = 'text-gray-600 hover:text-gray-900';
-  const navActiveClass = 'bg-blue-50 text-blue-700';
+  const navInactiveClass = 'text-ink-muted hover:text-ink';
+  const navActiveClass = 'bg-accent-tint text-accent';
   const createTrackRecordPath = '/login?next=/dashboard';
 
   useEffect(() => {
@@ -92,7 +92,7 @@ function AppContent() {
       {!authenticated ? (
         <Link
           to={createTrackRecordPath}
-          className="block bg-slate-900 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-800 whitespace-nowrap text-center"
+          className="block bg-accent text-accent-contrast px-4 py-2 rounded-md text-sm font-semibold hover:bg-accent-ink whitespace-nowrap text-center"
         >
           나의 {UI_TERMS.trackRecord} 만들기
         </Link>
@@ -103,12 +103,12 @@ function AppContent() {
   return (
     <>
       <RouteSeoController />
-      <div className="min-h-screen bg-slate-50">
-        <nav className="bg-white shadow-sm border-b">
+      <div className="min-h-screen bg-surface-2">
+        <nav className="bg-surface shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
               <div className="flex items-center">
-                <Link to="/" className="text-xl font-semibold text-gray-900 whitespace-nowrap">
+                <Link to="/" className="text-xl font-semibold text-ink whitespace-nowrap">
                   {UI_TERMS.brandName}
                 </Link>
               </div>
@@ -118,7 +118,7 @@ function AppContent() {
                 onClick={() => setMenuOpen((v) => !v)}
                 aria-expanded={menuOpen}
                 aria-label="메뉴 열기"
-                className="sm:hidden flex items-center justify-center w-10 h-10 -mr-2 text-gray-600 hover:text-gray-900"
+                className="sm:hidden flex items-center justify-center w-10 h-10 -mr-2 text-ink-muted hover:text-ink"
               >
                 {menuOpen ? (
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

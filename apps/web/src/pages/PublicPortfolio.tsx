@@ -76,63 +76,63 @@ export default function PublicPortfolio() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-gray-600">로딩 중...</div>
+        <div className="text-ink-muted">로딩 중...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <p className="text-red-800 font-semibold mb-2">오류 발생</p>
-        <p className="text-red-700 text-sm">{error}</p>
+      <div className="bg-loss-tint border border-loss rounded-md p-4">
+        <p className="text-loss font-semibold mb-2">오류 발생</p>
+        <p className="text-loss text-sm">{error}</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      <section className="bg-white rounded-lg border border-gray-200 p-6">
-        <h1 className="text-3xl font-bold text-gray-900">{UI_TERMS.publicArchive}</h1>
-        <p className="text-gray-600 mt-2">추천이 아닌 기록. 판단과 배분, 결과를 투명하게 남깁니다.</p>
+      <section className="bg-surface rounded-lg border border-line-soft p-6">
+        <h1 className="text-3xl font-bold text-ink">{UI_TERMS.publicArchive}</h1>
+        <p className="text-ink-muted mt-2">추천이 아닌 기록. 판단과 배분, 결과를 투명하게 남깁니다.</p>
       </section>
 
-      <section className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900">현재 수익률 요약</h2>
+      <section className="bg-surface rounded-lg border border-line-soft p-6">
+        <h2 className="text-xl font-semibold text-ink">현재 수익률 요약</h2>
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-md border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">공개 포지션 수</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{portfolio.length}</p>
+          <div className="rounded-md border border-line-soft p-4">
+            <p className="text-xs text-ink-faint">공개 포지션 수</p>
+            <p className="text-2xl font-bold text-ink mt-1">{portfolio.length}</p>
           </div>
-          <div className="rounded-md border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">평균 가중 수익률</p>
-            <p className={`text-2xl font-bold mt-1 ${weightedReturn !== null && weightedReturn < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
+          <div className="rounded-md border border-line-soft p-4">
+            <p className="text-xs text-ink-faint">평균 가중 수익률</p>
+            <p className={`text-2xl font-bold mt-1 ${weightedReturn !== null && weightedReturn < 0 ? 'text-loss' : 'text-gain'}`}>
               {formatPercent(weightedReturn)}
             </p>
           </div>
-          <div className="rounded-md border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">연동 기준</p>
-            <p className="text-sm text-gray-700 mt-1">
+          <div className="rounded-md border border-line-soft p-4">
+            <p className="text-xs text-ink-faint">연동 기준</p>
+            <p className="text-sm text-ink-muted mt-1">
               {pricingMeta.integratedCount > 0
                 ? `${pricingMeta.latestAsOf ? `${pricingMeta.latestAsOf} 기준 ` : ''}금융위/Yahoo Finance 시세 연동`
                 : '공개 포지션 평가금액 기준 자동 계산'}
             </p>
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2 text-xs text-gray-600">
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
+        <div className="mt-4 flex flex-wrap gap-2 text-xs text-ink-muted">
+          <span className="rounded-full bg-gain-tint px-3 py-1 text-gain">
             자동 연동 {pricingMeta.integratedCount}건
           </span>
-          <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-700">
+          <span className="rounded-full bg-surface-2 px-3 py-1 text-ink-muted">
             수동 입력 {pricingMeta.manualCount}건
           </span>
         </div>
       </section>
 
       {warnings.length > 0 && (
-        <section className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <h2 className="text-sm font-semibold text-amber-900">데이터 경고</h2>
-          <ul className="mt-2 text-sm text-amber-900 list-disc pl-5">
+        <section className="bg-flow-tint border border-flow rounded-lg p-4">
+          <h2 className="text-sm font-semibold text-flow">데이터 경고</h2>
+          <ul className="mt-2 text-sm text-flow list-disc pl-5">
             {warnings.map((warning) => (
               <li key={`${warning.positionId}-${warning.message}`}>
                 {warning.symbol}: {warning.message}
@@ -142,14 +142,14 @@ export default function PublicPortfolio() {
         </section>
       )}
 
-      <section className="bg-white rounded-lg border border-gray-200 p-6 overflow-x-auto">
-        <h2 className="text-xl font-semibold text-gray-900">{UI_TERMS.publicPortfolio} 비중</h2>
+      <section className="bg-surface rounded-lg border border-line-soft p-6 overflow-x-auto">
+        <h2 className="text-xl font-semibold text-ink">{UI_TERMS.publicPortfolio} 비중</h2>
         {portfolio.length === 0 ? (
-          <p className="text-gray-500 mt-4">아직 공개된 포지션이 없습니다.</p>
+          <p className="text-ink-faint mt-4">아직 공개된 포지션이 없습니다.</p>
         ) : (
           <table className="w-full mt-4 min-w-[720px]">
             <thead>
-              <tr className="text-left text-sm text-gray-500 border-b">
+              <tr className="text-left text-sm text-ink-faint border-b">
                 <th className="pb-2">Symbol</th>
                 <th className="pb-2">Name</th>
                 <th className="pb-2">Allocation</th>
@@ -162,18 +162,18 @@ export default function PublicPortfolio() {
             <tbody>
               {portfolio.map((item) => (
                 <tr key={`${item.symbol}-${item.name}`} className="border-b last:border-b-0">
-                  <td className="py-3 text-sm font-medium text-gray-900">{item.symbol}</td>
-                  <td className="py-3 text-sm text-gray-800">{item.name}</td>
-                  <td className="py-3 text-sm text-gray-800">{item.allocationPercent !== null ? `${item.allocationPercent.toFixed(2)}%` : '—'}</td>
-                  <td className={`py-3 text-sm font-medium ${item.returnPercent !== null && item.returnPercent < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
+                  <td className="py-3 text-sm font-medium text-ink">{item.symbol}</td>
+                  <td className="py-3 text-sm text-ink">{item.name}</td>
+                  <td className="py-3 text-sm text-ink">{item.allocationPercent !== null ? `${item.allocationPercent.toFixed(2)}%` : '—'}</td>
+                  <td className={`py-3 text-sm font-medium ${item.returnPercent !== null && item.returnPercent < 0 ? 'text-loss' : 'text-gain'}`}>
                     {formatPercent(item.returnPercent)}
-                    {item.isEstimatedReturn ? <span className="text-xs text-gray-500 ml-1" title="avgCost와 currentValue로 추정된 값">* </span> : null}
+                    {item.isEstimatedReturn ? <span className="text-xs text-ink-faint ml-1" title="avgCost와 currentValue로 추정된 값">* </span> : null}
                   </td>
-                  <td className="py-3 text-sm text-gray-700">
+                  <td className="py-3 text-sm text-ink-muted">
                     {item.currentPriceSource === 'FSC_STOCK_PRICE_API' || item.currentPriceSource === 'YAHOO_FINANCE' ? (
                       <div>
-                        <p className="font-medium text-emerald-700">{formatPriceSourceLabel(item.currentPriceSource)}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="font-medium text-gain">{formatPriceSourceLabel(item.currentPriceSource)}</p>
+                        <p className="text-xs text-ink-faint">
                           {item.currentPriceAsOf || '-'}
                           {item.currentUnitPrice !== null && item.currentUnitPrice !== undefined
                             ? ` · ${item.currentUnitPrice.toLocaleString()}`
@@ -181,13 +181,13 @@ export default function PublicPortfolio() {
                         </p>
                       </div>
                     ) : item.currentPriceSource === 'MANUAL' ? (
-                      <span className="text-gray-500">수동 입력</span>
+                      <span className="text-ink-faint">수동 입력</span>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-ink-faint">-</span>
                     )}
                   </td>
-                  <td className="py-3 text-sm text-gray-700">{item.thesis || '-'}</td>
-                  <td className="py-3 text-sm text-gray-600">{item.lastUpdated ? new Date(item.lastUpdated).toLocaleDateString() : '-'}</td>
+                  <td className="py-3 text-sm text-ink-muted">{item.thesis || '-'}</td>
+                  <td className="py-3 text-sm text-ink-muted">{item.lastUpdated ? new Date(item.lastUpdated).toLocaleDateString() : '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -195,27 +195,27 @@ export default function PublicPortfolio() {
         )}
       </section>
 
-      <section className="bg-amber-50 border border-amber-200 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-amber-900">유의 사항</h2>
-        <p className="text-sm text-amber-900 mt-2">이 공개 포트폴리오는 기록의 투명성을 위해 공유합니다.</p>
-        <p className="text-sm text-amber-900">금융 자문이나 투자 권유가 아닙니다.</p>
-        <p className="text-sm text-amber-900">모든 투자 판단과 결정의 책임은 본인에게 있습니다.</p>
+      <section className="bg-flow-tint border border-flow rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-flow">유의 사항</h2>
+        <p className="text-sm text-flow mt-2">이 공개 포트폴리오는 기록의 투명성을 위해 공유합니다.</p>
+        <p className="text-sm text-flow">금융 자문이나 투자 권유가 아닙니다.</p>
+        <p className="text-sm text-flow">모든 투자 판단과 결정의 책임은 본인에게 있습니다.</p>
       </section>
 
-      <section className="bg-white rounded-lg border border-gray-200 p-6">
+      <section className="bg-surface rounded-lg border border-line-soft p-6">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-xl font-semibold text-gray-900">최근 판단일지</h2>
-          <Link to="/judgment-diary" className="text-sm font-medium text-blue-600 hover:underline">
+          <h2 className="text-xl font-semibold text-ink">최근 판단일지</h2>
+          <Link to="/judgment-diary" className="text-sm font-medium text-accent hover:underline">
             전체 판단일지 보기
           </Link>
         </div>
         {recentEntries.length === 0 ? (
-          <p className="mt-4 text-sm text-gray-500">공개된 판단일지가 아직 없습니다.</p>
+          <p className="mt-4 text-sm text-ink-faint">공개된 판단일지가 아직 없습니다.</p>
         ) : (
           <ul className="mt-4 space-y-3">
             {recentEntries.map((entry) => (
               <li key={entry.id}>
-                <Link to={`/judgment-diary/${entry.id}`} className="text-sm text-gray-800 hover:text-blue-700 hover:underline">
+                <Link to={`/judgment-diary/${entry.id}`} className="text-sm text-ink hover:text-accent-ink hover:underline">
                   {entry.title}
                 </Link>
               </li>
@@ -224,10 +224,10 @@ export default function PublicPortfolio() {
         )}
       </section>
 
-      <section className="bg-slate-900 rounded-lg p-6 text-white">
+      <section className="bg-accent rounded-lg p-6 text-accent-contrast">
         <h2 className="text-xl font-semibold">구조 점검이 필요하신가요?</h2>
-        <p className="mt-2 text-sm text-slate-200">무료 1회 구조 점검 요청을 통해 현재 포트폴리오의 중장기 기준을 점검할 수 있습니다.</p>
-        <Link to="/consulting" className="mt-4 inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100">
+        <p className="mt-2 text-sm text-accent-contrast">무료 1회 구조 점검 요청을 통해 현재 포트폴리오의 중장기 기준을 점검할 수 있습니다.</p>
+        <Link to="/consulting" className="mt-4 inline-flex items-center rounded-md bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-2">
           무료 구조 점검 요청하기
         </Link>
       </section>

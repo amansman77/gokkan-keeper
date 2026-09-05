@@ -64,7 +64,7 @@ export default function EditGranary() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-gray-600">로딩 중...</div>
+        <div className="text-ink-muted">로딩 중...</div>
       </div>
     );
   }
@@ -72,11 +72,11 @@ export default function EditGranary() {
   if (error || !granary) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <p className="text-red-800">{error || '곳간을 찾을 수 없습니다.'}</p>
+        <div className="bg-loss-tint border border-loss rounded-md p-4">
+          <p className="text-loss">{error || '곳간을 찾을 수 없습니다.'}</p>
           <button
             onClick={() => navigate(-1)}
-            className="text-blue-600 hover:underline mt-2 inline-block"
+            className="text-accent hover:underline mt-2 inline-block"
           >
             돌아가기
           </button>
@@ -90,17 +90,17 @@ export default function EditGranary() {
       <div className="mb-4">
         <button
           onClick={() => navigate(`/granaries/${granary.id}`)}
-          className="text-blue-600 hover:underline"
+          className="text-accent hover:underline"
         >
           ← 돌아가기
         </button>
       </div>
 
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">곳간 수정</h1>
+      <h1 className="text-3xl font-bold text-ink mb-8">곳간 수정</h1>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-surface rounded-lg shadow p-6 space-y-6">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="name" className="block text-sm font-medium text-ink-muted mb-2">
             곳간 이름
           </label>
           <input
@@ -109,13 +109,13 @@ export default function EditGranary() {
             required
             value={formData.name || ''}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
             placeholder="예: 비상금 곳간"
           />
         </div>
 
         <div>
-          <label htmlFor="purpose" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="purpose" className="block text-sm font-medium text-ink-muted mb-2">
             목적
           </label>
           <select
@@ -123,7 +123,7 @@ export default function EditGranary() {
             required
             value={formData.purpose || ''}
             onChange={(e) => setFormData({ ...formData, purpose: e.target.value as any })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           >
             {GRANARY_PURPOSES.map((purpose) => (
               <option key={purpose} value={purpose}>
@@ -134,7 +134,7 @@ export default function EditGranary() {
         </div>
 
         <div>
-          <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="currency" className="block text-sm font-medium text-ink-muted mb-2">
             통화
           </label>
           <select
@@ -142,7 +142,7 @@ export default function EditGranary() {
             required
             value={formData.currency || ''}
             onChange={(e) => setFormData({ ...formData, currency: e.target.value as any })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           >
             {CURRENCIES.map((currency) => (
               <option key={currency} value={currency}>
@@ -153,8 +153,8 @@ export default function EditGranary() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-red-800 text-sm">{error}</p>
+          <div className="bg-loss-tint border border-loss rounded-md p-4">
+            <p className="text-loss text-sm">{error}</p>
           </div>
         )}
 
@@ -162,14 +162,14 @@ export default function EditGranary() {
           <button
             type="button"
             onClick={() => navigate(`/granaries/${granary.id}`)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            className="flex-1 px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
           >
             취소
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="flex-1 px-4 py-2 bg-accent text-accent-contrast rounded-md hover:bg-accent-ink disabled:opacity-50"
           >
             {saving ? '저장 중...' : '저장하기'}
           </button>

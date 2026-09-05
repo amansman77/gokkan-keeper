@@ -33,9 +33,9 @@ export default function MarketIndices() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <h2 className="text-sm font-semibold text-gray-500 mb-3">시장 지수</h2>
-        <div className="text-sm text-gray-400">로딩 중...</div>
+      <div className="bg-surface rounded-lg shadow p-4 mb-6">
+        <h2 className="text-sm font-semibold text-ink-faint mb-3">시장 지수</h2>
+        <div className="text-sm text-ink-faint">로딩 중...</div>
       </div>
     );
   }
@@ -45,28 +45,32 @@ export default function MarketIndices() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 mb-6">
+    <div className="bg-surface rounded-lg shadow p-4 mb-6">
       <div className="flex items-baseline justify-between mb-3">
-        <h2 className="text-sm font-semibold text-gray-500">시장 지수</h2>
-        <span className="text-xs text-gray-400">최근 8주 추이</span>
+        <h2 className="text-sm font-semibold text-ink-faint">시장 지수</h2>
+        <span className="text-xs text-ink-faint">최근 8주 추이</span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {indices.map((index) => {
           const isUp = (index.change ?? 0) >= 0;
-          const changeColor = index.change === null ? 'text-gray-400' : isUp ? 'text-red-500' : 'text-blue-500';
+          const changeColor = index.change === null ? 'text-ink-faint' : isUp ? 'text-loss' : 'text-accent';
           const series = index.weeklySeries ?? [];
           const weeklyUp = series.length >= 2 ? series[series.length - 1].value >= series[0].value : null;
-          const sparklineColor = weeklyUp === null ? '#9ca3af' : weeklyUp ? '#ef4444' : '#3b82f6';
+          // Korean market convention: rising is red, falling is blue — matching
+          // `changeColor` above. Deliberately not the gain/loss green used on
+          // position tables.
+          const sparklineColor =
+            weeklyUp === null ? 'var(--gk-ink-faint)' : weeklyUp ? 'var(--gk-loss)' : 'var(--gk-accent)';
           return (
             <div key={index.symbol} className="flex flex-col">
-              <span className="text-xs text-gray-500 font-medium">{index.name}</span>
-              <span className="text-sm font-bold text-gray-900">{formatValue(index)}</span>
+              <span className="text-xs text-ink-faint font-medium">{index.name}</span>
+              <span className="text-sm font-bold text-ink">{formatValue(index)}</span>
               {index.change !== null && (
                 <span className={`text-xs ${changeColor}`}>
                   {formatChange(index.change, index.changeRate)}
                 </span>
               )}
-              <span className="text-xs text-gray-400 mt-0.5">{index.asOfDate}</span>
+              <span className="text-xs text-ink-faint mt-0.5">{index.asOfDate}</span>
               {series.length >= 2 && (
                 <div className="mt-1.5">
                   <Sparkline

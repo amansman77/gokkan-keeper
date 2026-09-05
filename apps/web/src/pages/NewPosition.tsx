@@ -57,7 +57,7 @@ export default function NewPosition() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">새 포지션 추가</h1>
+      <h1 className="text-3xl font-bold text-ink mb-8">새 포지션 추가</h1>
       <PositionForm
         granaries={granaries}
         initialData={initialData}

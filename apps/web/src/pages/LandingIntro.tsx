@@ -20,7 +20,7 @@ function PrimaryButton({ to, children }: { to: string; children: string }) {
   return (
     <Link
       to={to}
-      className="inline-flex items-center justify-center rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+      className="inline-flex items-center justify-center rounded-md bg-accent px-5 py-3 text-sm font-semibold text-accent-contrast transition hover:bg-accent-ink"
     >
       {children}
     </Link>
@@ -31,7 +31,7 @@ function SecondaryButton({ to, children }: { to: string; children: string }) {
   return (
     <Link
       to={to}
-      className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:text-slate-900"
+      className="inline-flex items-center justify-center rounded-md border border-line bg-surface px-5 py-3 text-sm font-semibold text-ink transition hover:border-ink-faint hover:text-ink"
     >
       {children}
     </Link>
@@ -40,20 +40,20 @@ function SecondaryButton({ to, children }: { to: string; children: string }) {
 
 function StatCard({ label, value, description }: { label: string; value: string; description?: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
-      {description ? <p className="mt-2 text-sm text-slate-600">{description}</p> : null}
+    <div className="rounded-lg border border-line-soft bg-surface p-5">
+      <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">{label}</p>
+      <p className="mt-2 text-2xl font-bold text-ink">{value}</p>
+      {description ? <p className="mt-2 text-sm text-ink-muted">{description}</p> : null}
     </div>
   );
 }
 
 function BulletList({ items }: { items: string[] }) {
   return (
-    <ul className="space-y-2 text-base leading-relaxed text-slate-700">
+    <ul className="space-y-2 text-base leading-relaxed text-ink-muted">
       {items.map((item) => (
         <li key={item} className="flex items-start gap-2">
-          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-700" aria-hidden />
+          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-gain" aria-hidden />
           <span>{item}</span>
         </li>
       ))}
@@ -64,13 +64,13 @@ function BulletList({ items }: { items: string[] }) {
 function HeroSection() {
   return (
     <section className="py-20">
-      <h1 className="text-4xl font-bold leading-tight text-slate-900 sm:text-5xl">
+      <h1 className="text-4xl font-bold leading-tight text-ink sm:text-5xl">
         투자에서 가장 어려운 건
         <br />
         종목 선택이 아닙니다.
       </h1>
-      <p className="mt-5 text-2xl font-semibold text-emerald-800">흔들리지 않는 구조입니다.</p>
-      <p className="mt-6 whitespace-pre-line text-lg leading-relaxed text-slate-700">
+      <p className="mt-5 text-2xl font-semibold text-gain">흔들리지 않는 구조입니다.</p>
+      <p className="mt-6 whitespace-pre-line text-lg leading-relaxed text-ink-muted">
         {`시장에 따라 사고 팔지만,\n구조 없이 버티는 투자는 오래가지 않습니다.\n\n${UI_TERMS.brandName}는\n중장기 포트폴리오를 유지하며\n시장 변동 속에서도 방향을 관리합니다.`}
       </p>
       <div className="mt-10 flex flex-col gap-3 sm:flex-row">
@@ -83,8 +83,8 @@ function HeroSection() {
 
 function EmpathySection() {
   return (
-    <section className="border-t border-slate-200 py-20">
-      <h2 className="text-2xl font-bold text-slate-900">이런 경험 있으신가요?</h2>
+    <section className="border-t border-line-soft py-20">
+      <h2 className="text-2xl font-bold text-ink">이런 경험 있으신가요?</h2>
       <div className="mt-6">
         <BulletList
           items={[
@@ -94,7 +94,7 @@ function EmpathySection() {
           ]}
         />
       </div>
-      <p className="mt-8 whitespace-pre-line text-lg leading-relaxed text-slate-800">
+      <p className="mt-8 whitespace-pre-line text-lg leading-relaxed text-ink">
         {'이건 실력이 부족해서가 아닙니다.\n구조가 없기 때문입니다.'}
       </p>
     </section>
@@ -103,8 +103,8 @@ function EmpathySection() {
 
 function MethodSection() {
   return (
-    <section className="border-t border-slate-200 py-20">
-      <h2 className="text-2xl font-bold text-slate-900">{UI_TERMS.brandName}의 방식</h2>
+    <section className="border-t border-line-soft py-20">
+      <h2 className="text-2xl font-bold text-ink">{UI_TERMS.brandName}의 방식</h2>
       <div className="mt-6">
         <BulletList
           items={[
@@ -114,7 +114,7 @@ function MethodSection() {
           ]}
         />
       </div>
-      <p className="mt-8 whitespace-pre-line text-lg leading-relaxed text-slate-800">
+      <p className="mt-8 whitespace-pre-line text-lg leading-relaxed text-ink">
         {'예측하지 않습니다.\n구조를 유지합니다.'}
       </p>
     </section>
@@ -176,8 +176,8 @@ function TrackRecordSummary() {
   const weightedReturnText = useMemo(() => formatPercent(data?.weightedAverageReturn ?? null), [data]);
 
   return (
-    <section className="border-t border-slate-200 py-20">
-      <h2 className="text-2xl font-bold text-slate-900">말이 아니라 기록입니다.</h2>
+    <section className="border-t border-line-soft py-20">
+      <h2 className="text-2xl font-bold text-ink">말이 아니라 기록입니다.</h2>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           label="공개 포지션 수"
@@ -193,7 +193,7 @@ function TrackRecordSummary() {
           description={data?.snapshotReferenceText}
         />
       </div>
-      {error ? <p className="mt-4 text-sm text-rose-700">{error}</p> : null}
+      {error ? <p className="mt-4 text-sm text-loss">{error}</p> : null}
       <div className="mt-8">
         <SecondaryButton to="/judgment-diary">전체 판단일지 보기</SecondaryButton>
       </div>
@@ -205,11 +205,11 @@ function DualCTASection() {
   const { authenticated } = useAuth();
 
   return (
-    <section className="border-t border-slate-200 py-20">
+    <section className="border-t border-line-soft py-20">
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-6">
-          <h3 className="text-xl font-bold text-slate-900">직접 기록해보세요</h3>
-          <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-700">
+        <div className="flex h-full flex-col rounded-xl border border-line-soft bg-surface p-6">
+          <h3 className="text-xl font-bold text-ink">직접 기록해보세요</h3>
+          <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink-muted">
             {'계좌 연결 없이\n판단과 비중만 기록할 수 있습니다.'}
           </p>
           <div className="mt-auto pt-6">
@@ -219,12 +219,12 @@ function DualCTASection() {
           </div>
         </div>
 
-        <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-6">
-          <h3 className="text-xl font-bold text-slate-900">구조 설계가 필요하다면</h3>
-          <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-700">
+        <div className="flex h-full flex-col rounded-xl border border-line-soft bg-surface p-6">
+          <h3 className="text-xl font-bold text-ink">구조 설계가 필요하다면</h3>
+          <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink-muted">
             {'현재 포트폴리오의\n구조와 중장기 기준을 점검해드립니다.'}
           </p>
-          <div className="mt-4 space-y-1 text-sm text-slate-700">
+          <div className="mt-4 space-y-1 text-sm text-ink-muted">
             <p>무료 1회</p>
             <p>중장기 중심</p>
             <p>단기 매매 조언 없음</p>
@@ -247,7 +247,7 @@ export default function LandingIntro() {
   }, []);
 
   return (
-    <div className="bg-slate-50">
+    <div className="bg-surface-2">
       <div className="mx-auto max-w-[960px] px-5">
         <HeroSection />
         <EmpathySection />

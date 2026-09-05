@@ -44,8 +44,8 @@ export default function JudgmentDiaryList() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">판단일지</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold text-ink">판단일지</h1>
+          <p className="text-ink-muted">
             추세 투자자가 시장을 대하는 태도를 기록하는 아카이브입니다.
             <br />
             매수·매도라는 결과보다 그 판단을 만든 철학과 태도가 먼저 읽히도록 구성했습니다.
@@ -56,20 +56,20 @@ export default function JudgmentDiaryList() {
         {authenticated ? (
           <Link
             to="/judgment-diary/new"
-            className="inline-flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            className="inline-flex items-center justify-center bg-accent text-accent-contrast px-4 py-2 rounded-md hover:bg-accent-ink"
           >
             새 판단일지
           </Link>
         ) : null}
       </div>
 
-      <div className="bg-white rounded-lg shadow p-4 grid grid-cols-1 gap-4">
+      <div className="bg-surface rounded-lg shadow p-4 grid grid-cols-1 gap-4">
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Action</label>
+          <label className="block text-xs font-medium text-ink-faint mb-1">Action</label>
           <select
             value={action}
             onChange={(e) => setAction(e.target.value as JudgmentDiaryEntry['action'] | '')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-3 py-2 border border-line rounded-md"
           >
             <option value="">전체</option>
             {JUDGMENT_ACTIONS.map((item) => (
@@ -82,16 +82,16 @@ export default function JudgmentDiaryList() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
-        <Link to="/archive" className="text-blue-600 hover:underline">공개 기록 보기</Link>
-        <Link to="/judgment-diary/principles" className="text-blue-600 hover:underline">판단 원칙 보기</Link>
+        <Link to="/archive" className="text-accent hover:underline">공개 기록 보기</Link>
+        <Link to="/judgment-diary/principles" className="text-accent hover:underline">판단 원칙 보기</Link>
       </div>
 
       {loading ? (
-        <div className="text-gray-600">로딩 중...</div>
+        <div className="text-ink-muted">로딩 중...</div>
       ) : error ? (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 text-red-800">{error}</div>
+        <div className="bg-loss-tint border border-loss rounded-md p-4 text-loss">{error}</div>
       ) : entries.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">아직 등록된 판단일지가 없습니다.</div>
+        <div className="text-center py-16 text-ink-faint">아직 등록된 판단일지가 없습니다.</div>
       ) : (
         <div className="space-y-6">
           {entries.map((entry) => (

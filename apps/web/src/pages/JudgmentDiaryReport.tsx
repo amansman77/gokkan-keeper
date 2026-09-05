@@ -51,16 +51,16 @@ export default function JudgmentDiaryReport() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">{monthLabel} 투자 판단 리포트</h1>
-        <p className="text-gray-600">{monthLabel}에 기록된 판단일지를 모아 태도의 흐름을 요약합니다.</p>
+        <h1 className="text-3xl font-bold text-ink">{monthLabel} 투자 판단 리포트</h1>
+        <p className="text-ink-muted">{monthLabel}에 기록된 판단일지를 모아 태도의 흐름을 요약합니다.</p>
       </div>
 
       {loading ? (
-        <div className="text-gray-600">로딩 중...</div>
+        <div className="text-ink-muted">로딩 중...</div>
       ) : error ? (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 text-red-800">{error}</div>
+        <div className="bg-loss-tint border border-loss rounded-md p-4 text-loss">{error}</div>
       ) : entries.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">해당 월에 기록이 없습니다.</div>
+        <div className="text-center py-16 text-ink-faint">해당 월에 기록이 없습니다.</div>
       ) : (
         <div className="space-y-6">
           {entries.map((entry) => (
@@ -71,7 +71,7 @@ export default function JudgmentDiaryReport() {
 
       <Link
         to="/judgment-diary"
-        className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+        className="inline-flex items-center justify-center px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
       >
         전체 판단일지
       </Link>

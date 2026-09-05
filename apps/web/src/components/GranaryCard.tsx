@@ -17,14 +17,14 @@ export default function GranaryCard({ granary }: GranaryCardProps) {
   return (
     <Link
       to={`/granaries/${granary.id}`}
-      className="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6"
+      className="block bg-surface rounded-lg shadow hover:shadow-md transition-shadow p-6"
     >
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-xl font-semibold text-gray-900">{granary.name}</h3>
-          <p className="text-sm text-gray-600 mt-1">{granary.purpose}</p>
+          <h3 className="text-xl font-semibold text-ink">{granary.name}</h3>
+          <p className="text-sm text-ink-muted mt-1">{granary.purpose}</p>
         </div>
-        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+        <span className="text-xs text-ink-faint bg-surface-2 px-2 py-1 rounded">
           {granary.currency}
         </span>
       </div>
@@ -32,17 +32,17 @@ export default function GranaryCard({ granary }: GranaryCardProps) {
       {granary.latestSnapshot ? (
         <div className="space-y-2">
           <div className="flex justify-between items-baseline">
-            <span className="text-sm text-gray-600">최신 기록</span>
-            <span className="text-2xl font-bold text-gray-900">
+            <span className="text-sm text-ink-muted">최신 기록</span>
+            <span className="text-2xl font-bold text-ink">
               {formatCurrency(granary.latestSnapshot.totalAmount, granary.currency)}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-ink-faint">
               {formatDate(granary.latestSnapshot.date)}
             </p>
             {comparison && (
-              <div className={`text-sm font-medium ${comparison.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`text-sm font-medium ${comparison.isPositive ? 'text-gain' : 'text-loss'}`}>
                 {comparison.isPositive ? '+' : ''}{formatCurrency(comparison.amountDiff, granary.currency)} ({comparison.isPositive ? '+' : ''}{comparison.percentDiff.toFixed(1)}%)
               </div>
             )}
@@ -50,7 +50,7 @@ export default function GranaryCard({ granary }: GranaryCardProps) {
         </div>
       ) : (
         <div className="text-center py-4">
-          <p className="text-sm text-gray-500">아직 스냅샷이 없습니다</p>
+          <p className="text-sm text-ink-faint">아직 스냅샷이 없습니다</p>
         </div>
       )}
     </Link>

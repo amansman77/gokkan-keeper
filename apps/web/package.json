@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@gokkan-keeper/shared": "workspace:*",
+    "pretendard": "^1.3.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",

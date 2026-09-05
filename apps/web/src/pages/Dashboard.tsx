@@ -38,25 +38,25 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-gray-600">로딩 중...</div>
+        <div className="text-ink-muted">로딩 중...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <p className="text-red-800 font-semibold mb-2">오류 발생</p>
-        <p className="text-red-700 text-sm">{error}</p>
+      <div className="bg-loss-tint border border-loss rounded-md p-4">
+        <p className="text-loss font-semibold mb-2">오류 발생</p>
+        <p className="text-loss text-sm">{error}</p>
         {import.meta.env.DEV ? (
-          <div className="mt-4 text-xs text-red-600">
+          <div className="mt-4 text-xs text-loss">
             <p>API URL: {API_BASE_URL}</p>
             <p>Raw env: {import.meta.env.VITE_API_BASE_URL || '(undefined)'}</p>
           </div>
         ) : null}
         <button
           onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+          className="mt-4 px-4 py-2 bg-loss text-accent-contrast rounded-md hover:bg-loss text-sm"
         >
           다시 시도
         </button>
@@ -89,14 +89,14 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div className="flex justify-between items-start gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">곳간 목록</h1>
-          <p className="text-gray-600">목적별로 정리된 자산을 확인하세요</p>
+          <h1 className="text-3xl font-bold text-ink mb-2">곳간 목록</h1>
+          <p className="text-ink-muted">목적별로 정리된 자산을 확인하세요</p>
         </div>
         {granaries.length > 0 && (
           <button
             onClick={handleDownloadAll}
             disabled={downloading}
-            className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-60 whitespace-nowrap"
+            className="px-4 py-2 text-sm text-ink-muted border border-line rounded-md hover:bg-surface-2 disabled:opacity-60 whitespace-nowrap"
           >
             {downloading ? '다운로드 중...' : 'JSON 다운로드'}
           </button>
@@ -109,10 +109,10 @@ export default function Dashboard() {
 
       {granaries.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">아직 등록된 곳간이 없습니다.</p>
+          <p className="text-ink-faint mb-4">아직 등록된 곳간이 없습니다.</p>
           <Link
             to="/granaries/new"
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-md font-medium hover:bg-blue-700"
+            className="inline-block bg-accent text-accent-contrast px-6 py-3 rounded-md font-medium hover:bg-accent-ink"
           >
             첫 번째 곳간 만들기
           </Link>

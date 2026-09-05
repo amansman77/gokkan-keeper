@@ -36,16 +36,16 @@ export default function EditJudgmentDiary() {
   };
 
   if (loading) {
-    return <div className="text-gray-600">로딩 중...</div>;
+    return <div className="text-ink-muted">로딩 중...</div>;
   }
 
   if (error || !entry) {
-    return <div className="bg-red-50 border border-red-200 rounded-md p-4 text-red-800">{error || '데이터 없음'}</div>;
+    return <div className="bg-loss-tint border border-loss rounded-md p-4 text-loss">{error || '데이터 없음'}</div>;
   }
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">판단일지 수정</h1>
+      <h1 className="text-3xl font-bold text-ink mb-8">판단일지 수정</h1>
       <JudgmentDiaryForm
         initialValue={entry}
         onSubmit={handleSubmit}

@@ -96,11 +96,11 @@ export default function NewSnapshot() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">새 스냅샷 추가</h1>
+      <h1 className="text-3xl font-bold text-ink mb-8">새 스냅샷 추가</h1>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-surface rounded-lg shadow p-6 space-y-6">
         <div>
-          <label htmlFor="granaryId" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="granaryId" className="block text-sm font-medium text-ink-muted mb-2">
             곳간
           </label>
           <select
@@ -108,7 +108,7 @@ export default function NewSnapshot() {
             required
             value={formData.granaryId}
             onChange={(e) => applyLatestSnapshotDefaults(e.target.value, granaries)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
             disabled={!!granaryIdParam}
           >
             <option value="">곳간을 선택하세요</option>
@@ -121,7 +121,7 @@ export default function NewSnapshot() {
         </div>
 
         <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="date" className="block text-sm font-medium text-ink-muted mb-2">
             날짜
           </label>
           <input
@@ -130,15 +130,15 @@ export default function NewSnapshot() {
             required
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
 
         <div>
-          <label htmlFor="totalAmount" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="totalAmount" className="block text-sm font-medium text-ink-muted mb-2">
             총 평가 금액
             {!isTotalAmountManual && formData.availableBalance !== undefined && formData.profitLoss !== undefined && (
-              <span className="ml-2 text-xs text-gray-500">(자동 계산됨)</span>
+              <span className="ml-2 text-xs text-ink-faint">(자동 계산됨)</span>
             )}
           </label>
           <input
@@ -153,7 +153,7 @@ export default function NewSnapshot() {
               setIsProfitLossManual(false);
               setFormData({ ...formData, totalAmount: parseFloat(e.target.value) || 0 });
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           />
           {isTotalAmountManual && (
             <button
@@ -167,7 +167,7 @@ export default function NewSnapshot() {
                   }
                 }
               }}
-              className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+              className="mt-2 text-sm text-accent hover:text-accent-ink"
             >
               자동 계산으로 되돌리기
             </button>
@@ -175,7 +175,7 @@ export default function NewSnapshot() {
         </div>
 
         <div>
-          <label htmlFor="availableBalance" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="availableBalance" className="block text-sm font-medium text-ink-muted mb-2">
             예수금 (선택)
           </label>
           <input
@@ -185,15 +185,15 @@ export default function NewSnapshot() {
             step="0.01"
             value={formData.availableBalance ?? ''}
             onChange={(e) => setFormData({ ...formData, availableBalance: e.target.value ? parseFloat(e.target.value) : undefined })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
 
         <div>
-          <label htmlFor="profitLoss" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="profitLoss" className="block text-sm font-medium text-ink-muted mb-2">
             평가 손익 (선택)
             {isTotalAmountManual && !isProfitLossManual && formData.availableBalance !== undefined && (
-              <span className="ml-2 text-xs text-gray-500">(자동 계산됨)</span>
+              <span className="ml-2 text-xs text-ink-faint">(자동 계산됨)</span>
             )}
           </label>
           <input
@@ -206,14 +206,14 @@ export default function NewSnapshot() {
               setIsTotalAmountManual(false);
               setFormData({ ...formData, profitLoss: e.target.value ? parseFloat(e.target.value) : undefined });
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
             placeholder="양수: 수익, 음수: 손실"
           />
           {isTotalAmountManual && isProfitLossManual && formData.availableBalance !== undefined && (
             <button
               type="button"
               onClick={() => setIsProfitLossManual(false)}
-              className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+              className="mt-2 text-sm text-accent hover:text-accent-ink"
             >
               자동 계산으로 되돌리기
             </button>
@@ -232,7 +232,7 @@ export default function NewSnapshot() {
                   setIsTotalAmountManual(false);
                   setFormData((prev) => ({ ...prev, profitLoss: positionProfitLossTotal }));
                 }}
-                className="mt-2 text-sm text-emerald-600 hover:text-emerald-800"
+                className="mt-2 text-sm text-gain hover:text-gain"
               >
                 포지션 합산 적용 ({formatCurrency(positionProfitLossTotal, selectedGranary.currency)})
               </button>
@@ -241,7 +241,7 @@ export default function NewSnapshot() {
         </div>
 
         <div>
-          <label htmlFor="memo" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="memo" className="block text-sm font-medium text-ink-muted mb-2">
             메모 (선택)
           </label>
           <textarea
@@ -249,14 +249,14 @@ export default function NewSnapshot() {
             rows={3}
             value={formData.memo || ''}
             onChange={(e) => setFormData({ ...formData, memo: e.target.value || undefined })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
             placeholder="간단한 메모를 남기세요"
           />
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-red-800 text-sm">{error}</p>
+          <div className="bg-loss-tint border border-loss rounded-md p-4">
+            <p className="text-loss text-sm">{error}</p>
           </div>
         )}
 
@@ -264,14 +264,14 @@ export default function NewSnapshot() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            className="flex-1 px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
           >
             취소
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="flex-1 px-4 py-2 bg-accent text-accent-contrast rounded-md hover:bg-accent-ink disabled:opacity-50"
           >
             {loading ? '생성 중...' : '추가하기'}
           </button>

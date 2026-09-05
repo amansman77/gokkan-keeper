@@ -3,14 +3,16 @@
 곳간지기의 색·타이포 기준입니다. 새 화면을 만들거나 기존 화면을 손볼 때
 임의로 색과 폰트를 고르지 말고 이 문서의 토큰을 사용하세요.
 
-> **⚠️ 구현 상태 (2026-09-05): 이 문서는 합의된 목표 디자인이고, 코드에는 아직 반영되지 않았습니다.**
+> **구현 상태 (2026-09-05): 적용 완료.** `apps/web` 전체가 이 토큰을 사용합니다.
+> 원시 Tailwind 팔레트 클래스(`blue-600`, `gray-500`, `bg-white` 등)와 하드코딩된
+> 색상값은 코드베이스에 **하나도 남아 있지 않습니다**. 새 UI를 만들 때도 원시
+> 팔레트를 다시 들이지 말고 아래 토큰 클래스를 쓰세요.
 >
-> 현재 `apps/web`은 Tailwind 기본 팔레트(`blue-600`, `gray-*` 등)와 시스템 폰트를
-> 그대로 쓰고 있습니다. `tailwind.config.js`의 `theme.extend`는 비어 있고,
-> Pretendard도 아직 번들되어 있지 않습니다. **아래의 `accent`/`gain` 같은 이름은
-> 지금 Tailwind 클래스로 존재하지 않으니 `bg-accent` 같은 클래스를 쓰면 조용히
-> 아무 스타일도 적용되지 않습니다.** 적용 작업을 할 때는 "구현 절차" 절을 먼저 읽으세요.
-> 마이그레이션이 끝나면 이 경고 블록을 지우고 상태를 갱신하세요.
+> 회귀 점검 (0이 나와야 정상):
+> ```bash
+> grep -rEo "[a-zA-Z:]+-(blue|gray|green|red|slate|amber|orange|yellow|indigo|purple|emerald|rose|sky|zinc|neutral|stone)-[0-9]+" apps/web/src --include="*.tsx" | wc -l
+> grep -rE "#[0-9a-fA-F]{6}" apps/web/src --include="*.tsx" | wc -l
+> ```
 
 승인된 시각 시안(실제 Pretendard를 심어 렌더링한 것):
 <https://claude.ai/code/artifact/18e6bf91-f934-415b-b7ce-ec04fb9fffe8>
@@ -43,7 +45,7 @@
 | `border-soft` | `#E9EDEC` | `#282E2F` | 표의 행 구분선 |
 | `ink` | `#15181A` | `#EAEDEC` | 본문 |
 | `ink-muted` | `#5F676A` | `#9EA7A8` | 보조 설명 |
-| `ink-faint` | `#939B9E` | `#6F797A` | 라벨, 비활성, 종목코드 |
+| `ink-faint` | `#666E71` | `#8A9496` | 라벨, 비활성, 종목코드. 시안의 `#939B9E`/`#6F797A`는 12–14px 표 헤더에서 대비 2.83:1/3.67:1로 WCAG AA 미달이라 실제 적용 시 조정했습니다 |
 | `accent` | `#1D5560` | `#6DA9B4` | **유일한 강조색.** 기본 버튼, 링크, 차트 선 |
 | `accent-tint` | `#E4EDEE` | `#1B3238` | 강조색 배경(칩 등) |
 | `accent-ink` | `#17454E` | `#8CC0CA` | tint 위에 얹는 글자색 |
@@ -54,6 +56,8 @@
 | `flow` | `#8A6212` | `#CBA453` | **입출금** — 성과가 아님을 표시 |
 | `flow-tint` | `#F5EEDD` | `#2D2717` | 입출금 배지 배경 |
 | `closed-tint` | `#EDEFEE` | `#212626` | 청산된 포지션 등 비활성 상태 |
+| `inverse` | `#15181A` | `#0B0D0D` | 의도적으로 반전된 표면(코드블록, 차트 툴팁) |
+| `inverse-ink` | `#F3F5F4` | `#EAEDEC` | `inverse` 위의 글자색 |
 
 `flow`(입출금)는 단순 장식이 아니라 **의미가 있는 색**입니다. 스냅샷 간 변동액에
 입출금이 섞여 있으면 그 값은 투자 성과가 아니므로, 이 색으로 구분해 표시합니다.
@@ -107,30 +111,43 @@
   `px-2 sm:px-4`로 줄입니다. 가로 스크롤로 칸이 잘려 보이지 않게 하는 것이 원칙입니다.
   (실제로 `관리` 칸이 화면 밖으로 밀려 안 보이던 버그가 있었습니다.)
 
-## 5. 구현 절차 (미완료)
+## 5. 사용법
 
-적용할 때 이 순서로 진행하세요.
+Tailwind 클래스 이름은 CSS 변수(`--gk-*`)를 가리킵니다. 정의는
+`apps/web/src/index.css`, 클래스 등록은 `apps/web/tailwind.config.js`입니다.
 
-1. **Pretendard 번들.** `pnpm --filter web add pretendard` 후 가변 폰트를 로컬에서
-   import 합니다. **CDN `<link>`를 쓰지 마세요** — 외부 의존성이 생기고, 이 저장소는
-   자체 호스팅 원칙입니다. `apps/web/src/index.css`의 `body` 폰트 스택을 교체하고
-   `font-variation-settings`로 굵기를 제어합니다.
-2. **토큰 정의.** 위 색표를 CSS 변수로 `index.css`에 넣되, 라이트는 맨 `:root`,
-   다크는 `@media (prefers-color-scheme: dark)`와 `:root[data-theme="dark"]` 양쪽에
-   정의합니다(둘 중 하나만 있으면 특정 조합에서 색이 깨집니다).
-3. **Tailwind 연결.** `tailwind.config.js`의 `theme.extend.colors`에 CSS 변수를
-   참조하는 이름(`accent`, `gain`, `loss`, `flow`, `ink` 등)을 등록해야
-   `bg-accent` 같은 클래스가 생성됩니다. 이 단계를 건너뛰면 클래스가 조용히 무시됩니다.
-4. **화면 치환.** 현재 하드코딩된 Tailwind 기본색을 토큰으로 바꿉니다. 대응표:
-   - `blue-600`(기본 버튼·링크) → `accent`
-   - `green-600`/`green-50` → `gain`/`gain-tint`
-   - `red-600`/`red-50` → `loss`/`loss-tint`
-   - `amber-700`/`amber-50`(입출금 배지) → `flow`/`flow-tint`
-   - `gray-900`/`gray-600`/`gray-400` → `ink`/`ink-muted`/`ink-faint`
-   - `bg-slate-50`(App 배경) → `bg`
-5. **판단일지 조판 분리.** `JudgmentDiaryDetail.tsx`와 `MarkdownContent.tsx`에
-   위 "판단일지 화면" 세팅(380 굵기·16.5px·1.88·44자)을 적용합니다.
-6. 마친 뒤 이 문서 상단의 구현 상태 경고를 갱신합니다.
+| 토큰 | 클래스 예 |
+| --- | --- |
+| 배경 | `bg-bg`, `bg-surface`, `bg-surface-2` |
+| 글자 | `text-ink`, `text-ink-muted`, `text-ink-faint` |
+| 선 | `border-line`, `border-line-soft`, `divide-line-soft` |
+| 강조 | `bg-accent`, `text-accent`, `bg-accent-tint`, `text-accent-ink`, `text-accent-contrast` |
+| 의미색 | `text-gain`, `bg-gain-tint`, `text-loss`, `bg-loss-tint`, `text-flow`, `bg-flow-tint` |
+| 반전 표면 | `bg-inverse`, `text-inverse-ink` |
+
+판단일지 조판은 `MarkdownContent`의 `variant` prop으로 전환합니다 —
+`variant="prose"`(본문), `variant="lead"`(요약). 기본값은 카드·미리보기에 쓰는
+압축 세팅입니다.
+
+### 적용하면서 걸렸던 함정
+
+새로 UI를 만들 때 같은 곳에 다시 빠지기 쉬운 것들입니다.
+
+- **`ch`는 한글 폭이 아닙니다.** `ch`는 숫자 `0` 글리프의 폭(여기선 약 10px)이라,
+  `44ch`로 잡으면 한글은 44자가 아니라 **31자**만 들어갑니다. 그래서 본문 폭은
+  `em`(한글 1자 ≈ 1em에 가까움)으로 잡아 `38em` = 실측 44자입니다.
+- **`color-scheme`이 없으면 다크에서 폼이 깨집니다.** 이게 없으면 브라우저가
+  `select`·`input[type=number]`를 라이트 기준(흰 배경)으로 그리는데 글자색은
+  토큰(밝은색)을 따라가서 **흰 배경에 흰 글자**가 됩니다. `:root`에
+  `color-scheme: light`, 다크 블록에 `color-scheme: dark`가 반드시 필요합니다.
+- **SVG 프레젠테이션 속성에는 `var()`가 안 먹습니다.** `stroke="var(--gk-accent)"`는
+  적용되지 않습니다. 부모에 `style={{ color }}`로 CSS 선언을 주고 도형은
+  `stroke="currentColor"`로 상속받게 하세요 (`Sparkline.tsx` 참고).
+- **폰트는 dynamic-subset으로 넣습니다.** 단일 파일(약 2MB) 대신 유니코드 범위별로
+  쪼갠 빌드를 import 하면, 실제 페이지 로드에서는 필요한 범위만 받습니다
+  (측정값: 92개 중 11개 · 77KB).
+- **시장 지수 위젯은 한국식 색(상승 빨강 / 하락 파랑)** 을 씁니다. 포지션 표의
+  gain(초록)/loss(빨강)과 방향이 다르니, 통일하려면 의도적으로 결정해야 합니다.
 
 ## 6. 관련 문서
 

@@ -31,7 +31,7 @@ export default function Sparkline({ points, width = 72, height = 24, color, form
   }, [points, width, height]);
 
   if (points.length < 2) {
-    return <div className="text-xs text-gray-300" style={{ width, height }} />;
+    return <div className="text-xs text-ink-faint" style={{ width, height }} />;
   }
 
   const hovered = hoverIndex !== null ? points[hoverIndex] : null;
@@ -46,7 +46,10 @@ export default function Sparkline({ points, width = 72, height = 24, color, form
   }
 
   return (
-    <div className="relative inline-block" style={{ width, height }}>
+    // `color` may be a CSS variable (e.g. var(--gk-accent)). A var() does not
+    // resolve inside an SVG presentation attribute, so it is set here as a real
+    // CSS declaration and the shapes below inherit it via currentColor.
+    <div className="relative inline-block" style={{ width, height, color }}>
       <svg
         width={width}
         height={height}
@@ -58,17 +61,18 @@ export default function Sparkline({ points, width = 72, height = 24, color, form
         onTouchMove={(e) => updateHoverFromClientX(e.currentTarget, e.touches[0].clientX)}
         onTouchEnd={() => setHoverIndex(null)}
       >
-        <path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        <path d={path} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
         {hoveredCoord && (
           <>
-            <line x1={hoveredCoord.x} y1={0} x2={hoveredCoord.x} y2={height} stroke={color} strokeWidth={1} strokeOpacity={0.25} />
-            <circle cx={hoveredCoord.x} cy={hoveredCoord.y} r={2.5} fill={color} stroke="white" strokeWidth={1} />
+            <line x1={hoveredCoord.x} y1={0} x2={hoveredCoord.x} y2={height} stroke="currentColor" strokeWidth={1} strokeOpacity={0.25} />
+            {/* halo keeps the dot readable against the card it sits on */}
+            <circle cx={hoveredCoord.x} cy={hoveredCoord.y} r={2.5} fill="currentColor" className="stroke-surface" strokeWidth={1} />
           </>
         )}
       </svg>
       {hovered && hoveredCoord && (
         <div
-          className="absolute z-10 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-1.5 py-0.5 text-[10px] text-white shadow"
+          className="absolute z-10 -translate-x-1/2 whitespace-nowrap rounded bg-inverse px-1.5 py-0.5 text-[10px] text-inverse-ink shadow"
           style={{
             left: Math.min(Math.max(hoveredCoord.x, 20), width - 20),
             top: -22,

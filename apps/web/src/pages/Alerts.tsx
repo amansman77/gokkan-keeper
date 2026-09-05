@@ -24,9 +24,9 @@ function ruleTypeEmoji(ruleId: string): string {
 }
 
 const PRIORITY_STYLE: Record<string, string> = {
-  P0: 'bg-red-100 text-red-700',
-  P1: 'bg-orange-100 text-orange-700',
-  P2: 'bg-yellow-100 text-yellow-700',
+  P0: 'bg-loss-tint text-loss',
+  P1: 'bg-flow-tint text-flow',
+  P2: 'bg-flow-tint text-flow',
 };
 
 export default function Alerts() {
@@ -51,16 +51,16 @@ export default function Alerts() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-gray-600">로딩 중...</div>
+        <div className="text-ink-muted">로딩 중...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <p className="text-red-800 font-semibold mb-2">오류 발생</p>
-        <p className="text-red-700 text-sm">{error}</p>
+      <div className="bg-loss-tint border border-loss rounded-md p-4">
+        <p className="text-loss font-semibold mb-2">오류 발생</p>
+        <p className="text-loss text-sm">{error}</p>
       </div>
     );
   }
@@ -68,36 +68,36 @@ export default function Alerts() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">알림</h1>
-        <p className="text-gray-600">알림 트리거를 관리하고, 발송된 알림 이력을 확인합니다</p>
+        <h1 className="text-3xl font-bold text-ink mb-2">알림</h1>
+        <p className="text-ink-muted">알림 트리거를 관리하고, 발송된 알림 이력을 확인합니다</p>
       </div>
 
       <AlertThresholdManager />
       <WeeklyReportSettings />
 
       {alerts.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">아직 발송된 알림이 없습니다.</div>
+        <div className="text-center py-12 text-ink-faint">아직 발송된 알림이 없습니다.</div>
       ) : (
-        <div className="bg-white rounded-lg shadow divide-y divide-gray-100">
+        <div className="bg-surface rounded-lg shadow divide-y divide-line-soft">
           {alerts.map((alert) => (
             <div key={alert.id} className="p-4 flex items-start gap-3">
               <span className="text-lg leading-none mt-0.5">{ruleTypeEmoji(alert.ruleId)}</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded ${PRIORITY_STYLE[alert.priority] ?? 'bg-gray-100 text-gray-600'}`}
+                    className={`text-xs font-semibold px-2 py-0.5 rounded ${PRIORITY_STYLE[alert.priority] ?? 'bg-surface-2 text-ink-muted'}`}
                   >
                     {alert.priority}
                   </span>
-                  <span className="font-medium text-gray-900">{ruleTitle(alert.ruleId)}</span>
-                  <span className="text-sm text-gray-700">
+                  <span className="font-medium text-ink">{ruleTitle(alert.ruleId)}</span>
+                  <span className="text-sm text-ink-muted">
                     {symbolNames[alert.symbol] ? `${symbolNames[alert.symbol]} ` : ''}
-                    <span className="text-gray-400">({alert.symbol})</span>
+                    <span className="text-ink-faint">({alert.symbol})</span>
                   </span>
                 </div>
-                {alert.action && <p className="text-sm text-gray-600 mt-1">{alert.action}</p>}
+                {alert.action && <p className="text-sm text-ink-muted mt-1">{alert.action}</p>}
               </div>
-              <span className="text-xs text-gray-400 whitespace-nowrap">{alert.date}</span>
+              <span className="text-xs text-ink-faint whitespace-nowrap">{alert.date}</span>
             </div>
           ))}
         </div>

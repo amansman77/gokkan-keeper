@@ -72,7 +72,7 @@ export default function EditSnapshot() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-gray-600">로딩 중...</div>
+        <div className="text-ink-muted">로딩 중...</div>
       </div>
     );
   }
@@ -80,11 +80,11 @@ export default function EditSnapshot() {
   if (error || !snapshot) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <p className="text-red-800">{error || '스냅샷을 찾을 수 없습니다.'}</p>
+        <div className="bg-loss-tint border border-loss rounded-md p-4">
+          <p className="text-loss">{error || '스냅샷을 찾을 수 없습니다.'}</p>
           <button
             onClick={() => navigate(-1)}
-            className="text-blue-600 hover:underline mt-2 inline-block"
+            className="text-accent hover:underline mt-2 inline-block"
           >
             돌아가기
           </button>
@@ -100,24 +100,24 @@ export default function EditSnapshot() {
       <div className="mb-4">
         <button
           onClick={() => navigate(`/granaries/${snapshot.granaryId}`)}
-          className="text-blue-600 hover:underline"
+          className="text-accent hover:underline"
         >
           ← 돌아가기
         </button>
       </div>
 
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">스냅샷 수정</h1>
+      <h1 className="text-3xl font-bold text-ink mb-8">스냅샷 수정</h1>
 
       {granary && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600">곳간</p>
+        <div className="mb-6 p-4 bg-surface-2 rounded-lg">
+          <p className="text-sm text-ink-muted">곳간</p>
           <p className="font-medium">{granary.name} ({granary.purpose})</p>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-surface rounded-lg shadow p-6 space-y-6">
         <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="date" className="block text-sm font-medium text-ink-muted mb-2">
             날짜
           </label>
           <input
@@ -126,12 +126,12 @@ export default function EditSnapshot() {
             required
             value={formData.date || ''}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
 
         <div>
-          <label htmlFor="totalAmount" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="totalAmount" className="block text-sm font-medium text-ink-muted mb-2">
             총 평가 금액
           </label>
           <input
@@ -142,12 +142,12 @@ export default function EditSnapshot() {
             step="0.01"
             value={formData.totalAmount || ''}
             onChange={(e) => setFormData({ ...formData, totalAmount: parseFloat(e.target.value) || 0 })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
 
         <div>
-          <label htmlFor="availableBalance" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="availableBalance" className="block text-sm font-medium text-ink-muted mb-2">
             예수금 (선택)
           </label>
           <input
@@ -157,19 +157,19 @@ export default function EditSnapshot() {
             step="0.01"
             value={formData.availableBalance ?? ''}
             onChange={(e) => setFormData({ ...formData, availableBalance: e.target.value ? parseFloat(e.target.value) : undefined })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <button
             type="button"
             onClick={() => setFormData({ ...formData, availableBalance: null })}
-            className="mt-2 text-sm text-gray-600 hover:text-gray-900"
+            className="mt-2 text-sm text-ink-muted hover:text-ink"
           >
             예수금 제거
           </button>
         </div>
 
         <div>
-          <label htmlFor="profitLoss" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="profitLoss" className="block text-sm font-medium text-ink-muted mb-2">
             평가 손익 (선택)
           </label>
           <input
@@ -178,20 +178,20 @@ export default function EditSnapshot() {
             step="0.01"
             value={formData.profitLoss ?? ''}
             onChange={(e) => setFormData({ ...formData, profitLoss: e.target.value ? parseFloat(e.target.value) : undefined })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
             placeholder="양수: 수익, 음수: 손실"
           />
           <button
             type="button"
             onClick={() => setFormData({ ...formData, profitLoss: null })}
-            className="mt-2 text-sm text-gray-600 hover:text-gray-900"
+            className="mt-2 text-sm text-ink-muted hover:text-ink"
           >
             평가 손익 제거
           </button>
         </div>
 
         <div>
-          <label htmlFor="memo" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="memo" className="block text-sm font-medium text-ink-muted mb-2">
             메모 (선택)
           </label>
           <textarea
@@ -199,21 +199,21 @@ export default function EditSnapshot() {
             rows={3}
             value={formData.memo || ''}
             onChange={(e) => setFormData({ ...formData, memo: e.target.value || undefined })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
             placeholder="간단한 메모를 남기세요"
           />
           <button
             type="button"
             onClick={() => setFormData({ ...formData, memo: null })}
-            className="mt-2 text-sm text-gray-600 hover:text-gray-900"
+            className="mt-2 text-sm text-ink-muted hover:text-ink"
           >
             메모 제거
           </button>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-red-800 text-sm">{error}</p>
+          <div className="bg-loss-tint border border-loss rounded-md p-4">
+            <p className="text-loss text-sm">{error}</p>
           </div>
         )}
 
@@ -221,14 +221,14 @@ export default function EditSnapshot() {
           <button
             type="button"
             onClick={() => navigate(`/granaries/${snapshot.granaryId}`)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            className="flex-1 px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
           >
             취소
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="flex-1 px-4 py-2 bg-accent text-accent-contrast rounded-md hover:bg-accent-ink disabled:opacity-50"
           >
             {saving ? '저장 중...' : '저장하기'}
           </button>

@@ -17,10 +17,12 @@ Canonical Korean UI labels that mirror the glossary live in
 `apps/web/src/lib/terminology.ts`; reuse them instead of introducing synonyms.
 
 [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) is the source of truth for color
-and typography. Read it before choosing a color, font, or weight for any UI work.
-Note its implementation-status banner: the tokens are agreed but not yet wired
-into `tailwind.config.js`, so names like `accent` are not usable Tailwind classes
-until that migration happens.
+and typography, and it is fully applied: every screen uses its tokens
+(`bg-surface`, `text-ink`, `border-line`, `text-gain`/`text-loss`/`text-flow`,
+…) and no raw Tailwind palette class or hardcoded hex remains in `apps/web/src`.
+Read it before choosing a color, font, or weight, and do not reintroduce raw
+palette classes — they would keep a fixed light-theme color while the tokens
+around them flip, which is how dark mode breaks.
 
 ## Workspace map
 

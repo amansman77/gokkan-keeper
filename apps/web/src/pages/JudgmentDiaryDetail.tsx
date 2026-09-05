@@ -122,23 +122,25 @@ export default function JudgmentDiaryDetail() {
   }, [entry, location.pathname]);
 
   if (loading) {
-    return <div className="text-gray-600">로딩 중...</div>;
+    return <div className="text-ink-muted">로딩 중...</div>;
   }
 
   if (error || !entry) {
-    return <div className="bg-red-50 border border-red-200 rounded-md p-4 text-red-800">{error || '데이터 없음'}</div>;
+    return <div className="bg-loss-tint border border-loss rounded-md p-4 text-loss">{error || '데이터 없음'}</div>;
   }
 
   return (
-    <div className="space-y-6">
+    // A reading page, so the column hugs the prose measure instead of filling
+    // the wide shell the data screens use.
+    <div className="space-y-6 max-w-3xl">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{entry.title}</h1>
+          <h1 className="text-3xl font-bold text-ink">{entry.title}</h1>
         </div>
         {authenticated ? (
           <Link
             to={`/judgment-diary/${entry.id}/edit`}
-            className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            className="inline-flex items-center justify-center px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
           >
             수정
           </Link>
@@ -148,40 +150,40 @@ export default function JudgmentDiaryDetail() {
       <div className="flex flex-wrap gap-3">
         <Link
           to="/judgment-diary"
-          className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          className="inline-flex items-center justify-center px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
         >
           전체 판단일지
         </Link>
         <Link
           to="/archive"
-          className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          className="inline-flex items-center justify-center px-4 py-2 border border-line rounded-md text-ink-muted hover:bg-surface-2"
         >
           공개 기록 보기
         </Link>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6 space-y-6">
+      <div className="bg-surface rounded-lg shadow p-6 space-y-6">
         <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">한 줄 판단</h2>
-          <MarkdownContent content={entry.summary} />
+          <h2 className="text-lg font-semibold text-ink mb-2">한 줄 판단</h2>
+          <MarkdownContent content={entry.summary} variant="lead" />
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">작성일</h2>
-          <p className="text-gray-700">{formatWrittenDate(entry.createdAt)}</p>
+          <h2 className="text-lg font-semibold text-ink mb-2">작성일</h2>
+          <p className="text-ink-muted">{formatWrittenDate(entry.createdAt)}</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">본문</h2>
-          <MarkdownContent content={entry.mainContent} />
+          <h2 className="text-lg font-semibold text-ink mb-2">본문</h2>
+          <MarkdownContent content={entry.mainContent} variant="prose" />
         </section>
 
         {keywords.length > 0 ? (
           <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">핵심 키워드</h2>
+            <h2 className="text-lg font-semibold text-ink mb-2">핵심 키워드</h2>
             <div className="flex flex-wrap gap-2">
               {keywords.map((keyword) => (
-                <span key={keyword} className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">
+                <span key={keyword} className="inline-flex rounded-full bg-surface-2 px-3 py-1 text-sm text-ink-muted">
                   {keyword}
                 </span>
               ))}
@@ -190,7 +192,7 @@ export default function JudgmentDiaryDetail() {
         ) : null}
 
         {entry.disclaimerVisible && (
-          <section className="border-t pt-6 text-sm text-gray-500 space-y-1">
+          <section className="border-t pt-6 text-sm text-ink-faint space-y-1">
             <p>본 기록은 개인의 판단 과정을 정리한 것이며 투자 권유가 아닙니다.</p>
             <p>모든 투자의 책임은 본인에게 있습니다.</p>
           </section>
@@ -198,12 +200,12 @@ export default function JudgmentDiaryDetail() {
       </div>
 
       {relatedEntries.length > 0 ? (
-        <section className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">관련 판단일지</h2>
+        <section className="bg-surface rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-ink mb-3">관련 판단일지</h2>
           <ul className="space-y-2">
             {relatedEntries.map((item) => (
               <li key={item.id}>
-                <Link to={`/judgment-diary/${item.id}`} className="text-sm text-gray-800 hover:text-blue-700 hover:underline">
+                <Link to={`/judgment-diary/${item.id}`} className="text-sm text-ink hover:text-accent-ink hover:underline">
                   {item.title}
                 </Link>
               </li>
