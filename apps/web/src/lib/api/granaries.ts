@@ -14,7 +14,12 @@ export interface GranaryExportPayload {
   granary: Granary;
   latestSnapshot: Snapshot | null;
   positions: Position[];
-  indicators: Record<string, { '1d': TechnicalIndicatorResult | null; '1wk': TechnicalIndicatorResult | null }>;
+  indicators: Record<string, { '1d': TechnicalIndicatorResult[]; '1wk': TechnicalIndicatorResult[] }>;
+}
+
+export interface AllGranariesExportPayload {
+  exportedAt: string;
+  granaries: Omit<GranaryExportPayload, 'exportedAt'>[];
 }
 
 export const getGranaries = () =>
@@ -22,6 +27,8 @@ export const getGranaries = () =>
 export const getGranary = (id: string) => fetchPrivateApi<GranaryWithLatestSnapshot>(`/granaries/${id}`);
 export const getGranaryExport = (id: string) =>
   fetchPrivateApi<GranaryExportPayload>(`/granaries/${id}/export`);
+export const getAllGranariesExport = () =>
+  fetchPrivateApi<AllGranariesExportPayload>('/granaries/export');
 
 export const createGranary = (data: CreateGranary) =>
   fetchPrivateApi<Granary>('/granaries', {

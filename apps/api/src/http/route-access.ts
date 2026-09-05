@@ -22,6 +22,10 @@ export const API_ROUTE_PATHS = {
   positionsAlias: '/api/positions',
   alerts: '/alerts',
   alertRuns: '/alerts/run/',
+  alertThresholds: '/alert-thresholds',
+  settings: '/settings',
+  automation: '/automation',
+  cashFlows: '/cash-flows',
 } as const;
 
 function isPathOrDescendant(pathname: string, root: string): boolean {

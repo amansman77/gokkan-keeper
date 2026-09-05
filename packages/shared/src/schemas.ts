@@ -9,6 +9,7 @@ import {
   JUDGMENT_TIME_HORIZONS,
   JUDGMENT_STRATEGY_TAGS,
   JUDGMENT_REF_TYPES,
+  CASH_FLOW_TYPES,
 } from './constants';
 
 export const GranarySchema = z.object({
@@ -116,6 +117,7 @@ export const PositionSchema = z.object({
   currentValue: z.number().nullable().optional(),
   // Stored compatibility field; public allocation is currently derived by value.
   weightPercent: z.number().min(0).max(100).nullable().optional(),
+  targetWeightPercent: z.number().min(0).max(100).nullable().optional(),
   profitLoss: z.number().nullable().optional(),
   profitLossPercent: z.number().nullable().optional(),
   note: z.string().max(1000).nullable().optional(),
@@ -143,6 +145,7 @@ export const CreatePositionSchema = z.object({
   quantity: z.number().nullable().optional(),
   avgCost: z.number().nullable().optional(),
   currentValue: z.number().nullable().optional(),
+  targetWeightPercent: z.number().min(0).max(100).nullable().optional(),
   profitLoss: z.number().nullable().optional(),
   profitLossPercent: z.number().nullable().optional(),
   note: z.string().max(1000).nullable().optional(),
@@ -269,3 +272,53 @@ export type ConsultingRequestResult = z.infer<typeof ConsultingRequestResultSche
 export type Position = z.infer<typeof PositionSchema>;
 export type CreatePosition = z.infer<typeof CreatePositionSchema>;
 export type UpdatePosition = z.infer<typeof UpdatePositionSchema>;
+
+export const AlertThresholdSchema = z.object({
+  id: z.string().uuid(),
+  symbol: z.string().min(1).max(30),
+  label: z.string().min(1).max(60),
+  direction: z.enum(['below', 'above']),
+  threshold: z.number(),
+  enabled: z.boolean(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const CreateAlertThresholdSchema = z.object({
+  symbol: z.string().min(1).max(30),
+  label: z.string().min(1).max(60),
+  direction: z.enum(['below', 'above']),
+  threshold: z.number(),
+  enabled: z.boolean().optional().default(true),
+});
+
+export const UpdateAlertThresholdSchema = CreateAlertThresholdSchema.partial();
+
+export type AlertThreshold = z.infer<typeof AlertThresholdSchema>;
+export type CreateAlertThreshold = z.infer<typeof CreateAlertThresholdSchema>;
+export type UpdateAlertThreshold = z.infer<typeof UpdateAlertThresholdSchema>;
+
+export const CashFlowSchema = z.object({
+  id: z.string().uuid(),
+  granaryId: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  type: z.enum(CASH_FLOW_TYPES),
+  amount: z.number().positive(),
+  memo: z.string().max(500).nullable().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const CreateCashFlowSchema = z.object({
+  granaryId: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  type: z.enum(CASH_FLOW_TYPES),
+  amount: z.number().positive(),
+  memo: z.string().max(500).nullable().optional(),
+});
+
+export const UpdateCashFlowSchema = CreateCashFlowSchema.omit({ granaryId: true }).partial();
+
+export type CashFlow = z.infer<typeof CashFlowSchema>;
+export type CreateCashFlow = z.infer<typeof CreateCashFlowSchema>;
+export type UpdateCashFlow = z.infer<typeof UpdateCashFlowSchema>;

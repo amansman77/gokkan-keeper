@@ -11,6 +11,11 @@ export interface TechnicalIndicatorResult {
   diMinus: number | null;
 }
 
+export interface WeeklyPoint {
+  date: string;
+  value: number;
+}
+
 export interface MarketIndex {
   symbol: string;
   name: string;
@@ -18,6 +23,7 @@ export interface MarketIndex {
   change: number | null;
   changeRate: number | null;
   asOfDate: string;
+  weeklySeries: WeeklyPoint[];
 }
 
 export interface MarketIndicesResponse {

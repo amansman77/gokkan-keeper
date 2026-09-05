@@ -1,5 +1,9 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type {
+  AlertThreshold,
+  CashFlow,
+  CreateAlertThreshold,
+  CreateCashFlow,
   CreateGranary,
   CreateJudgmentDiaryEntry,
   CreatePosition,
@@ -10,6 +14,8 @@ import type {
   Position,
   PublicPortfolioResponse,
   Snapshot,
+  UpdateAlertThreshold,
+  UpdateCashFlow,
   UpdateGranary,
   UpdateJudgmentDiaryEntry,
   UpdatePosition,
@@ -20,18 +26,31 @@ import { GranaryRepository } from './repositories/granary-repository';
 import { JudgmentDiaryRepository } from './repositories/judgment-diary-repository';
 import { PositionRepository } from './repositories/position-repository';
 import { SnapshotRepository } from './repositories/snapshot-repository';
+import { AlertLogRepository } from './repositories/alert-log-repository';
+import type { AlertLogEntry } from './repositories/alert-log-repository';
+import { AlertThresholdRepository } from './repositories/alert-threshold-repository';
+import { SettingsRepository } from './repositories/settings-repository';
+import { CashFlowRepository } from './repositories/cash-flow-repository';
 
 export class DBClient {
   private readonly granaries: GranaryRepository;
   private readonly snapshots: SnapshotRepository;
   private readonly positions: PositionRepository;
   private readonly judgmentDiary: JudgmentDiaryRepository;
+  private readonly alertLog: AlertLogRepository;
+  private readonly alertThresholds: AlertThresholdRepository;
+  private readonly settings: SettingsRepository;
+  private readonly cashFlows: CashFlowRepository;
 
   constructor(db: D1Database) {
     this.granaries = new GranaryRepository(db);
     this.snapshots = new SnapshotRepository(db);
     this.positions = new PositionRepository(db);
     this.judgmentDiary = new JudgmentDiaryRepository(db);
+    this.alertLog = new AlertLogRepository(db);
+    this.alertThresholds = new AlertThresholdRepository(db);
+    this.settings = new SettingsRepository(db);
+    this.cashFlows = new CashFlowRepository(db);
   }
 
   getAllGranaries(): Promise<Granary[]> {
@@ -124,5 +143,53 @@ export class DBClient {
 
   updateJudgmentDiaryEntry(id: string, data: UpdateJudgmentDiaryEntry): Promise<JudgmentDiaryEntry> {
     return this.judgmentDiary.updateJudgmentDiaryEntry(id, data);
+  }
+
+  getAlertLog(limit: number): Promise<AlertLogEntry[]> {
+    return this.alertLog.getAlertLog(limit);
+  }
+
+  getAlertThresholds(): Promise<AlertThreshold[]> {
+    return this.alertThresholds.getAlertThresholds();
+  }
+
+  getEnabledAlertThresholds(): Promise<AlertThreshold[]> {
+    return this.alertThresholds.getEnabledAlertThresholds();
+  }
+
+  createAlertThreshold(data: CreateAlertThreshold): Promise<AlertThreshold> {
+    return this.alertThresholds.createAlertThreshold(data);
+  }
+
+  updateAlertThreshold(id: string, data: UpdateAlertThreshold): Promise<AlertThreshold> {
+    return this.alertThresholds.updateAlertThreshold(id, data);
+  }
+
+  deleteAlertThreshold(id: string): Promise<void> {
+    return this.alertThresholds.deleteAlertThreshold(id);
+  }
+
+  getAllSettings(): Promise<Record<string, string>> {
+    return this.settings.getAllSettings();
+  }
+
+  setSetting(key: string, value: string): Promise<void> {
+    return this.settings.setSetting(key, value);
+  }
+
+  getCashFlowsByGranaryId(granaryId: string): Promise<CashFlow[]> {
+    return this.cashFlows.getCashFlowsByGranaryId(granaryId);
+  }
+
+  createCashFlow(data: CreateCashFlow): Promise<CashFlow> {
+    return this.cashFlows.createCashFlow(data);
+  }
+
+  updateCashFlow(id: string, data: UpdateCashFlow): Promise<CashFlow> {
+    return this.cashFlows.updateCashFlow(id, data);
+  }
+
+  deleteCashFlow(id: string): Promise<void> {
+    return this.cashFlows.deleteCashFlow(id);
   }
 }

@@ -9,6 +9,7 @@ export interface AppRouteDefinition {
 }
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Alerts = lazy(() => import('./pages/Alerts'));
 const GranaryDetail = lazy(() => import('./pages/GranaryDetail'));
 const NewGranary = lazy(() => import('./pages/NewGranary'));
 const EditGranary = lazy(() => import('./pages/EditGranary'));
@@ -51,6 +52,7 @@ export const PUBLIC_ROUTES: readonly AppRouteDefinition[] = [
 
 export const PRIVATE_ROUTES: readonly AppRouteDefinition[] = [
   { path: '/dashboard', component: Dashboard },
+  { path: '/alerts', component: Alerts },
   { path: '/granaries/:id', component: GranaryDetail },
   { path: '/granaries/:id/edit', component: EditGranary },
   { path: '/granaries/new', component: NewGranary },

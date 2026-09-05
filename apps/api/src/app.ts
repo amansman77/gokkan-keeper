@@ -4,12 +4,16 @@ import type { Env } from './types';
 import { API_ROUTE_PATHS } from './http/route-access';
 import { authMiddleware } from './middleware/auth';
 import { alertsRouter } from './routes/alerts';
+import { alertThresholdsRouter } from './routes/alert-thresholds';
 import { authRouter } from './routes/auth';
+import { automationRouter } from './routes/automation';
+import { cashFlowsRouter } from './routes/cash-flows';
 import { granariesRouter } from './routes/granaries';
 import { judgmentDiaryRouter } from './routes/judgment-diary';
 import { marketIndicesRouter } from './routes/market-indices';
 import { positionsRouter } from './routes/positions';
 import { publicRouter } from './routes/public';
+import { settingsRouter } from './routes/settings';
 import { snapshotsRouter } from './routes/snapshots';
 import { statusRouter } from './routes/status';
 
@@ -41,6 +45,10 @@ function registerProtectedRoutes(app: Hono<{ Bindings: Env }>): void {
   app.route(API_ROUTE_PATHS.positions, positionsRouter);
   app.route(API_ROUTE_PATHS.positionsAlias, positionsRouter);
   app.route(API_ROUTE_PATHS.alerts, alertsRouter);
+  app.route(API_ROUTE_PATHS.alertThresholds, alertThresholdsRouter);
+  app.route(API_ROUTE_PATHS.settings, settingsRouter);
+  app.route(API_ROUTE_PATHS.automation, automationRouter);
+  app.route(API_ROUTE_PATHS.cashFlows, cashFlowsRouter);
 }
 
 /** Compose the HTTP application separately from the Worker runtime entry point. */

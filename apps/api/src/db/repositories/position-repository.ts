@@ -41,9 +41,10 @@ export class PositionRepository {
       .prepare(`
         INSERT INTO gk_positions (
           id, granary_id, name, symbol, market, asset_type,
-          quantity, avg_cost, current_value, weight_percent, profit_loss, profit_loss_percent, note,
+          quantity, avg_cost, current_value, weight_percent, target_weight_percent,
+          profit_loss, profit_loss_percent, note,
           is_public, public_thesis, public_order, last_public_update, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
       .bind(
         id,
@@ -56,6 +57,7 @@ export class PositionRepository {
         data.avgCost ?? null,
         data.currentValue ?? null,
         null,
+        data.targetWeightPercent ?? null,
         data.profitLoss ?? null,
         data.profitLossPercent ?? null,
         data.note ?? null,
@@ -94,6 +96,7 @@ export class PositionRepository {
     if (data.quantity !== undefined) updateField('quantity', data.quantity ?? null);
     if (data.avgCost !== undefined) updateField('avg_cost', data.avgCost ?? null);
     if (data.currentValue !== undefined) updateField('current_value', data.currentValue ?? null);
+    if (data.targetWeightPercent !== undefined) updateField('target_weight_percent', data.targetWeightPercent ?? null);
     if (data.profitLoss !== undefined) updateField('profit_loss', data.profitLoss ?? null);
     if (data.profitLossPercent !== undefined) updateField('profit_loss_percent', data.profitLossPercent ?? null);
     if (data.note !== undefined) updateField('note', data.note ?? null);
