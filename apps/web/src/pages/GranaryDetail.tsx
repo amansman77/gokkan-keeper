@@ -9,6 +9,47 @@ import Sparkline from '../components/Sparkline';
 
 const SNAPSHOT_PAGE_SIZE = 10;
 
+interface SectionRowProps {
+  title: string;
+  count: number;
+  expanded: boolean;
+  onToggle: () => void;
+  /** Shown while collapsed as well as expanded, so folding a section away
+   *  never costs the reader the headline figure it contains. */
+  summary: React.ReactNode;
+}
+
+function SectionRow({ title, count, expanded, onToggle, summary }: SectionRowProps) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={expanded}
+      className="w-full flex items-center gap-3 px-4 sm:px-5 py-4 text-left hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+    >
+      <svg
+        viewBox="0 0 16 16"
+        fill="none"
+        aria-hidden="true"
+        className={`w-4 h-4 shrink-0 text-ink-faint transition-transform duration-150 ${expanded ? 'rotate-90' : ''}`}
+      >
+        <path d="M6 3.5 10.5 8 6 12.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span className="font-semibold text-ink flex items-center gap-2 shrink-0">
+        {title}
+        {count > 0 && (
+          <span className="text-xs font-medium text-ink-muted bg-surface-2 rounded-full px-2 py-0.5 tabular-nums">
+            {count}
+          </span>
+        )}
+      </span>
+      <span className="ml-auto flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-ink-muted tabular-nums justify-end whitespace-nowrap">
+        {summary}
+      </span>
+    </button>
+  );
+}
+
 export default function GranaryDetail() {
   const { id } = useParams<{ id: string }>();
   const [granary, setGranary] = useState<GranaryWithLatestSnapshot | null>(null);
@@ -21,6 +62,7 @@ export default function GranaryDetail() {
   const [expandedIndicators, setExpandedIndicators] = useState<Set<string>>(new Set());
   const [positionsCollapsed, setPositionsCollapsed] = useState(true);
   const [snapshotsCollapsed, setSnapshotsCollapsed] = useState(true);
+  const [cashFlowsCollapsed, setCashFlowsCollapsed] = useState(true);
   const [visibleSnapshotCount, setVisibleSnapshotCount] = useState(SNAPSHOT_PAGE_SIZE);
   const [chartWidth, setChartWidth] = useState(720);
   const chartResizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -86,6 +128,29 @@ export default function GranaryDetail() {
       .filter((cf) => cf.date > previousSnapshot.date && cf.date <= latestSnapshot.date)
       .reduce((sum, cf) => sum + (cf.type === 'DEPOSIT' ? cf.amount : -cf.amount), 0);
   }, [cashFlows, latestSnapshot, previousSnapshot]);
+
+  // Figures shown on the collapsed section rows.
+  const positionsTotalValue = useMemo(
+    () => positions.reduce((sum, p) => sum + (getPositionMarketValue(p) ?? 0), 0),
+    [positions],
+  );
+  const positionsUpCount = useMemo(
+    () => positions.filter((p) => (p.currentPriceChangeRate ?? 0) > 0).length,
+    [positions],
+  );
+  const positionsDownCount = useMemo(
+    () => positions.filter((p) => (p.currentPriceChangeRate ?? 0) < 0).length,
+    [positions],
+  );
+  const netCashFlowTotal = useMemo(
+    () => cashFlows.reduce((sum, cf) => sum + (cf.type === 'DEPOSIT' ? cf.amount : -cf.amount), 0),
+    [cashFlows],
+  );
+
+  const reloadCashFlows = useCallback(async () => {
+    if (!id) return;
+    setCashFlows(await getCashFlows(id));
+  }, [id]);
 
   if (loading) {
     return (
@@ -246,222 +311,287 @@ export default function GranaryDetail() {
         )}
       </div>
 
-      {/* 포지션: 표 형태로 압축해서 한눈에 스캔되도록 하고, 기본은 접어둔다. */}
-      <div className="bg-surface rounded-lg shadow overflow-hidden">
-        <div className="flex justify-between items-center p-6 pb-4">
-          <button
-            type="button"
-            onClick={() => setPositionsCollapsed((prev) => !prev)}
-            className="flex items-center gap-2 text-lg font-semibold text-ink"
-          >
-            <span className="text-ink-faint text-sm">{positionsCollapsed ? '▶' : '▼'}</span>
-            포지션 {positions.length > 0 && <span className="text-sm text-ink-faint font-normal">({positions.length})</span>}
-          </button>
-          <Link
-            to={`/positions/new?granaryId=${granary.id}`}
-            className="bg-accent text-accent-contrast px-4 py-2 rounded-md text-sm font-medium hover:bg-accent-ink"
-          >
-            새 포지션 추가
-          </Link>
+      {/* 세 기록을 카드 한 장으로 합치고, 접힌 줄마다 안쪽 내용을 요약해 보여준다.
+          접어둔 상태에서도 곳간 상태가 파악되므로 접는 것이 정보 손실이 아니다. */}
+      <div className="bg-surface rounded-lg shadow overflow-hidden divide-y divide-line-soft">
+        {/* ── 포지션 ── */}
+        <div>
+          <SectionRow
+            title="포지션"
+            count={positions.length}
+            expanded={!positionsCollapsed}
+            onToggle={() => setPositionsCollapsed((prev) => !prev)}
+            summary={
+              positions.length === 0 ? (
+                <span className="text-ink-faint">없음</span>
+              ) : (
+                <>
+                  <span>
+                    평가액 <b className="text-ink font-semibold">{formatCurrency(positionsTotalValue, granary.currency)}</b>
+                  </span>
+                  {positionsUpCount > 0 && <span className="text-gain font-semibold">▲ {positionsUpCount}종</span>}
+                  {positionsDownCount > 0 && <span className="text-loss font-semibold">▼ {positionsDownCount}종</span>}
+                </>
+              )
+            }
+          />
+          {!positionsCollapsed && (
+            <>
+              {positions.length === 0 ? (
+                <p className="text-ink-faint text-center py-8">등록된 포지션이 없습니다.</p>
+              ) : (
+                <div className="overflow-x-auto border-t">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-ink-faint border-b">
+                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap">종목</th>
+                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">수량</th>
+                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right hidden sm:table-cell">현재가</th>
+                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">등락</th>
+                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">평가액</th>
+                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">관리</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {positions.map((position) => {
+                        const marketValue = getPositionMarketValue(position);
+                        const rate = position.currentPriceChangeRate;
+                        const isExpanded = expandedIndicators.has(position.id);
+                        return (
+                          <Fragment key={position.id}>
+                            <tr className="border-b last:border-0 hover:bg-surface-2">
+                              <td className="px-2 sm:px-4 py-3">
+                                <div className="font-medium text-ink flex items-center gap-2">
+                                  {position.name}
+                                  {position.isPublic && (
+                                    <span className="text-[10px] font-semibold text-accent bg-accent-tint px-1.5 py-0.5 rounded">
+                                      공개
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-ink-faint">
+                                  {position.symbol}
+                                  <span className="hidden sm:inline">
+                                    {position.currentPriceAsOf ? ` · ${formatDate(position.currentPriceAsOf)}` : ''}
+                                    {getPriceSourceLabel(position.currentPriceSource) ? ` · ${getPriceSourceLabel(position.currentPriceSource)}` : ''}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-2 sm:px-4 py-3 text-right tabular-nums">{position.quantity ?? '-'}</td>
+                              <td className="px-2 sm:px-4 py-3 text-right tabular-nums hidden sm:table-cell">
+                                {position.currentUnitPrice !== null && position.currentUnitPrice !== undefined
+                                  ? formatCurrency(position.currentUnitPrice, granary.currency)
+                                  : '-'}
+                              </td>
+                              <td
+                                className={`px-2 sm:px-4 py-3 text-right tabular-nums font-medium ${
+                                  rate === null || rate === undefined
+                                    ? 'text-ink-faint'
+                                    : rate > 0
+                                    ? 'text-gain'
+                                    : rate < 0
+                                    ? 'text-loss'
+                                    : 'text-ink-faint'
+                                }`}
+                              >
+                                {rate === null || rate === undefined ? '-' : `${rate > 0 ? '+' : ''}${rate.toFixed(2)}%`}
+                              </td>
+                              <td className="px-2 sm:px-4 py-3 text-right tabular-nums font-semibold">
+                                {marketValue !== null ? formatCurrency(marketValue, granary.currency) : '-'}
+                              </td>
+                              <td className="px-2 sm:px-4 py-3">
+                                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-2">
+                                  <button
+                                    onClick={() => setExpandedIndicators((prev) => {
+                                      const next = new Set(prev);
+                                      next.has(position.id) ? next.delete(position.id) : next.add(position.id);
+                                      return next;
+                                    })}
+                                    className="text-ink-faint hover:text-ink-muted text-xs border border-line rounded px-1.5 py-0.5 whitespace-nowrap"
+                                  >
+                                    {isExpanded ? '지표 닫기' : '지표 보기'}
+                                  </button>
+                                  <Link to={`/positions/${position.id}/edit`} className="text-accent hover:underline text-xs whitespace-nowrap">
+                                    수정
+                                  </Link>
+                                  <button
+                                    onClick={async () => {
+                                      if (!window.confirm('포지션을 삭제하시겠습니까?')) return;
+                                      await deletePosition(position.id);
+                                      setPositions((prev) => prev.filter((p) => p.id !== position.id));
+                                    }}
+                                    className="text-danger hover:underline text-xs whitespace-nowrap"
+                                  >
+                                    삭제
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr>
+                                <td colSpan={6} className="px-6 pb-4 bg-surface-2">
+                                  <TechnicalIndicators symbol={position.symbol} market={position.market} />
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <div className="flex justify-end px-4 py-3 bg-surface-2 border-t border-line-soft">
+                <Link
+                  to={`/positions/new?granaryId=${granary.id}`}
+                  className="bg-accent text-accent-contrast px-4 py-2 rounded-md text-sm font-medium hover:bg-accent-ink"
+                >
+                  새 포지션 추가
+                </Link>
+              </div>
+            </>
+          )}
         </div>
 
-        {!positionsCollapsed && (
-          positions.length === 0 ? (
-            <p className="text-ink-faint text-center py-8">등록된 포지션이 없습니다.</p>
-          ) : (
-            <div className="overflow-x-auto border-t">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-ink-faint border-b">
-                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap">종목</th>
-                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">수량</th>
-                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right hidden sm:table-cell">현재가</th>
-                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">등락</th>
-                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">평가액</th>
-                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">관리</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {positions.map((position) => {
-                    const marketValue = getPositionMarketValue(position);
-                    const rate = position.currentPriceChangeRate;
-                    const isExpanded = expandedIndicators.has(position.id);
-                    return (
-                      <Fragment key={position.id}>
-                        <tr className="border-b last:border-0 hover:bg-surface-2">
-                          <td className="px-2 sm:px-4 py-3">
-                            <div className="font-medium text-ink flex items-center gap-2">
-                              {position.name}
-                              {position.isPublic && (
-                                <span className="text-[10px] font-semibold text-accent bg-accent-tint px-1.5 py-0.5 rounded">
-                                  공개
+        {/* ── 스냅샷 기록 ── */}
+        <div>
+          <SectionRow
+            title="스냅샷 기록"
+            count={snapshots.length}
+            expanded={!snapshotsCollapsed}
+            onToggle={() => setSnapshotsCollapsed((prev) => !prev)}
+            summary={
+              !latestSnapshot ? (
+                <span className="text-ink-faint">없음</span>
+              ) : (
+                <>
+                  <span className="hidden sm:inline">
+                    최근 <b className="text-ink font-semibold">{formatDate(latestSnapshot.date)}</b>
+                  </span>
+                  {rawDelta !== null && (
+                    <span className={rawDelta > 0 ? 'text-gain font-semibold' : rawDelta < 0 ? 'text-loss font-semibold' : 'text-ink-faint'}>
+                      {rawDelta > 0 ? '▲' : rawDelta < 0 ? '▼' : '–'} {formatCurrency(Math.abs(rawDelta), granary.currency)}
+                    </span>
+                  )}
+                </>
+              )
+            }
+          />
+          {!snapshotsCollapsed && (
+            <>
+              {snapshots.length === 0 ? (
+                <p className="text-ink-faint text-center py-8">아직 스냅샷이 없습니다.</p>
+              ) : (
+                <div className="overflow-x-auto border-t">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-ink-faint border-b">
+                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap">날짜</th>
+                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">평가금액</th>
+                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">전기 대비</th>
+                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap hidden sm:table-cell">메모</th>
+                        <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">관리</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {snapshots.slice(0, visibleSnapshotCount).map((snapshot, index) => {
+                        const prior = snapshots[index + 1];
+                        const change = prior ? snapshot.totalAmount - prior.totalAmount : null;
+                        const hadCashFlow = prior
+                          ? cashFlows.some((cf) => cf.date > prior.date && cf.date <= snapshot.date)
+                          : false;
+                        return (
+                          <tr key={snapshot.id} className="border-b last:border-0 hover:bg-surface-2">
+                            <td className="px-2 sm:px-4 py-3 whitespace-nowrap">{formatDate(snapshot.date)}</td>
+                            <td className="px-2 sm:px-4 py-3 text-right tabular-nums font-semibold">
+                              {formatCurrency(snapshot.totalAmount, granary.currency)}
+                            </td>
+                            <td
+                              className={`px-2 sm:px-4 py-3 text-right tabular-nums ${
+                                change === null ? 'text-ink-faint' : change > 0 ? 'text-gain' : change < 0 ? 'text-loss' : 'text-ink-faint'
+                              }`}
+                            >
+                              {change === null
+                                ? '—'
+                                : `${change > 0 ? '+' : ''}${formatCurrency(change, granary.currency)}`}
+                              {hadCashFlow && (
+                                <span
+                                  className="ml-1.5 text-[10px] font-semibold text-flow bg-flow-tint px-1.5 py-0.5 rounded-full align-middle"
+                                  title="이 구간에 입출금 기록이 있어요 — 변동액에 순수 매매 손익 외에 입출금 금액도 섞여 있습니다."
+                                >
+                                  입출금
                                 </span>
                               )}
-                            </div>
-                            <div className="text-xs text-ink-faint">
-                              {position.symbol}
-                              <span className="hidden sm:inline">
-                                {position.currentPriceAsOf ? ` · ${formatDate(position.currentPriceAsOf)}` : ''}
-                                {getPriceSourceLabel(position.currentPriceSource) ? ` · ${getPriceSourceLabel(position.currentPriceSource)}` : ''}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-4 py-3 text-right tabular-nums">{position.quantity ?? '-'}</td>
-                          <td className="px-2 sm:px-4 py-3 text-right tabular-nums hidden sm:table-cell">
-                            {position.currentUnitPrice !== null && position.currentUnitPrice !== undefined
-                              ? formatCurrency(position.currentUnitPrice, granary.currency)
-                              : '-'}
-                          </td>
-                          <td
-                            className={`px-2 sm:px-4 py-3 text-right tabular-nums font-medium ${
-                              rate === null || rate === undefined
-                                ? 'text-ink-faint'
-                                : rate > 0
-                                ? 'text-gain'
-                                : rate < 0
-                                ? 'text-loss'
-                                : 'text-ink-faint'
-                            }`}
-                          >
-                            {rate === null || rate === undefined ? '-' : `${rate > 0 ? '+' : ''}${rate.toFixed(2)}%`}
-                          </td>
-                          <td className="px-2 sm:px-4 py-3 text-right tabular-nums font-semibold">
-                            {marketValue !== null ? formatCurrency(marketValue, granary.currency) : '-'}
-                          </td>
-                          <td className="px-2 sm:px-4 py-3">
-                            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-2">
-                              <button
-                                onClick={() => setExpandedIndicators((prev) => {
-                                  const next = new Set(prev);
-                                  next.has(position.id) ? next.delete(position.id) : next.add(position.id);
-                                  return next;
-                                })}
-                                className="text-ink-faint hover:text-ink-muted text-xs border border-line rounded px-1.5 py-0.5 whitespace-nowrap"
+                            </td>
+                            <td className="px-2 sm:px-4 py-3 text-ink-muted hidden sm:table-cell">{snapshot.memo || ''}</td>
+                            <td className="px-2 sm:px-4 py-3 text-right whitespace-nowrap">
+                              <Link
+                                to={`/snapshots/${snapshot.id}/edit?granaryId=${granary.id}`}
+                                className="text-accent hover:underline text-xs"
                               >
-                                {isExpanded ? '지표 닫기' : '지표 보기'}
-                              </button>
-                              <Link to={`/positions/${position.id}/edit`} className="text-accent hover:underline text-xs whitespace-nowrap">
                                 수정
                               </Link>
-                              <button
-                                onClick={async () => {
-                                  if (!window.confirm('포지션을 삭제하시겠습니까?')) return;
-                                  await deletePosition(position.id);
-                                  setPositions((prev) => prev.filter((p) => p.id !== position.id));
-                                }}
-                                className="text-danger hover:underline text-xs whitespace-nowrap"
-                              >
-                                삭제
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                        {isExpanded && (
-                          <tr>
-                            <td colSpan={6} className="px-6 pb-4 bg-surface-2">
-                              <TechnicalIndicators symbol={position.symbol} market={position.market} />
                             </td>
                           </tr>
-                        )}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )
-        )}
-      </div>
-
-      {/* 스냅샷 기록: 추이는 위에서 이미 확인했으니, 여기는 날짜별 정확한 숫자가 필요할 때만 펼쳐보는 상세 자료. */}
-      <div className="bg-surface rounded-lg shadow overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setSnapshotsCollapsed((prev) => !prev)}
-          className="w-full flex items-center gap-2 text-lg font-semibold text-ink p-6 pb-4"
-        >
-          <span className="text-ink-faint text-sm">{snapshotsCollapsed ? '▶' : '▼'}</span>
-          스냅샷 기록 {snapshots.length > 0 && <span className="text-sm text-ink-faint font-normal">({snapshots.length})</span>}
-        </button>
-
-        {!snapshotsCollapsed && (
-          snapshots.length === 0 ? (
-            <p className="text-ink-faint text-center py-8">아직 스냅샷이 없습니다.</p>
-          ) : (
-            <div className="overflow-x-auto border-t">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-ink-faint border-b">
-                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap">날짜</th>
-                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">평가금액</th>
-                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">전기 대비</th>
-                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap hidden sm:table-cell">메모</th>
-                    <th className="px-2 sm:px-4 py-2 font-medium whitespace-nowrap text-right">관리</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {snapshots.slice(0, visibleSnapshotCount).map((snapshot, index) => {
-                    const prior = snapshots[index + 1];
-                    const change = prior ? snapshot.totalAmount - prior.totalAmount : null;
-                    const hadCashFlow = prior
-                      ? cashFlows.some((cf) => cf.date > prior.date && cf.date <= snapshot.date)
-                      : false;
-                    return (
-                      <tr key={snapshot.id} className="border-b last:border-0 hover:bg-surface-2">
-                        <td className="px-2 sm:px-4 py-3 whitespace-nowrap">{formatDate(snapshot.date)}</td>
-                        <td className="px-2 sm:px-4 py-3 text-right tabular-nums font-semibold">
-                          {formatCurrency(snapshot.totalAmount, granary.currency)}
-                        </td>
-                        <td
-                          className={`px-2 sm:px-4 py-3 text-right tabular-nums ${
-                            change === null ? 'text-ink-faint' : change > 0 ? 'text-gain' : change < 0 ? 'text-loss' : 'text-ink-faint'
-                          }`}
-                        >
-                          {change === null
-                            ? '—'
-                            : `${change > 0 ? '+' : ''}${formatCurrency(change, granary.currency)}`}
-                          {hadCashFlow && (
-                            <span
-                              className="ml-1.5 text-[10px] font-semibold text-flow bg-flow-tint px-1.5 py-0.5 rounded-full align-middle"
-                              title="이 구간에 입출금 기록이 있어요 — 변동액에 순수 매매 손익 외에 입출금 금액도 섞여 있습니다."
+                        );
+                      })}
+                      {visibleSnapshotCount < snapshots.length && (
+                        <tr>
+                          <td colSpan={5} className="p-0">
+                            <button
+                              type="button"
+                              onClick={() => setVisibleSnapshotCount((n) => n + SNAPSHOT_PAGE_SIZE)}
+                              className="w-full text-center py-3 text-sm text-accent hover:bg-surface-2"
                             >
-                              입출금
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 sm:px-4 py-3 text-ink-muted hidden sm:table-cell">{snapshot.memo || ''}</td>
-                        <td className="px-2 sm:px-4 py-3 text-right whitespace-nowrap">
-                          <Link
-                            to={`/snapshots/${snapshot.id}/edit?granaryId=${granary.id}`}
-                            className="text-accent hover:underline text-xs"
-                          >
-                            수정
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {visibleSnapshotCount < snapshots.length && (
-                    <tr>
-                      <td colSpan={5} className="p-0">
-                        <button
-                          type="button"
-                          onClick={() => setVisibleSnapshotCount((n) => n + SNAPSHOT_PAGE_SIZE)}
-                          className="w-full text-center py-3 text-sm text-accent hover:bg-surface-2"
-                        >
-                          이전 {snapshots.length - visibleSnapshotCount}건 더 보기
-                        </button>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )
-        )}
-      </div>
+                              이전 {snapshots.length - visibleSnapshotCount}건 더 보기
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <div className="flex justify-end px-4 py-3 bg-surface-2 border-t border-line-soft">
+                <Link
+                  to={`/snapshots/new?granaryId=${id}`}
+                  className="bg-accent text-accent-contrast px-4 py-2 rounded-md text-sm font-medium hover:bg-accent-ink"
+                >
+                  새 스냅샷 추가
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
 
-      <CashFlowManager granaryId={granary.id} currency={granary.currency} />
+        {/* ── 입출금 기록 ── */}
+        <div>
+          <SectionRow
+            title="입출금 기록"
+            count={cashFlows.length}
+            expanded={!cashFlowsCollapsed}
+            onToggle={() => setCashFlowsCollapsed((prev) => !prev)}
+            summary={
+              cashFlows.length === 0 ? (
+                <span className="text-ink-faint">없음</span>
+              ) : (
+                <span>
+                  {netCashFlowTotal >= 0 ? '순유입' : '순유출'}{' '}
+                  <b className="text-flow font-semibold">{formatCurrency(Math.abs(netCashFlowTotal), granary.currency)}</b>
+                </span>
+              )
+            }
+          />
+          {!cashFlowsCollapsed && (
+            <CashFlowManager
+              granaryId={granary.id}
+              currency={granary.currency}
+              cashFlows={cashFlows}
+              onChanged={reloadCashFlows}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
