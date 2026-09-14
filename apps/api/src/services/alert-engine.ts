@@ -90,15 +90,17 @@ const RULES: Rule[] = [
     action: '관찰 (매매 지시 아님)',
   },
   {
-    // Mirror of SELL_001: price reclaims a rising MA40. Deliberately has no
-    // position filter — SELL_001 trims a holding, so this must be able to buy
-    // back into one as well as open a new one.
+    // Mirror of SELL_001: price reclaims a rising MA40.
+    // Restricted to unheld symbols (position === 0), matching the previous
+    // BUY_001. Consequence: after SELL_001 trims a holding the symbol still has
+    // quantity, so this will not fire to rebuild it — re-entry stays manual.
     ruleId: 'BUY_001',
     type: 'BUY',
     priority: 'P0',
     title: '장기 추세 회복',
     mode: 'weekly',
     condition: (snap) =>
+      snap.position === 0 &&
       snap.weekly?.prevClose != null && snap.weekly?.prevMa40 != null &&
       snap.weekly?.close != null && snap.weekly?.ma40 != null &&
       snap.weekly.prevClose <= snap.weekly.prevMa40 &&
