@@ -57,10 +57,13 @@ interface Rule {
 
 const RULES: Rule[] = [
   {
-    ruleId: 'SELL_001',
-    type: 'SELL',
-    priority: 'P0',
-    title: '주봉 하락 추세 진입',
+    // Momentum turn, not a trend break. Fired 116x over four months against 12
+    // BUY_001 fires, and 14 of 28 symbols fired it more than once (whipsaw), so
+    // it is kept as an early warning but no longer directs trades — WARN_003 does.
+    ruleId: 'WARN_SELL_001',
+    type: 'WARN',
+    priority: 'P2',
+    title: '주봉 하락 모멘텀 (관찰)',
     mode: 'weekly',
     condition: (snap) =>
       snap.position > 0 &&
@@ -68,13 +71,13 @@ const RULES: Rule[] = [
       snap.weekly.prevMacdOsc >= 0 &&
       snap.weekly.macdOsc < 0,
     message: (_snap, label) => `${label} 주봉 MACD OSC가 양수에서 음수로 전환되었습니다.`,
-    action: '보유 수량 50% 매도 검토',
+    action: '관찰 (매매 지시 아님)',
   },
   {
-    ruleId: 'BUY_001',
+    ruleId: 'WARN_BUY_001',
     type: 'BUY',
     priority: 'P1',
-    title: '주봉 상승 추세 진입',
+    title: '주봉 상승 모멘텀',
     mode: 'weekly',
     condition: (snap) =>
       snap.position === 0 &&
@@ -87,9 +90,11 @@ const RULES: Rule[] = [
     action: '1회 매수 단위 검토',
   },
   {
+    // The trade trigger: price leaves a falling MA40. Fires selectively (27x,
+    // concentrated on names that genuinely kept deteriorating).
     ruleId: 'WARN_003',
-    type: 'WARN',
-    priority: 'P1',
+    type: 'SELL',
+    priority: 'P0',
     title: '장기 추세 이탈',
     mode: 'weekly',
     condition: (snap) =>
@@ -100,7 +105,7 @@ const RULES: Rule[] = [
       snap.weekly.close < snap.weekly.ma40 &&
       snap.weekly.ma40 < snap.weekly.prevMa40,
     message: (_snap, label) => `${label} 주봉 종가가 MA40 위에서 아래로 이탈했습니다 (MA40 하락 중).`,
-    action: '비중 축소 검토',
+    action: '보유 수량 50% 매도 검토',
   },
   {
     ruleId: 'SELL_002',
@@ -211,7 +216,7 @@ function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name:
   const fields: Array<{ name: string; value: string; inline: boolean }> = [];
   const fmt = (n: number | null | undefined, digits = 2) => n != null ? n.toFixed(digits) : '-';
 
-  if (alert.ruleId === 'SELL_001' || alert.ruleId === 'BUY_001') {
+  if (alert.ruleId === 'WARN_SELL_001' || alert.ruleId === 'WARN_BUY_001') {
     const fmtObv = (n: number | null | undefined) => n != null ? `${(n / 1_000_000).toFixed(2)}M` : '-';
     fields.push(
       { name: '주봉 MACD OSC', value: fmt(snap.weekly?.macdOsc, 3), inline: true },
@@ -220,7 +225,7 @@ function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name:
       { name: '주봉 ADX(14)', value: fmt(snap.weekly?.adx, 1), inline: true },
       { name: '주봉 OBV', value: fmtObv(snap.weekly?.obv), inline: true },
     );
-    if (alert.ruleId === 'BUY_001') {
+    if (alert.ruleId === 'WARN_BUY_001') {
       fields.push(
         { name: 'MA5', value: fmt(snap.daily?.ma5), inline: true },
         { name: 'MA20', value: fmt(snap.daily?.ma20), inline: true },

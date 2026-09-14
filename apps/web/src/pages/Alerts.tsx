@@ -5,10 +5,13 @@ import AlertThresholdManager from '../components/AlertThresholdManager';
 import WeeklyReportSettings from '../components/WeeklyReportSettings';
 
 const RULE_TITLES: Record<string, string> = {
-  SELL_001: '주봉 하락 추세 진입',
-  BUY_001: '주봉 상승 추세 진입',
+  WARN_SELL_001: '주봉 하락 모멘텀 (관찰)',
+  WARN_BUY_001: '주봉 상승 모멘텀',
   WARN_003: '장기 추세 이탈',
   SELL_002: '급등 후 차익실현 신호',
+  // Pre-rename ids, kept so the existing alert history still renders a label.
+  SELL_001: '주봉 하락 추세 진입 (구 규칙)',
+  BUY_001: '주봉 상승 추세 진입 (구 규칙)',
 };
 
 function ruleTitle(ruleId: string): string {
@@ -17,9 +20,11 @@ function ruleTitle(ruleId: string): string {
 }
 
 function ruleTypeEmoji(ruleId: string): string {
-  if (ruleId.startsWith('BUY')) return '🟢';
-  if (ruleId.startsWith('SELL')) return '🔴';
+  // Check BUY/SELL anywhere in the id: the momentum rules are prefixed WARN_,
+  // so a startsWith check would render both as the warning icon.
   if (ruleId.startsWith('FX')) return '🔔';
+  if (ruleId.includes('BUY')) return '🟢';
+  if (ruleId.includes('SELL')) return '🔴';
   return '⚠️';
 }
 
