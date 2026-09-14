@@ -121,6 +121,22 @@ Two largely independent halves of the app, both under the same auth:
 
 Runs on Cloudflare Cron Triggers (daily weekdays + Friday weekly, see `wrangler.toml` and the `scheduled()` handler in `apps/api/src/index.ts`) and evaluates event-transition rules (not state rules — see rule comments for why: a rule fires only on the moment a condition newly becomes true, tracked per symbol+rule in `gk_alert_rule_state`, deduped same-day via `gk_alert_sent`). Rules are defined inline in that file (`RULES` array) with `condition`/`message`/`action` per rule; adding a rule means adding an entry there, not a schema migration, unless it needs new indicator fields. Note the split between advisory and actionable rules: `WARN_*` ids are observations that deliberately do **not** direct trades (the momentum rules `WARN_SELL_001`/`WARN_BUY_001` sit here after firing 116x against 12 buys with half the symbols whipsawing), while `SELL_001`/`BUY_001` are the P0 trade triggers — the MA40 trend break and its mirror, the reclaim of a rising MA40. `BUY_001` deliberately has no `position` filter so it can rebuild a holding `SELL_001` trimmed, not only open new ones. Note when reading `gk_alert_log` that the event-transition state (`gk_alert_rule_state`) only arrived on 2026-06-21: fires before that date repeat weekly while a condition held, so any frequency comparison spanning it overstates the earlier period. `SELL_001` is the P0 sell trigger (the MA40 trend break, formerly `WARN_003`; the id previously belonged to the momentum rule and `gk_alert_log` was migrated so one id never denotes two rules). Renaming a `ruleId` requires migrating `gk_alert_rule_state` in the same change — that table is keyed by `(symbol, rule_id)` and orphaned state makes an event-transition rule re-fire spuriously. `gk_alert_log` keeps the historical ids on purpose, so queries spanning a rename must account for both. FX threshold rules reuse the same rule-state/dedup machinery and are user-managed (see `gk_settings` / the `/alerts` page) rather than hardcoded.
 
+### Rule simulator
+
+`apps/api/scripts/simulate.ts` (`pnpm --filter api simulate -- --symbols A,B --from 2021-06-01`)
+replays the P0 rules over historical bars. It imports `RULES` from
+`services/alert-rules.ts` and the indicator math from `services/technical-indicators.ts`
+rather than restating either, so a rule change is reflected in the simulation
+automatically — that is why those two modules are kept free of D1 and network
+imports. Do not give the simulator its own copy of a condition.
+
+Read its output with the entry-controlled column ("규칙 효과"), not the
+whole-period hold: a rules strategy is out of the market until its first signal,
+so comparing it to a hold that started on day one mostly measures time in market.
+Measured over 2021-06 onward, the rules cost roughly 30%p against holding on
+names that trended up and saved roughly 15-40%p on names that fell — they cap
+both tails, so the net depends on what is in the book.
+
 ## External automation depending on this API
 
 Five scheduled jobs run **outside this repo**, on the operator's own machine (`~/gokkan-keeper-automation/`, launchd-based, not part of this codebase or its deploys):

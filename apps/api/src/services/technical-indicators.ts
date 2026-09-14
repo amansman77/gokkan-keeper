@@ -224,9 +224,9 @@ function calcAdx(
 
 // ─── Weekly aggregation (daily bars → weekly OHLCV) ───────────────────────────
 
-type OhlcvRow = { ts: number; open: number; close: number; high: number; low: number; volume: number };
+export type OhlcvRow = { ts: number; open: number; close: number; high: number; low: number; volume: number };
 
-function aggregateWeekly(rows: OhlcvRow[]): OhlcvRow[] {
+export function aggregateWeekly(rows: OhlcvRow[]): OhlcvRow[] {
   if (rows.length === 0) return [];
   const weekMap = new Map<string, OhlcvRow[]>();
   for (const row of rows) {
@@ -254,7 +254,7 @@ function aggregateWeekly(rows: OhlcvRow[]): OhlcvRow[] {
 
 // ─── Compute indicators from a row array ─────────────────────────────────────
 
-function computeIndicatorsFromRows(rows: OhlcvRow[], resolvedSymbol: string): TechnicalIndicatorResult {
+export function computeIndicatorsFromRows(rows: OhlcvRow[], resolvedSymbol: string): TechnicalIndicatorResult {
   const closes = rows.map((r) => r.close);
   const highs = rows.map((r) => r.high);
   const lows = rows.map((r) => r.low);
