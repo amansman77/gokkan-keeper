@@ -91,8 +91,10 @@ const RULES: Rule[] = [
   },
   {
     // The trade trigger: price leaves a falling MA40. Fires selectively (27x,
-    // concentrated on names that genuinely kept deteriorating).
-    ruleId: 'WARN_003',
+    // concentrated on names that genuinely kept deteriorating). Holds the
+    // SELL_001 id; the momentum rule that used to own it is now WARN_SELL_001,
+    // and gk_alert_log was migrated so one id never means two rules.
+    ruleId: 'SELL_001',
     type: 'SELL',
     priority: 'P0',
     title: '장기 추세 이탈',
@@ -243,7 +245,7 @@ function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name:
     );
   }
 
-  if (alert.ruleId === 'WARN_003') {
+  if (alert.ruleId === 'SELL_001') {
     fields.push(
       { name: '주봉 종가', value: fmt(snap.weekly?.close), inline: true },
       { name: 'MA40', value: fmt(snap.weekly?.ma40), inline: true },

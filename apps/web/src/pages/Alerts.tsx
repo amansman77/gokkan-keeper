@@ -5,13 +5,10 @@ import AlertThresholdManager from '../components/AlertThresholdManager';
 import WeeklyReportSettings from '../components/WeeklyReportSettings';
 
 const RULE_TITLES: Record<string, string> = {
+  SELL_001: '장기 추세 이탈',
   WARN_SELL_001: '주봉 하락 모멘텀 (관찰)',
   WARN_BUY_001: '주봉 상승 모멘텀',
-  WARN_003: '장기 추세 이탈',
   SELL_002: '급등 후 차익실현 신호',
-  // Pre-rename ids, kept so the existing alert history still renders a label.
-  SELL_001: '주봉 하락 추세 진입 (구 규칙)',
-  BUY_001: '주봉 상승 추세 진입 (구 규칙)',
 };
 
 function ruleTitle(ruleId: string): string {
