@@ -76,7 +76,7 @@ const RULES: Rule[] = [
   {
     ruleId: 'WARN_BUY_001',
     type: 'BUY',
-    priority: 'P1',
+    priority: 'P2',
     title: '주봉 상승 모멘텀',
     mode: 'weekly',
     condition: (snap) =>
@@ -87,6 +87,24 @@ const RULES: Rule[] = [
       snap.daily?.ma5 != null && snap.daily?.ma20 != null && snap.daily.ma5 > snap.daily.ma20 &&
       snap.daily?.rsi != null && snap.daily.rsi < 80,
     message: (_snap, label) => `${label} 주봉 MACD OSC가 음수에서 양수로 전환되었고 일봉 골든크로스 상태입니다.`,
+    action: '관찰 (매매 지시 아님)',
+  },
+  {
+    // Mirror of SELL_001: price reclaims a rising MA40. Deliberately has no
+    // position filter — SELL_001 trims a holding, so this must be able to buy
+    // back into one as well as open a new one.
+    ruleId: 'BUY_001',
+    type: 'BUY',
+    priority: 'P0',
+    title: '장기 추세 회복',
+    mode: 'weekly',
+    condition: (snap) =>
+      snap.weekly?.prevClose != null && snap.weekly?.prevMa40 != null &&
+      snap.weekly?.close != null && snap.weekly?.ma40 != null &&
+      snap.weekly.prevClose <= snap.weekly.prevMa40 &&
+      snap.weekly.close > snap.weekly.ma40 &&
+      snap.weekly.ma40 > snap.weekly.prevMa40,
+    message: (_snap, label) => `${label} 주봉 종가가 MA40 위로 회복했습니다 (MA40 상승 중).`,
     action: '1회 매수 단위 검토',
   },
   {
@@ -245,7 +263,7 @@ function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name:
     );
   }
 
-  if (alert.ruleId === 'SELL_001') {
+  if (alert.ruleId === 'SELL_001' || alert.ruleId === 'BUY_001') {
     fields.push(
       { name: '주봉 종가', value: fmt(snap.weekly?.close), inline: true },
       { name: 'MA40', value: fmt(snap.weekly?.ma40), inline: true },
