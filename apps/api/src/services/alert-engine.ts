@@ -117,7 +117,7 @@ function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name:
   const fields: Array<{ name: string; value: string; inline: boolean }> = [];
   const fmt = (n: number | null | undefined, digits = 2) => n != null ? n.toFixed(digits) : '-';
 
-  if (alert.ruleId === 'WARN_SELL_001' || alert.ruleId === 'WARN_BUY_001') {
+  if (alert.ruleId === 'WARN_SELL_001' || alert.ruleId === 'BUY_001') {
     const fmtObv = (n: number | null | undefined) => n != null ? `${(n / 1_000_000).toFixed(2)}M` : '-';
     fields.push(
       { name: '주봉 MACD OSC', value: fmt(snap.weekly?.macdOsc, 3), inline: true },
@@ -126,7 +126,7 @@ function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name:
       { name: '주봉 ADX(14)', value: fmt(snap.weekly?.adx, 1), inline: true },
       { name: '주봉 OBV', value: fmtObv(snap.weekly?.obv), inline: true },
     );
-    if (alert.ruleId === 'WARN_BUY_001') {
+    if (alert.ruleId === 'BUY_001') {
       fields.push(
         { name: 'MA5', value: fmt(snap.daily?.ma5), inline: true },
         { name: 'MA20', value: fmt(snap.daily?.ma20), inline: true },
@@ -135,7 +135,7 @@ function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name:
     }
   }
 
-  if (alert.ruleId === 'SELL_002') {
+  if (alert.ruleId === 'WARN_SELL_002') {
     const ret = snap.daily?.fiveDayReturn;
     fields.push(
       { name: '5일 수익률', value: ret != null ? `${(ret * 100).toFixed(1)}%` : '-', inline: true },
@@ -144,7 +144,7 @@ function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name:
     );
   }
 
-  if (alert.ruleId === 'SELL_001' || alert.ruleId === 'BUY_001') {
+  if (alert.ruleId === 'SELL_001' || alert.ruleId === 'WARN_BUY_002') {
     fields.push(
       { name: '주봉 종가', value: fmt(snap.weekly?.close), inline: true },
       { name: 'MA40', value: fmt(snap.weekly?.ma40), inline: true },

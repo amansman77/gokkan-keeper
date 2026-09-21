@@ -61,9 +61,11 @@ export const RULES: Rule[] = [
     action: '관찰 (매매 지시 아님)',
   },
   {
-    ruleId: 'WARN_BUY_001',
+    // The buy trigger. Best of nine entry/exit combinations tested over 34 held
+    // symbols (10.51% vs 4.87% for the previous configuration).
+    ruleId: 'BUY_001',
     type: 'BUY',
-    priority: 'P2',
+    priority: 'P0',
     title: '주봉 상승 모멘텀',
     mode: 'weekly',
     condition: (snap) =>
@@ -74,16 +76,17 @@ export const RULES: Rule[] = [
       snap.daily?.ma5 != null && snap.daily?.ma20 != null && snap.daily.ma5 > snap.daily.ma20 &&
       snap.daily?.rsi != null && snap.daily.rsi < 80,
     message: (_snap, label) => `${label} 주봉 MACD OSC가 음수에서 양수로 전환되었고 일봉 골든크로스 상태입니다.`,
-    action: '관찰 (매매 지시 아님)',
+    action: '1회 매수 단위 검토',
   },
   {
-    // Mirror of SELL_001: price reclaims a rising MA40. Deliberately has no
-    // position filter — SELL_001 trims a holding, so this must be able to buy
-    // back into one as well as open a new one.
-    ruleId: 'BUY_001',
+    // Mirror of SELL_001: price reclaims a rising MA40. Demoted to an
+    // observation: across 34 held symbols the momentum entry beat this one in
+    // all four exit configurations (+1.7 to +3.4%p), so BUY_001 now names that
+    // rule instead. See docs and the judgment diary entry of 2026-09-21.
+    ruleId: 'WARN_BUY_002',
     type: 'BUY',
-    priority: 'P0',
-    title: '장기 추세 회복',
+    priority: 'P2',
+    title: '장기 추세 회복 (관찰)',
     mode: 'weekly',
     condition: (snap) =>
       snap.weekly?.prevClose != null && snap.weekly?.prevMa40 != null &&
@@ -92,7 +95,7 @@ export const RULES: Rule[] = [
       snap.weekly.close > snap.weekly.ma40 &&
       snap.weekly.ma40 > snap.weekly.prevMa40,
     message: (_snap, label) => `${label} 주봉 종가가 MA40 위로 회복했습니다 (MA40 상승 중).`,
-    action: '1회 매수 단위 검토',
+    action: '관찰 (매매 지시 아님)',
   },
   {
     // The trade trigger: price leaves a falling MA40. Fires selectively (27x,
@@ -115,10 +118,12 @@ export const RULES: Rule[] = [
     action: '보유 수량 50% 매도 검토',
   },
   {
-    ruleId: 'SELL_002',
+    // Demoted: firing alongside SELL_001 meant two rules each calling for a 50%
+    // sale, which halved returns on volatile names (000660 13.41% -> 5.69%).
+    ruleId: 'WARN_SELL_002',
     type: 'SELL',
-    priority: 'P1',
-    title: '급등 후 차익실현 신호',
+    priority: 'P2',
+    title: '급등 후 차익실현 (관찰)',
     mode: 'daily',
     condition: (snap) =>
       snap.position > 0 &&
@@ -126,6 +131,6 @@ export const RULES: Rule[] = [
       snap.daily?.close != null && snap.daily?.open != null && snap.daily.close < snap.daily.open &&
       snap.daily?.avgVolume20 != null && snap.daily?.volume != null && snap.daily.volume > snap.daily.avgVolume20,
     message: (_snap, label) => `${label} 단기 과열 분출 가능`,
-    action: '보유 수량 50% 매도 검토',
+    action: '관찰 (매매 지시 아님)',
   },
 ];
