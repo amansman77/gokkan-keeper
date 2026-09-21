@@ -51,10 +51,10 @@ function precompute(sym: string, daily: OhlcvRow[]): Pre {
   return { daily: d, weekly: w, weeks };
 }
 
-function simulate(sym: string, daily: OhlcvRow[], exitIds: string[], pre: Pre) {
+function simulate(sym: string, daily: OhlcvRow[], exitIds: string[], pre: Pre, entryId = 'BUY_001') {
   const weeks = pre.weeks;
   const weekEnd = new Set(weeks.map((w) => w.ts));
-  const entry = rule('BUY_001');
+  const entry = rule(entryId);
   const exits = exitIds.map(rule);
 
   let cash = 100, shares = 0, buys = 0, sells = 0;
@@ -80,7 +80,10 @@ function simulate(sym: string, daily: OhlcvRow[], exitIds: string[], pre: Pre) {
           weekly: wk, daily: dSnapBase,
         };
         for (const r of [entry, ...exits].filter((r) => r.mode === 'weekly')) {
-          const met = r.condition(wSnap); const prev = was.get(r.ruleId) ?? false;
+          // WARN_BUY_001 requires position === 0; evaluating entries against a
+          // flat book keeps this a comparison of timing, not of that filter
+          const evalSnap = r.type === 'BUY' ? { ...wSnap, position: 0 } : wSnap;
+          const met = r.condition(evalSnap); const prev = was.get(r.ruleId) ?? false;
           was.set(r.ruleId, met);
           if (met && !prev) {
             if (r.type === 'BUY') {
@@ -120,12 +123,15 @@ function simulate(sym: string, daily: OhlcvRow[], exitIds: string[], pre: Pre) {
   };
 }
 
-const CONFIGS: Array<[string, string[]]> = [
-  ['SELL_001만 (현 P0)', ['SELL_001']],
-  ['SELL_002만 (급등차익)', ['SELL_002']],
-  ['SELL_001+SELL_002 (실제 운영)', ['SELL_001', 'SELL_002']],
-  ['WARN_SELL_001만 (MACD)', ['WARN_SELL_001']],
+const EXITS: Array<[string, string[]]> = [
+  ['S001', ['SELL_001']],
+  ['S002', ['SELL_002']],
+  ['둘다', ['SELL_001', 'SELL_002']],
+  ['MACD', ['WARN_SELL_001']],
 ];
+const ENTRIES: Array<[string, string]> = [['B:추세', 'BUY_001'], ['B:모멘텀', 'WARN_BUY_001']];
+const CONFIGS: Array<[string, string[], string]> = ENTRIES.flatMap(([en, eid]) =>
+  EXITS.map(([xn, ids]) => [`${en} × ${xn}`, ids, eid] as [string, string[], string]));
 const pct = (x: number) => (x * 100).toFixed(2) + '%';
 
 for (const sym of SYMBOLS) {
@@ -137,18 +143,16 @@ for (const sym of SYMBOLS) {
   const hr: number[] = []; for (let i = 1; i < hc.length; i++) hr.push(hc[i] / hc[i - 1] - 1);
   const hm = hr.reduce((a, b) => a + b, 0) / hr.length;
   const hv = Math.sqrt(hr.reduce((a, b) => a + (b - hm) ** 2, 0) / hr.length) * Math.sqrt(252);
-  const res = CONFIGS.map(([label, ids]) => ({ label, ids, m: simulate(sym, daily, ids, pre) }));
+  const res = CONFIGS.map(([label, ids, eid]) => ({ label, ids, m: simulate(sym, daily, ids, pre, eid) }));
   const holdCagr = res[0].m.holdCagr;
 
   if (SUMMARY) {
     // one line per symbol: CAGR of each config, then hold
     const best = res.reduce((a, b) => (b.m.cagr > a.m.cagr ? b : a));
-    const s002 = res.find((r) => r.ids.length === 1 && r.ids[0] === 'SELL_002')!;
     console.log(
       `${sym.padEnd(11)}${(hv * 100).toFixed(0).padStart(4)}%  ` +
       res.map((r) => pct(r.m.cagr).padStart(8)).join('') +
-      `${pct(holdCagr).padStart(9)}   최선:${best.label.split(' ')[0]}` +
-      `${s002.m.sells === 0 ? '  (S002 미발동)' : `  (S002 ${s002.m.sells}회)`}`,
+      `${pct(holdCagr).padStart(9)}  최선:${best.label}`,
     );
   } else {
     console.log(`\n${'='.repeat(80)}`);
@@ -159,6 +163,6 @@ for (const sym of SYMBOLS) {
     console.log(`${'Buy & Hold'.padEnd(30)}${pct(holdCagr).padStart(9)}`);
   }
 }
-if (SUMMARY) console.log(`\n${'종목'.padEnd(11)}${'변동성'.padStart(5)}  ${'S001'.padStart(8)}${'S002'.padStart(8)}${'둘다'.padStart(8)}${'MACD'.padStart(8)}${'보유'.padStart(9)}`);
+if (SUMMARY) console.log(`\n열 순서: ${CONFIGS.map((c) => c[0]).join(' | ')} | 보유`);
 console.log('\n※ 수수료·세금·배당·슬리피지 미반영, 신호 당일 종가 체결');
 console.log('※ SELL_002는 daily 규칙이라 매 영업일 평가 (운영의 평일 크론과 동일)');
