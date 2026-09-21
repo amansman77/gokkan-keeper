@@ -11,7 +11,8 @@
     "migrate:local": "wrangler d1 migrations apply shared-db --local",
     "typecheck": "tsc --noEmit",
     "test:auth:integration": "bash ./scripts/auth-integration-test.sh",
-    "simulate": "tsx scripts/simulate.ts"
+    "simulate": "tsx scripts/simulate.ts",
+    "compare-entries": "tsx scripts/compare-entries.ts"
   },
   "dependencies": {
     "@gokkan-keeper/shared": "workspace:*",

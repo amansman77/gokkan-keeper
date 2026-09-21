@@ -130,6 +130,8 @@ rather than restating either, so a rule change is reflected in the simulation
 automatically — that is why those two modules are kept free of D1 and network
 imports. Do not give the simulator its own copy of a condition.
 
+A companion, `scripts/compare-entries.ts` (`pnpm --filter api compare-entries -- --symbols 133690.KS`), pits entry rules against each other on CAGR/MDD/Sharpe/win rate/entry lag/exposure/trade count with the exit held constant. It forces `position = 0` when generating signals, because `WARN_BUY_001` carries a `position === 0` condition that would otherwise let it fire once and never again against a sell rule that only halves a holding — that normalisation exists to compare entry timing, and does not change production.
+
 Read its output with the entry-controlled column ("규칙 효과"), not the
 whole-period hold: a rules strategy is out of the market until its first signal,
 so comparing it to a hold that started on day one mostly measures time in market.
