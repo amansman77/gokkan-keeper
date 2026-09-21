@@ -19,6 +19,7 @@ const args = process.argv.slice(2);
 const argOf = (k: string, d: string) => { const i = args.indexOf(`--${k}`); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
 const SYMBOLS = argOf('symbols', '000660.KS').split(',').map((s) => s.trim()).filter(Boolean);
 const UNIT = Number(argOf('unit', '25'));
+const SUMMARY = args.includes('--summary');
 
 const D = (ts: number) => new Date(ts * 1000).toISOString().slice(0, 10);
 const rule = (id: string) => { const r = RULES.find((x) => x.ruleId === id); if (!r) throw new Error(id); return r; };
@@ -136,17 +137,28 @@ for (const sym of SYMBOLS) {
   const hr: number[] = []; for (let i = 1; i < hc.length; i++) hr.push(hc[i] / hc[i - 1] - 1);
   const hm = hr.reduce((a, b) => a + b, 0) / hr.length;
   const hv = Math.sqrt(hr.reduce((a, b) => a + (b - hm) ** 2, 0) / hr.length) * Math.sqrt(252);
-  console.log(`\n${'='.repeat(80)}`);
-  console.log(`${sym}   ${D(daily[300].ts)} ~ ${D(daily[daily.length - 1].ts)}   연변동성 ${(hv * 100).toFixed(0)}%   (진입 BUY_001 고정)`);
-  console.log('='.repeat(80));
-  console.log(`${'매도규칙'.padEnd(30)}${'CAGR'.padStart(9)}${'MDD'.padStart(10)}${'Sharpe'.padStart(8)}${'노출률'.padStart(8)}${'매수'.padStart(6)}${'매도'.padStart(6)}`);
-  let hold = null as null | { cagr: number };
-  for (const [label, ids] of CONFIGS) {
-    const m = simulate(sym, daily, ids, pre);
-    hold ??= { cagr: m.holdCagr };
-    console.log(`${label.padEnd(30)}${pct(m.cagr).padStart(9)}${pct(m.mdd).padStart(10)}${m.sharpe.toFixed(2).padStart(8)}${(m.exposure * 100).toFixed(0).padStart(7)}%${String(m.buys).padStart(6)}${String(m.sells).padStart(6)}`);
+  const res = CONFIGS.map(([label, ids]) => ({ label, ids, m: simulate(sym, daily, ids, pre) }));
+  const holdCagr = res[0].m.holdCagr;
+
+  if (SUMMARY) {
+    // one line per symbol: CAGR of each config, then hold
+    const best = res.reduce((a, b) => (b.m.cagr > a.m.cagr ? b : a));
+    const s002 = res.find((r) => r.ids.length === 1 && r.ids[0] === 'SELL_002')!;
+    console.log(
+      `${sym.padEnd(11)}${(hv * 100).toFixed(0).padStart(4)}%  ` +
+      res.map((r) => pct(r.m.cagr).padStart(8)).join('') +
+      `${pct(holdCagr).padStart(9)}   최선:${best.label.split(' ')[0]}` +
+      `${s002.m.sells === 0 ? '  (S002 미발동)' : `  (S002 ${s002.m.sells}회)`}`,
+    );
+  } else {
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`${sym}   ${D(daily[300].ts)} ~ ${D(daily[daily.length - 1].ts)}   연변동성 ${(hv * 100).toFixed(0)}%   (진입 BUY_001 고정)`);
+    console.log('='.repeat(80));
+    console.log(`${'매도규칙'.padEnd(30)}${'CAGR'.padStart(9)}${'MDD'.padStart(10)}${'Sharpe'.padStart(8)}${'노출률'.padStart(8)}${'매수'.padStart(6)}${'매도'.padStart(6)}`);
+    for (const r of res) console.log(`${r.label.padEnd(30)}${pct(r.m.cagr).padStart(9)}${pct(r.m.mdd).padStart(10)}${r.m.sharpe.toFixed(2).padStart(8)}${(r.m.exposure * 100).toFixed(0).padStart(7)}%${String(r.m.buys).padStart(6)}${String(r.m.sells).padStart(6)}`);
+    console.log(`${'Buy & Hold'.padEnd(30)}${pct(holdCagr).padStart(9)}`);
   }
-  if (hold) console.log(`${'Buy & Hold'.padEnd(30)}${pct(hold.cagr).padStart(9)}`);
 }
+if (SUMMARY) console.log(`\n${'종목'.padEnd(11)}${'변동성'.padStart(5)}  ${'S001'.padStart(8)}${'S002'.padStart(8)}${'둘다'.padStart(8)}${'MACD'.padStart(8)}${'보유'.padStart(9)}`);
 console.log('\n※ 수수료·세금·배당·슬리피지 미반영, 신호 당일 종가 체결');
 console.log('※ SELL_002는 daily 규칙이라 매 영업일 평가 (운영의 평일 크론과 동일)');
