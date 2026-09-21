@@ -36,10 +36,23 @@ async function bars(sym: string): Promise<OhlcvRow[]> {
   return out;
 }
 
-function simulate(sym: string, daily: OhlcvRow[], exitIds: string[]) {
+interface Pre { daily: ReturnType<typeof computeIndicatorsFromRows>[]; weekly: Map<number, ReturnType<typeof computeIndicatorsFromRows>>; weeks: ReturnType<typeof aggregateWeekly> }
+
+function precompute(sym: string, daily: OhlcvRow[]): Pre {
   const weeks = aggregateWeekly(daily);
-  const weekEnd = new Set(weeks.map((w) => w.ts));
   const weekIdxByTs = new Map(weeks.map((w, i) => [w.ts, i]));
+  const d: Pre['daily'] = [];
+  for (let i = 0; i < daily.length; i++) {
+    d[i] = i < 300 ? (null as any) : computeIndicatorsFromRows(daily.slice(Math.max(0, i - 399), i + 1), sym);
+  }
+  const w = new Map<number, ReturnType<typeof computeIndicatorsFromRows>>();
+  for (const [ts, wi] of weekIdxByTs) if (wi >= 41) w.set(ts, computeIndicatorsFromRows(weeks.slice(0, wi + 1), sym));
+  return { daily: d, weekly: w, weeks };
+}
+
+function simulate(sym: string, daily: OhlcvRow[], exitIds: string[], pre: Pre) {
+  const weeks = pre.weeks;
+  const weekEnd = new Set(weeks.map((w) => w.ts));
   const entry = rule('BUY_001');
   const exits = exitIds.map(rule);
 
@@ -52,17 +65,18 @@ function simulate(sym: string, daily: OhlcvRow[], exitIds: string[]) {
 
   for (let i = 300; i < daily.length; i++) {
     const bar = daily[i];
-    const dSnapBase = computeIndicatorsFromRows(daily.slice(Math.max(0, i - 399), i + 1), sym);
+    const dSnapBase = pre.daily[i];
+    if (!dSnapBase) continue;
     if (holdShares === null) holdShares = 100 / bar.close;
     days++; if (shares > 1e-9) held++;
 
     // weekly rules only on a week end, matching the Friday cron
     if (weekEnd.has(bar.ts)) {
-      const wi = weekIdxByTs.get(bar.ts)!;
-      if (wi >= 41) {
+      const wk = pre.weekly.get(bar.ts);
+      if (wk) {
         const wSnap: SymbolSnapshot = {
           symbol: sym, name: sym, positionId: sym, position: shares,
-          weekly: computeIndicatorsFromRows(weeks.slice(0, wi + 1), sym), daily: dSnapBase,
+          weekly: wk, daily: dSnapBase,
         };
         for (const r of [entry, ...exits].filter((r) => r.mode === 'weekly')) {
           const met = r.condition(wSnap); const prev = was.get(r.ruleId) ?? false;
@@ -98,6 +112,7 @@ function simulate(sym: string, daily: OhlcvRow[], exitIds: string[]) {
   const hold = holdShares! * daily[daily.length - 1].close;
 
   return {
+    vol: sd * Math.sqrt(252),
     cagr: (final / 100) ** (1 / years) - 1, mdd, sharpe: sd > 0 ? (mean / sd) * Math.sqrt(252) : 0,
     exposure: held / days, buys, sells, final, hold,
     holdCagr: (hold / 100) ** (1 / years) - 1,
@@ -115,13 +130,19 @@ const pct = (x: number) => (x * 100).toFixed(2) + '%';
 for (const sym of SYMBOLS) {
   const daily = await bars(sym);
   if (daily.length < 700) { console.log(`\n${sym}: 데이터 부족`); continue; }
+  const pre = precompute(sym, daily);
+  // buy & hold volatility, used to bucket the symbol
+  const hc = daily.slice(300).map((b) => b.close);
+  const hr: number[] = []; for (let i = 1; i < hc.length; i++) hr.push(hc[i] / hc[i - 1] - 1);
+  const hm = hr.reduce((a, b) => a + b, 0) / hr.length;
+  const hv = Math.sqrt(hr.reduce((a, b) => a + (b - hm) ** 2, 0) / hr.length) * Math.sqrt(252);
   console.log(`\n${'='.repeat(80)}`);
-  console.log(`${sym}   ${D(daily[300].ts)} ~ ${D(daily[daily.length - 1].ts)}   (진입은 BUY_001 고정)`);
+  console.log(`${sym}   ${D(daily[300].ts)} ~ ${D(daily[daily.length - 1].ts)}   연변동성 ${(hv * 100).toFixed(0)}%   (진입 BUY_001 고정)`);
   console.log('='.repeat(80));
   console.log(`${'매도규칙'.padEnd(30)}${'CAGR'.padStart(9)}${'MDD'.padStart(10)}${'Sharpe'.padStart(8)}${'노출률'.padStart(8)}${'매수'.padStart(6)}${'매도'.padStart(6)}`);
   let hold = null as null | { cagr: number };
   for (const [label, ids] of CONFIGS) {
-    const m = simulate(sym, daily, ids);
+    const m = simulate(sym, daily, ids, pre);
     hold ??= { cagr: m.holdCagr };
     console.log(`${label.padEnd(30)}${pct(m.cagr).padStart(9)}${pct(m.mdd).padStart(10)}${m.sharpe.toFixed(2).padStart(8)}${(m.exposure * 100).toFixed(0).padStart(7)}%${String(m.buys).padStart(6)}${String(m.sells).padStart(6)}`);
   }
