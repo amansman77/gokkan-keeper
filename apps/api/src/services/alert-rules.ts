@@ -63,13 +63,18 @@ export const RULES: Rule[] = [
   {
     // The buy trigger. Best of nine entry/exit combinations tested over 34 held
     // symbols (10.51% vs 4.87% for the previous configuration).
+    //
+    // No `position === 0` filter, deliberately. The rule carried one while it
+    // was an observation, but the backtest that justified promoting it
+    // evaluated entries against a flat book, so keeping the filter would ship
+    // something the measurement never covered — and SELL_001 only halves a
+    // position, so a filtered rule could never buy back what it trimmed.
     ruleId: 'BUY_001',
     type: 'BUY',
     priority: 'P0',
     title: '주봉 상승 모멘텀',
     mode: 'weekly',
     condition: (snap) =>
-      snap.position === 0 &&
       snap.weekly?.prevMacdOsc != null && snap.weekly?.macdOsc != null &&
       snap.weekly.prevMacdOsc <= 0 &&
       snap.weekly.macdOsc > 0 &&
