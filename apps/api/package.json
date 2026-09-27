@@ -14,7 +14,8 @@
     "simulate": "tsx scripts/simulate.ts",
     "compare-entries": "tsx scripts/compare-entries.ts",
     "compare-exits": "tsx scripts/compare-exits.ts",
-    "lead-lag": "tsx scripts/lead-lag.ts"
+    "lead-lag": "tsx scripts/lead-lag.ts",
+    "test-candidate": "tsx scripts/test-candidate.ts"
   },
   "dependencies": {
     "@gokkan-keeper/shared": "workspace:*",
