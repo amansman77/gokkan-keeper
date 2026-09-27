@@ -24,26 +24,25 @@ const live = (id: string) => { const r = RULES.find((x) => x.ruleId === id); if 
 /** Candidate conditions. `weekly` indicators are computed from weekly bars, so
  *  weekly.ma5 / weekly.ma20 are the 5- and 20-week averages. */
 const CANDIDATES: Array<[string, (s: SymbolSnapshot) => boolean]> = [
-  ['현행 BUY_001', (s) => live('BUY_001').condition(s)],
-  ['제안: OSC상승+일봉GC+주봉GC', (s) =>
-    s.weekly?.macdOsc != null && s.weekly?.prevMacdOsc != null &&
-    s.weekly.macdOsc > s.weekly.prevMacdOsc &&
-    s.daily?.ma5 != null && s.daily?.ma20 != null && s.daily.ma5 > s.daily.ma20 &&
-    s.weekly?.ma5 != null && s.weekly?.ma20 != null && s.weekly.ma5 > s.weekly.ma20],
-  // isolate which of the two added conditions is doing the work
-  ['참고: OSC상승만', (s) =>
-    s.weekly?.macdOsc != null && s.weekly?.prevMacdOsc != null && s.weekly.macdOsc > s.weekly.prevMacdOsc],
-  ['참고: OSC상승+주봉GC', (s) =>
-    s.weekly?.macdOsc != null && s.weekly?.prevMacdOsc != null &&
-    s.weekly.macdOsc > s.weekly.prevMacdOsc &&
-    s.weekly?.ma5 != null && s.weekly?.ma20 != null && s.weekly.ma5 > s.weekly.ma20],
-  ['제안+RSI<80', (s) =>
-    s.weekly?.macdOsc != null && s.weekly?.prevMacdOsc != null &&
-    s.weekly.macdOsc > s.weekly.prevMacdOsc &&
-    s.daily?.ma5 != null && s.daily?.ma20 != null && s.daily.ma5 > s.daily.ma20 &&
-    s.weekly?.ma5 != null && s.weekly?.ma20 != null && s.weekly.ma5 > s.weekly.ma20 &&
-    s.daily?.rsi != null && s.daily.rsi < 80],
+  ['현행 BUY_001 (전환+일봉GC+RSI)', (s) => live('BUY_001').condition(s)],
+  // zero crossing instead of "rising", with the weekly golden cross added
+  ['전환+일봉GC+주봉GC', (s) => cross(s) && dailyGC(s) && weeklyGC(s)],
+  ['전환+일봉GC+주봉GC+RSI<80', (s) => cross(s) && dailyGC(s) && weeklyGC(s) && rsiOk(s)],
+  // isolate each filter's contribution
+  ['전환+주봉GC (일봉GC 제외)', (s) => cross(s) && weeklyGC(s)],
+  ['전환만 (필터 없음)', (s) => cross(s)],
 ];
+
+/** weekly MACD OSC crossing up through zero */
+const cross = (s: SymbolSnapshot) =>
+  s.weekly?.prevMacdOsc != null && s.weekly?.macdOsc != null &&
+  s.weekly.prevMacdOsc <= 0 && s.weekly.macdOsc > 0;
+const dailyGC = (s: SymbolSnapshot) =>
+  s.daily?.ma5 != null && s.daily?.ma20 != null && s.daily.ma5 > s.daily.ma20;
+/** weekly indicators come from weekly bars, so ma5/ma20 are 5- and 20-week */
+const weeklyGC = (s: SymbolSnapshot) =>
+  s.weekly?.ma5 != null && s.weekly?.ma20 != null && s.weekly.ma5 > s.weekly.ma20;
+const rsiOk = (s: SymbolSnapshot) => s.daily?.rsi != null && s.daily.rsi < 80;
 
 async function bars(sym: string): Promise<OhlcvRow[]> {
   const u = new URL(`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}`);
