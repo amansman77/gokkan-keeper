@@ -125,11 +125,13 @@ function simulate(sym: string, daily: OhlcvRow[], exitIds: string[], pre: Pre, e
 
 const EXITS: Array<[string, string[]]> = [
   ['S001', ['SELL_001']],
-  ['S002', ['SELL_002']],
-  ['둘다', ['SELL_001', 'SELL_002']],
+  ['S002', ['WARN_SELL_002']],
+  ['둘다', ['SELL_001', 'WARN_SELL_002']],
   ['MACD', ['WARN_SELL_001']],
 ];
-const ENTRIES: Array<[string, string]> = [['B:추세', 'BUY_001'], ['B:모멘텀', 'WARN_BUY_001']];
+// ids per the 2026-09-21 rename: BUY_001 is the momentum trigger, the MA40
+// reclaim is the WARN_BUY_002 observation
+const ENTRIES: Array<[string, string]> = [['B:모멘텀', 'BUY_001'], ['B:추세', 'WARN_BUY_002']];
 const CONFIGS: Array<[string, string[], string]> = ENTRIES.flatMap(([en, eid]) =>
   EXITS.map(([xn, ids]) => [`${en} × ${xn}`, ids, eid] as [string, string[], string]));
 const pct = (x: number) => (x * 100).toFixed(2) + '%';
