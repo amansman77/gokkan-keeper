@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ASSET_GOAL_SETTING_KEY,
+  GRANARY_PURPOSES,
   AssetGoalPlanSchema,
   monthsUntilYearEnd,
   parseAssetGoalPlan,
@@ -22,7 +23,7 @@ function formatEok(amount: number): string {
   return `${Math.round(amount / 10_000).toLocaleString('ko-KR')}만`;
 }
 
-/** Sum of every granary's latest snapshot in KRW; USD granaries use the live USD/KRW rate. */
+/** Sum of the counted granaries' latest snapshots in KRW; USD granaries use the live USD/KRW rate. */
 function totalInKrw(granaries: AssetGoalProgressProps['granaries'], usdKrw: number | null) {
   let total = 0;
   const excluded: string[] = [];
@@ -41,6 +42,7 @@ interface DraftPlan {
   monthlyContributionMan: string;
   expectedReturnPct: string;
   maxDrawdownPct: string;
+  excludedPurposes: AssetGoalPlan['excludedPurposes'];
 }
 
 function toDraft(plan: AssetGoalPlan): DraftPlan {
@@ -49,6 +51,7 @@ function toDraft(plan: AssetGoalPlan): DraftPlan {
     monthlyContributionMan: String(plan.monthlyContribution / 10_000),
     expectedReturnPct: String(plan.expectedAnnualReturn * 100),
     maxDrawdownPct: String(plan.maxDrawdown * 100),
+    excludedPurposes: plan.excludedPurposes,
   };
 }
 
@@ -60,6 +63,7 @@ function fromDraft(draft: DraftPlan) {
     monthlyContribution: Number(draft.monthlyContributionMan) * 10_000,
     expectedAnnualReturn: Number(draft.expectedReturnPct) / 100,
     maxDrawdown: Number(draft.maxDrawdownPct) / 100,
+    excludedPurposes: draft.excludedPurposes,
   });
 }
 
@@ -84,8 +88,9 @@ export default function AssetGoalProgress({ granaries }: AssetGoalProgressProps)
     return error ? <p className="text-sm text-danger">{error}</p> : null;
   }
 
-  const { total, excluded } = totalInKrw(granaries, usdKrw);
-  const hasUsd = granaries.some((g) => g.currency === 'USD' && g.latestSnapshot);
+  const counted = granaries.filter((g) => !plan.excludedPurposes.includes(g.purpose));
+  const { total, excluded } = totalInKrw(counted, usdKrw);
+  const hasUsd = counted.some((g) => g.currency === 'USD' && g.latestSnapshot);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -130,7 +135,7 @@ export default function AssetGoalProgress({ granaries }: AssetGoalProgressProps)
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-4">
         <span className="text-2xl font-bold text-ink">{formatEok(total)}원</span>
         <span className="gk-meta">
-          전체 곳간 합계
+          {plan.excludedPurposes.length > 0 ? `곳간 합계(${plan.excludedPurposes.join(', ')} 제외)` : '전체 곳간 합계'}
           {hasUsd && (usdKrw ? ` · USD ${usdKrw.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}원 환산` : ' · 환율 조회 실패로 USD 곳간 제외')}
           {excluded.length > 0 && ` · 환산 불가 제외: ${excluded.join(', ')}`}
         </span>
@@ -219,6 +224,26 @@ export default function AssetGoalProgress({ granaries }: AssetGoalProgressProps)
           >
             + 목표 추가
           </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="gk-label-sm">합계에서 제외할 곳간 목적</span>
+            {GRANARY_PURPOSES.map((purpose) => (
+              <label key={purpose} className="flex items-center gap-1 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  checked={draft.excludedPurposes.includes(purpose)}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      excludedPurposes: e.target.checked
+                        ? [...draft.excludedPurposes, purpose]
+                        : draft.excludedPurposes.filter((p) => p !== purpose),
+                    })
+                  }
+                />
+                {purpose}
+              </label>
+            ))}
+          </div>
           <div className="flex flex-wrap items-end gap-3">
             <div className="gk-field">
               <label className="gk-label-sm">월 납입(만원)</label>

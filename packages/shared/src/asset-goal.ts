@@ -1,7 +1,9 @@
 import { z } from 'zod';
+import { GRANARY_PURPOSES } from './constants';
 
 /**
- * Asset goal (자산 목표): the owner's target total across all granaries.
+ * Asset goal (자산 목표): the owner's target total across their granaries,
+ * minus any purposes listed in `excludedPurposes`.
  *
  * Stored as one JSON value in gk_settings under ASSET_GOAL_SETTING_KEY, so it
  * needs no table of its own. Projections compound monthly at the monthly
@@ -24,6 +26,8 @@ export const AssetGoalPlanSchema = z.object({
   expectedAnnualReturn: z.number().min(-0.5).max(1),
   /** Tolerated peak-to-trough decline as a positive fraction, e.g. 0.2 for -20%. */
   maxDrawdown: z.number().min(0).max(1),
+  /** Granaries with these purposes are left out of the goal total (e.g. children's accounts). */
+  excludedPurposes: z.array(z.enum(GRANARY_PURPOSES)).default([]),
 });
 
 export type AssetGoalMilestone = z.infer<typeof AssetGoalMilestoneSchema>;
@@ -37,6 +41,7 @@ export const DEFAULT_ASSET_GOAL_PLAN: AssetGoalPlan = {
   monthlyContribution: 1_000_000,
   expectedAnnualReturn: 0.07,
   maxDrawdown: 0.2,
+  excludedPurposes: ['아이들'],
 };
 
 export function parseAssetGoalPlan(raw: string | undefined | null): AssetGoalPlan {
