@@ -28,6 +28,16 @@ export const AssetGoalPlanSchema = z.object({
   maxDrawdown: z.number().min(0).max(1),
   /** Granaries with these purposes are left out of the goal total (e.g. children's accounts). */
   excludedPurposes: z.array(z.enum(GRANARY_PURPOSES)).default([]),
+  /**
+   * Return the strategy aims for, tracked against the plan's conservative
+   * `expectedAnnualReturn`. Kept separate on purpose: planning on the
+   * aspirational rate would hide a shortfall until it is too late to act.
+   */
+  targetAnnualReturn: z.number().min(-0.5).max(1).optional(),
+  /** Starting point the expected/target paths are measured from. */
+  baseline: z
+    .object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), amount: z.number().min(0) })
+    .optional(),
 });
 
 export type AssetGoalMilestone = z.infer<typeof AssetGoalMilestoneSchema>;
@@ -52,6 +62,12 @@ export function parseAssetGoalPlan(raw: string | undefined | null): AssetGoalPla
   } catch {
     return DEFAULT_ASSET_GOAL_PLAN;
   }
+}
+
+/** Fractional months elapsed from an ISO date (YYYY-MM-DD) to `to`; 0 if in the future. */
+export function monthsSince(isoDate: string, to: Date = new Date()): number {
+  const days = (to.getTime() - new Date(`${isoDate}T00:00:00`).getTime()) / 86_400_000;
+  return Math.max(0, days / (365.25 / 12));
 }
 
 /** Whole months from `from` until the end of `year`; 0 once that has passed. */
