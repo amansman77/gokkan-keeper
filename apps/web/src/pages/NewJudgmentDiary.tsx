@@ -8,7 +8,7 @@ export default function NewJudgmentDiary() {
 
   const handleSubmit = async (data: CreateJudgmentDiaryEntry) => {
     const entry = await createJudgmentDiaryEntry(data);
-    navigate(`/judgment-diary/${entry.id}`);
+    void navigate(`/judgment-diary/${entry.id}`);
   };
 
   return (

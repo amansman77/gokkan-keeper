@@ -30,7 +30,7 @@ export default function JudgmentDiaryPrinciples() {
         setLoading(false);
       }
     }
-    loadEntries();
+    void loadEntries();
   }, []);
 
   const principles = useMemo(() => {

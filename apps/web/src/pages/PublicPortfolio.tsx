@@ -60,7 +60,7 @@ export default function PublicPortfolio() {
       }
     }
 
-    loadData();
+    void loadData();
   }, []);
 
   const weightedReturn = useMemo(() => {

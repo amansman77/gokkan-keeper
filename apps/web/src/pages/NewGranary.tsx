@@ -23,7 +23,7 @@ export default function NewGranary() {
 
     try {
       const granary = await createGranary(formData);
-      navigate(`/granaries/${granary.id}`);
+      void navigate(`/granaries/${granary.id}`);
     } catch (err: any) {
       setError(err.message || '곳간 생성에 실패했습니다.');
     } finally {

@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-- Node.js 18.20.0 (recommended: use nvm)
-- pnpm 8+
+- Node.js 22.22.2 (recommended: use nvm)
+- pnpm 10.7.0
 - Cloudflare account (for Workers, D1, R2)
 
 ## Installation
@@ -12,7 +12,7 @@
 
 ```bash
 # Install and switch to the correct Node.js version
-nvm install 18.20.0  # If version is not installed
+nvm install  # If version is not installed
 nvm use               # Switch to the version specified in .nvmrc
 ```
 
@@ -23,7 +23,7 @@ If pnpm is not installed, choose one of the following methods:
 **Option A: Using Corepack (recommended, comes with Node.js)**
 ```bash
 corepack enable
-corepack prepare pnpm@latest --activate
+corepack prepare pnpm@10.7.0 --activate
 ```
 
 **Option B: Using npm**
@@ -38,7 +38,7 @@ curl -fsSL https://get.pnpm.io/install.sh | sh -
 
 Verify installation:
 ```bash
-pnpm --version  # Should show 8.x or higher
+pnpm --version  # Should show 10.7.0
 ```
 
 ### Step 3: Install project dependencies
@@ -53,13 +53,13 @@ pnpm --filter shared build
 
 **Quick Setup (all steps at once):**
 ```bash
-nvm install 18.20.0 && nvm use
-corepack enable && corepack prepare pnpm@latest --activate
+nvm install && nvm use
+corepack enable && corepack prepare pnpm@10.7.0 --activate
 pnpm install && pnpm --filter shared build
 ```
 
 **Note**: This project uses `.nvmrc` to specify Node.js version. If you're using nvm:
-- If you see "N/A: version is not yet installed", run `nvm install 18.20.0` first
+- If you see "N/A: version is not yet installed", run `nvm install` first
 - Then run `nvm use` to switch to the correct version
 - This ensures all developers use the same Node.js version
 
@@ -249,7 +249,7 @@ template, or provide them as environment variables. `VITE_API_BASE_URL` and
 From the repository root, validate and build before deploying:
 
 ```bash
-pnpm typecheck
+pnpm check
 pnpm build
 ```
 
@@ -260,11 +260,12 @@ production binding:
 pnpm --filter api exec wrangler d1 migrations apply shared-db --remote --env production
 ```
 
-Deploy the already-built API and frontend explicitly:
+The supported deployment commands run `pnpm check` and build fresh artifacts
+before publishing. A failed check stops deployment:
 
 ```bash
 pnpm deploy:prod:api
-pnpm --filter web exec wrangler pages deploy dist --project-name gokkan-keeper-web --branch main
+pnpm deploy:prod:web
 ```
 
 Pages uses `main` as its production deployment branch; other branches create
@@ -276,6 +277,57 @@ unauthenticated `GET /granaries` returns `401`, and the production frontend
 serves the latest HTML and assets. The current endpoints are
 `https://gokkan-keeper-api-production.amansman77.workers.dev` and
 `https://gokkan-keeper.yetimates.com`.
+
+## Quality checks
+
+`pnpm check` runs strict TypeScript checks, ESLint, focused boundary tests, and
+`pnpm audit:dependencies`. CI runs the same checks plus a production build for
+pull requests and pushes to `main`. CI uses a dummy public Google client ID for
+compilation; it does not verify Google login or publish the resulting assets.
+Configure the GitHub `Quality checks / check` job as a required branch check in
+repository settings if merge protection is desired; the workflow alone does not
+enforce that setting.
+
+- TypeScript includes web, Pages runtime, Vite/Capacitor config, API, shared
+  contracts, and API scripts.
+- ESLint checks JS/MJS syntax and common correctness errors. TypeScript uses
+  promise/async rules; DB files additionally prohibit `any` and unsafe type
+  propagation. JSX async handlers handle errors in their implementation; `void`
+  marks intentional calls to internally handled loading functions and declarative
+  router navigation. Other layers still contain legacy `any` and are not covered
+  by DB-specific unsafe-type rules.
+- `bash -n` checks the auth integration script's syntax, not shell behavior.
+- Boundary tests cover stored diary JSON, automation assets, legacy position
+  valuation, snapshot nulls, public/auth/CORS HTTP boundaries, dependency exception
+  restrictions, and deployment
+  stopping when checks/builds fail. They are not a general unit or browser suite.
+  The opt-in auth integration check remains in `docs/auth-integration-test.md`.
+- Dependency auditing covers both runtime and development dependencies. Critical
+  and High findings block checks; Moderate findings remain visible in the audit
+  summary. Audit/network errors fail the check instead of being treated as clean.
+
+### Temporary dependency exception
+
+As of 2026-10-09, the unpatched
+[braces stack-exhaustion advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)
+only reaches this project through `tailwindcss > chokidar > braces@3.0.3`.
+It processes repository-owned file-watch patterns during local development and
+is not bundled in the browser or deployed Worker. Replacing Tailwind would be a
+separate design-system migration. `scripts/check-dependencies.mjs` permits only
+that advisory, version, and exact dependency path until **2026-11-09 UTC**. A
+new path, released patch, Critical severity, or expiry blocks checks. This is an
+accepted temporary development-tool risk, not a repaired vulnerability. Recheck
+upstream before expiry and remove the exception when a compatible fix is available.
+
+The current audit also reports Moderate findings in Capacitor's `xcode > uuid`
+and Tailwind's `postcss-selector-parser`. They are not silently excluded.
+The `miniflare > sharp` override selects a compatible patched 0.35.x release;
+remove it when Wrangler's dependency already includes the patched release.
+
+Capacitor is now version 8 and requires Node 22. Native `ios`/`android` projects
+are ignored and are not present in this checkout. Existing local native projects
+must follow the [Capacitor 8 migration guide](https://capacitorjs.com/docs/updating/8-0)
+before syncing; native builds were not validated here.
 
 ## Mobile App (Capacitor)
 

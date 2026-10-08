@@ -96,7 +96,7 @@ export default function GranaryDetail() {
         setLoading(false);
       }
     }
-    loadData();
+    void loadData();
   }, [id]);
 
   // Snapshots come back newest-first; the trend chart wants oldest-first.
@@ -270,7 +270,7 @@ export default function GranaryDetail() {
                   </span>
                 )}
               </div>
-              {latest.availableBalance !== undefined && (
+              {latest.availableBalance != null && (
                 <p className="text-sm text-ink-muted mt-2">
                   예수금 {formatCurrency(latest.availableBalance, granary.currency)}
                 </p>

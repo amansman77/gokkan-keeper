@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    bootstrap();
+    void bootstrap();
 
     return () => {
       cancelled = true;

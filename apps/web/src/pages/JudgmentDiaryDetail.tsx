@@ -58,7 +58,7 @@ export default function JudgmentDiaryDetail() {
         setLoading(false);
       }
     }
-    loadEntry();
+    void loadEntry();
   }, [slug]);
 
   useEffect(() => {

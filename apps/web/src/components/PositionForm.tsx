@@ -109,7 +109,7 @@ export default function PositionForm({
     const lookupSequence = lookupSequenceRef.current + 1;
     lookupSequenceRef.current = lookupSequence;
 
-    const timer = window.setTimeout(async () => {
+    const lookupQuote = async () => {
       setQuoteLoading(true);
       setQuoteMessage(null);
       try {
@@ -140,7 +140,8 @@ export default function PositionForm({
           setQuoteLoading(false);
         }
       }
-    }, 350);
+    };
+    const timer = window.setTimeout(() => { void lookupQuote(); }, 350);
 
     return () => {
       cancelled = true;

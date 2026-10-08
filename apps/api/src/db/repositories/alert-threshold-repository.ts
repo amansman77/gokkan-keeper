@@ -1,7 +1,8 @@
+import type { AlertThresholdRow, SqlValue } from '../rows';
 import type { D1Database } from '@cloudflare/workers-types';
 import type { AlertThreshold, CreateAlertThreshold, UpdateAlertThreshold } from '@gokkan-keeper/shared';
 
-function transformAlertThreshold(row: any): AlertThreshold {
+function transformAlertThreshold(row: AlertThresholdRow): AlertThreshold {
   return {
     id: row.id,
     symbol: row.symbol,
@@ -20,14 +21,14 @@ export class AlertThresholdRepository {
   async getAlertThresholds(): Promise<AlertThreshold[]> {
     const result = await this.db
       .prepare('SELECT * FROM gk_alert_thresholds ORDER BY created_at DESC')
-      .all<any>();
+      .all<AlertThresholdRow>();
     return (result.results || []).map(transformAlertThreshold);
   }
 
   async getEnabledAlertThresholds(): Promise<AlertThreshold[]> {
     const result = await this.db
       .prepare('SELECT * FROM gk_alert_thresholds WHERE enabled = 1')
-      .all<any>();
+      .all<AlertThresholdRow>();
     return (result.results || []).map(transformAlertThreshold);
   }
 
@@ -48,7 +49,7 @@ export class AlertThresholdRepository {
   }
 
   async getAlertThresholdById(id: string): Promise<AlertThreshold | null> {
-    const row = await this.db.prepare('SELECT * FROM gk_alert_thresholds WHERE id = ?').bind(id).first<any>();
+    const row = await this.db.prepare('SELECT * FROM gk_alert_thresholds WHERE id = ?').bind(id).first<AlertThresholdRow>();
     return row ? transformAlertThreshold(row) : null;
   }
 
@@ -57,8 +58,8 @@ export class AlertThresholdRepository {
     if (!existing) throw new Error('Alert threshold not found');
 
     const updates: string[] = [];
-    const values: any[] = [];
-    const set = (field: string, value: any) => { updates.push(`${field} = ?`); values.push(value); };
+    const values: SqlValue[] = [];
+    const set = (field: string, value: SqlValue) => { updates.push(`${field} = ?`); values.push(value); };
 
     if (data.symbol !== undefined) set('symbol', data.symbol);
     if (data.label !== undefined) set('label', data.label);

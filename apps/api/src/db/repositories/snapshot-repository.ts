@@ -1,3 +1,4 @@
+import type { SnapshotRow, SqlValue } from '../rows';
 import type { D1Database } from '@cloudflare/workers-types';
 import type { CreateSnapshot, Snapshot, UpdateSnapshot } from '@gokkan-keeper/shared';
 import { toSafeLimit, transformSnapshot } from '../mappers';
@@ -9,7 +10,7 @@ export class SnapshotRepository {
     const result = await this.db
       .prepare('SELECT * FROM gk_snapshots WHERE granary_id = ? ORDER BY date DESC LIMIT 1')
       .bind(granaryId)
-      .first<any>();
+      .first<SnapshotRow>();
     return result ? transformSnapshot(result) : null;
   }
 
@@ -17,7 +18,7 @@ export class SnapshotRepository {
     const result = await this.db
       .prepare('SELECT * FROM gk_snapshots WHERE granary_id = ? ORDER BY date DESC LIMIT 1 OFFSET 1')
       .bind(granaryId)
-      .first<any>();
+      .first<SnapshotRow>();
     return result ? transformSnapshot(result) : null;
   }
 
@@ -26,7 +27,7 @@ export class SnapshotRepository {
     const result = await this.db
       .prepare('SELECT * FROM gk_snapshots WHERE granary_id = ? ORDER BY date DESC LIMIT ?')
       .bind(granaryId, safeLimit)
-      .all<any>();
+      .all<SnapshotRow>();
     return (result.results || []).map(transformSnapshot);
   }
 
@@ -35,7 +36,7 @@ export class SnapshotRepository {
     const result = await this.db
       .prepare('SELECT * FROM gk_snapshots ORDER BY date DESC LIMIT ?')
       .bind(safeLimit)
-      .all<any>();
+      .all<SnapshotRow>();
     return (result.results || []).map(transformSnapshot);
   }
 
@@ -43,7 +44,7 @@ export class SnapshotRepository {
     const result = await this.db
       .prepare('SELECT * FROM gk_snapshots WHERE id = ?')
       .bind(id)
-      .first<any>();
+      .first<SnapshotRow>();
     return result ? transformSnapshot(result) : null;
   }
 
@@ -65,8 +66,8 @@ export class SnapshotRepository {
           now,
         )
         .run();
-    } catch (error: any) {
-      if (error.message?.includes('UNIQUE constraint')) {
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('UNIQUE constraint')) {
         throw new Error('Snapshot already exists for this granary and date');
       }
       throw error;
@@ -82,7 +83,7 @@ export class SnapshotRepository {
     if (!existing) throw new Error('Snapshot not found');
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: SqlValue[] = [];
 
     if (data.date !== undefined) {
       updates.push('date = ?');

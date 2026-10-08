@@ -45,7 +45,7 @@ export default function JudgmentDiaryReport() {
         setLoading(false);
       }
     }
-    loadEntries();
+    void loadEntries();
   }, [month]);
 
   return (

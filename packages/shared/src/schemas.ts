@@ -33,10 +33,10 @@ export const SnapshotSchema = z.object({
   // Total granary valuation on `date`; it is not a transaction amount.
   totalAmount: z.number().nonnegative(),
   // Optional cash balance. It is not guaranteed to reconcile with totalAmount.
-  availableBalance: z.number().nonnegative().optional(),
+  availableBalance: z.number().nonnegative().nullable().optional(),
   // Optional signed unrealized gain/loss amount, not a percentage.
-  profitLoss: z.number().optional(),
-  memo: z.string().max(500).optional(),
+  profitLoss: z.number().nullable().optional(),
+  memo: z.string().max(500).nullable().optional(),
   createdAt: z.string().datetime(),
 });
 

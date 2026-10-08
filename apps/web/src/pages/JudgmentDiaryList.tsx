@@ -31,7 +31,7 @@ export default function JudgmentDiaryList() {
         setLoading(false);
       }
     }
-    loadEntries();
+    void loadEntries();
   }, [action]);
   useEffect(() => {
     setSeo({

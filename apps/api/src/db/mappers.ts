@@ -1,3 +1,5 @@
+import { JudgmentDiaryEntrySchema } from '@gokkan-keeper/shared';
+import type { GranaryRow, SnapshotRow, PositionRow, JudgmentDiaryEntryRow } from './rows';
 import type {
   Granary,
   JudgmentDiaryEntry,
@@ -5,7 +7,7 @@ import type {
   Snapshot,
 } from '@gokkan-keeper/shared';
 
-export function transformGranary(row: any): Granary {
+export function transformGranary(row: GranaryRow): Granary {
   return {
     id: row.id,
     name: row.name,
@@ -21,7 +23,7 @@ export function transformGranary(row: any): Granary {
   };
 }
 
-export function transformSnapshot(row: any): Snapshot {
+export function transformSnapshot(row: SnapshotRow): Snapshot {
   return {
     id: row.id,
     granaryId: row.granary_id,
@@ -34,7 +36,7 @@ export function transformSnapshot(row: any): Snapshot {
   };
 }
 
-export function transformPosition(row: any): Position {
+export function transformPosition(row: PositionRow): Position {
   return {
     id: row.id,
     granaryId: row.granary_id ?? null,
@@ -59,17 +61,20 @@ export function transformPosition(row: any): Position {
   };
 }
 
-export function parseJSON<T>(value: string | null, fallback: T): T {
-  if (!value) return fallback;
-
+// Validate JSON against the same contracts used at the API write boundary.
+// Invalid legacy JSON remains absent, as malformed JSON did before.
+export function parseJSON<T>(value: string | null, schema: { safeParse(input: unknown): { success: true; data: T } | { success: false } }): T | undefined {
+  if (!value) return undefined;
   try {
-    return JSON.parse(value) as T;
+    const parsed: unknown = JSON.parse(value);
+    const result = schema.safeParse(parsed);
+    return result.success ? result.data : undefined;
   } catch {
-    return fallback;
+    return undefined;
   }
 }
 
-export function transformJudgmentDiaryEntry(row: any): JudgmentDiaryEntry {
+export function transformJudgmentDiaryEntry(row: JudgmentDiaryEntryRow): JudgmentDiaryEntry {
   const mainContent = typeof row.main_content === 'string' && row.main_content.trim()
     ? row.main_content
     : row.summary;
@@ -84,16 +89,16 @@ export function transformJudgmentDiaryEntry(row: any): JudgmentDiaryEntry {
     marketContext: row.market_context ?? null,
     decision: row.decision ?? null,
     action: row.action,
-    assets: parseJSON(row.assets_json, undefined as any),
-    positionChange: parseJSON(row.position_change_json, undefined as any),
+    assets: parseJSON(row.assets_json, JudgmentDiaryEntrySchema.shape.assets),
+    positionChange: parseJSON(row.position_change_json, JudgmentDiaryEntrySchema.shape.positionChange),
     risk: row.risk ?? null,
-    invalidateConditions: parseJSON(row.invalidate_conditions_json, undefined as any),
+    invalidateConditions: parseJSON(row.invalidate_conditions_json, JudgmentDiaryEntrySchema.shape.invalidateConditions),
     nextCheck: row.next_check,
     emotionState: row.emotion_state,
     confidence: row.confidence,
     timeHorizon: row.time_horizon,
-    strategyTags: parseJSON(row.strategy_tags_json, undefined as any),
-    refs: parseJSON(row.refs_json, undefined as any),
+    strategyTags: parseJSON(row.strategy_tags_json, JudgmentDiaryEntrySchema.shape.strategyTags),
+    refs: parseJSON(row.refs_json, JudgmentDiaryEntrySchema.shape.refs),
     disclaimerVisible: row.disclaimer_visible === 1,
     reviewedAt: row.reviewed_at,
     outcome: row.outcome,

@@ -25,14 +25,14 @@ export default function EditJudgmentDiary() {
         setLoading(false);
       }
     }
-    loadEntry();
+    void loadEntry();
   }, [id]);
 
   const handleSubmit = async (data: CreateJudgmentDiaryEntry) => {
     if (!id) return;
     const { createdAt, ...payload } = data;
     const updated = await updateJudgmentDiaryEntry(id, payload as any);
-    navigate(`/judgment-diary/${updated.id}`);
+    void navigate(`/judgment-diary/${updated.id}`);
   };
 
   if (loading) {

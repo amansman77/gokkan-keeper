@@ -33,7 +33,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     }
-    loadData();
+    void loadData();
   }, []);
 
   if (loading) {

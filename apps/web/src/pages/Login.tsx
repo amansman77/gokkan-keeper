@@ -36,6 +36,24 @@ export default function Login() {
 
     let cancelled = false;
 
+    async function handleCredential(response: GoogleCredentialResponse) {
+      if (!response.credential) {
+        setError('로그인에 실패했습니다.');
+        return;
+      }
+
+      try {
+        setSubmitting(true);
+        setError(null);
+        const redirectTo = await loginWithGoogleCredential(response.credential, nextPath);
+        void navigate(redirectTo, { replace: true });
+      } catch {
+        setError('로그인에 실패했습니다.');
+      } finally {
+        setSubmitting(false);
+      }
+    }
+
     async function initGoogle() {
       try {
         await loadGoogleIdentityScript();
@@ -43,23 +61,7 @@ export default function Login() {
 
         window.google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
-          callback: async (response: GoogleCredentialResponse) => {
-            if (!response.credential) {
-              setError('로그인에 실패했습니다.');
-              return;
-            }
-
-            try {
-              setSubmitting(true);
-              setError(null);
-              const redirectTo = await loginWithGoogleCredential(response.credential, nextPath);
-              navigate(redirectTo, { replace: true });
-            } catch {
-              setError('로그인에 실패했습니다.');
-            } finally {
-              setSubmitting(false);
-            }
-          },
+          callback: (response: GoogleCredentialResponse) => { void handleCredential(response); },
         });
 
         buttonContainerRef.current.innerHTML = '';
@@ -77,7 +79,7 @@ export default function Login() {
       }
     }
 
-    initGoogle();
+    void initGoogle();
 
     return () => {
       cancelled = true;

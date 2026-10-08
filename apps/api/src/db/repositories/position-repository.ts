@@ -1,3 +1,4 @@
+import type { PositionRow, SqlValue } from '../rows';
 import type { D1Database } from '@cloudflare/workers-types';
 import type {
   CreatePosition,
@@ -33,10 +34,10 @@ export class PositionRepository {
       ? await this.db
           .prepare('SELECT * FROM gk_positions WHERE granary_id = ? ORDER BY updated_at DESC')
           .bind(granaryId)
-          .all<any>()
+          .all<PositionRow>()
       : await this.db
           .prepare('SELECT * FROM gk_positions ORDER BY updated_at DESC')
-          .all<any>();
+          .all<PositionRow>();
 
     return (result.results || []).map(transformPosition);
   }
@@ -45,7 +46,7 @@ export class PositionRepository {
     const result = await this.db
       .prepare('SELECT * FROM gk_positions WHERE id = ?')
       .bind(id)
-      .first<any>();
+      .first<PositionRow>();
     return result ? transformPosition(result) : null;
   }
 
@@ -96,10 +97,10 @@ export class PositionRepository {
     if (!existing) throw new Error('Position not found');
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: SqlValue[] = [];
     let publicFieldsChanged = false;
 
-    const updateField = (field: string, value: any) => {
+    const updateField = (field: string, value: SqlValue) => {
       updates.push(`${field} = ?`);
       values.push(value);
     };

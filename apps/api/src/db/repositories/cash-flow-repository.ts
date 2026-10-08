@@ -1,7 +1,8 @@
+import type { CashFlowRow, SqlValue } from '../rows';
 import type { D1Database } from '@cloudflare/workers-types';
 import type { CashFlow, CreateCashFlow, UpdateCashFlow } from '@gokkan-keeper/shared';
 
-function transformCashFlow(row: any): CashFlow {
+function transformCashFlow(row: CashFlowRow): CashFlow {
   return {
     id: row.id,
     granaryId: row.granary_id,
@@ -21,12 +22,12 @@ export class CashFlowRepository {
     const result = await this.db
       .prepare('SELECT * FROM gk_cash_flows WHERE granary_id = ? ORDER BY date DESC')
       .bind(granaryId)
-      .all<any>();
+      .all<CashFlowRow>();
     return (result.results || []).map(transformCashFlow);
   }
 
   async getCashFlowById(id: string): Promise<CashFlow | null> {
-    const row = await this.db.prepare('SELECT * FROM gk_cash_flows WHERE id = ?').bind(id).first<any>();
+    const row = await this.db.prepare('SELECT * FROM gk_cash_flows WHERE id = ?').bind(id).first<CashFlowRow>();
     return row ? transformCashFlow(row) : null;
   }
 
@@ -51,8 +52,8 @@ export class CashFlowRepository {
     if (!existing) throw new Error('Cash flow not found');
 
     const updates: string[] = [];
-    const values: any[] = [];
-    const set = (field: string, value: any) => { updates.push(`${field} = ?`); values.push(value); };
+    const values: SqlValue[] = [];
+    const set = (field: string, value: SqlValue) => { updates.push(`${field} = ?`); values.push(value); };
 
     if (data.date !== undefined) set('date', data.date);
     if (data.type !== undefined) set('type', data.type);

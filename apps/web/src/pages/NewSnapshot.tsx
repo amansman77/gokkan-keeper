@@ -34,8 +34,8 @@ export default function NewSnapshot() {
       ...prev,
       granaryId,
       totalAmount: latestSnapshot?.totalAmount ?? 0,
-      availableBalance: latestSnapshot?.availableBalance,
-      profitLoss: latestSnapshot?.profitLoss,
+      availableBalance: latestSnapshot?.availableBalance ?? undefined,
+      profitLoss: latestSnapshot?.profitLoss ?? undefined,
     }));
   };
 
@@ -51,7 +51,7 @@ export default function NewSnapshot() {
         setError(err.message || '곳간 목록을 불러오는데 실패했습니다.');
       }
     }
-    loadGranaries();
+    void loadGranaries();
   }, [granaryIdParam]);
 
   useEffect(() => {
@@ -86,7 +86,7 @@ export default function NewSnapshot() {
 
     try {
       const snapshot = await createSnapshot(formData);
-      navigate(`/granaries/${snapshot.granaryId}`);
+      void navigate(`/granaries/${snapshot.granaryId}`);
     } catch (err: any) {
       setError(err.message || '스냅샷 생성에 실패했습니다.');
     } finally {

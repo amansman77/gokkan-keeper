@@ -47,7 +47,7 @@ export default function JudgmentDiaryActionArchive() {
         setLoading(false);
       }
     }
-    loadEntries();
+    void loadEntries();
   }, [normalizedAction]);
 
   return (

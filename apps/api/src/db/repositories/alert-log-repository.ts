@@ -1,3 +1,4 @@
+import { parseJSON } from '../mappers';
 import type { D1Database } from '@cloudflare/workers-types';
 
 export interface AlertLogEntry {
@@ -12,11 +13,27 @@ export interface AlertLogEntry {
   sentAt: string;
 }
 
-function transformAlertLogEntry(row: any): AlertLogEntry {
-  let indicators: Record<string, unknown> | null = null;
-  if (row.indicators_json) {
-    try { indicators = JSON.parse(row.indicators_json); } catch { indicators = null; }
-  }
+interface AlertLogRow {
+  id: number;
+  symbol: string;
+  rule_id: string;
+  date: string;
+  priority: string;
+  status: string;
+  action: string | null;
+  indicators_json: string | null;
+  sent_at: string;
+}
+
+function transformAlertLogEntry(row: AlertLogRow): AlertLogEntry {
+  const indicators = parseJSON(row.indicators_json, {
+    safeParse(input: unknown) {
+      if (typeof input === 'object' && input !== null && !Array.isArray(input)) {
+        return { success: true as const, data: input as Record<string, unknown> };
+      }
+      return { success: false as const };
+    },
+  }) ?? null;
   return {
     id: row.id,
     symbol: row.symbol,
@@ -37,7 +54,7 @@ export class AlertLogRepository {
     const result = await this.db
       .prepare('SELECT * FROM gk_alert_log ORDER BY sent_at DESC LIMIT ?')
       .bind(limit)
-      .all<any>();
+      .all<AlertLogRow>();
     return (result.results || []).map(transformAlertLogEntry);
   }
 }

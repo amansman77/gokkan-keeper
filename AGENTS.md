@@ -125,11 +125,12 @@ list in `app-routes.tsx` so authentication and SEO exposure stay aligned.
 4. If persistence changes, add a migration, repository mapping, and shared type
    as applicable.
 5. Keep public and authenticated route behavior explicit.
-6. Run `pnpm typecheck`. Run `pnpm build` when build scripts, generated SEO
+6. Run `pnpm check` (types, lint, boundary tests, dependency audit). Run `pnpm build` when build scripts, generated SEO
    assets, routing, or deployment behavior changes.
 
-There is currently no general unit-test suite. Do not claim test coverage from a
-successful typecheck. Auth has an opt-in integration check documented in
+There are focused DB/tooling boundary tests, but no general unit or browser-test
+suite. Do not claim test coverage from a successful typecheck. Auth has an opt-in
+integration check documented in
 `docs/auth-integration-test.md`. `pnpm typecheck` also checks the Pages server and all TypeScript API
 scripts. API script checking can be run alone with
 `pnpm --filter api run typecheck:scripts`. The legacy `test-candidate` and

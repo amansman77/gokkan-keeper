@@ -49,7 +49,7 @@ export default function EditSnapshot() {
         setLoading(false);
       }
     }
-    loadData();
+    void loadData();
   }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,7 +61,7 @@ export default function EditSnapshot() {
 
     try {
       const updated = await updateSnapshot(id, formData);
-      navigate(`/granaries/${updated.granaryId}`);
+      void navigate(`/granaries/${updated.granaryId}`);
     } catch (err: any) {
       setError(err.message || '스냅샷 수정에 실패했습니다.');
     } finally {
