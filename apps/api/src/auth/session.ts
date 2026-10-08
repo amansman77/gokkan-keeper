@@ -71,7 +71,7 @@ function parseCookies(cookieHeader: string | undefined): Record<string, string> 
       const key = entry.slice(0, index).trim();
       const value = entry.slice(index + 1).trim();
       if (!key) return acc;
-      acc[key] = decodeURIComponent(value);
+      try { acc[key] = decodeURIComponent(value); } catch { /* Ignore malformed cookie encoding. */ }
       return acc;
     }, {});
 }
@@ -113,7 +113,9 @@ export async function readSessionFromCookie(
   const token = cookies[SESSION_COOKIE_NAME];
   if (!token) return null;
 
-  const [encodedPayload, encodedSignature] = token.split('.');
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+  const [encodedPayload, encodedSignature] = parts;
   if (!encodedPayload || !encodedSignature) return null;
 
   const isValidSignature = await verify(encodedPayload, encodedSignature, secret);

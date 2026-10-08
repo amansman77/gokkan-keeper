@@ -2,6 +2,7 @@
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8787}"
+BASE_URL="${BASE_URL%/}"
 
 pass() {
   printf '[PASS] %s\n' "$1"
@@ -94,11 +95,11 @@ pass 'POST /auth/google (missing credential)'
 
 # 4) /auth/google invalid credential
 read_response "$(request POST /auth/google '{"credential":"invalid-token"}')"
-if [[ "$RESP_STATUS" != "401" && "$RESP_STATUS" != "500" ]]; then
+if [[ "$RESP_STATUS" != "401" ]]; then
   echo "Status: $RESP_STATUS"
   echo 'Body:'
   cat "$RESP_BODY"
-  fail '/auth/google invalid credential should return 401 or 500 (if env missing)'
+  fail '/auth/google invalid credential should return 401'
 fi
 cleanup_response
 pass 'POST /auth/google (invalid credential)'

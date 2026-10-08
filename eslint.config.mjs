@@ -4,7 +4,7 @@ import globals from 'globals';
 
 const typedFiles = ['apps/**/*.ts', 'apps/**/*.tsx', 'packages/**/*.ts'];
 export default [
-  { ignores: ['**/node_modules/**', '**/dist/**', '**/.wrangler/**', '**/ios/**', '**/android/**'] },
+  { ignores: ['**/node_modules/**', '**/dist/**', '**/.wrangler/**', '**/ios/**', '**/android/**', '**/coverage/**', '**/test-results/**', '**/playwright-report/**'] },
   {
     files: ['**/*.{js,mjs}'],
     ...js.configs.recommended,

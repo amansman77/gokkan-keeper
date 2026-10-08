@@ -40,6 +40,7 @@ test('full production deploy checks once and builds before either publish', () =
     ['check'], ['build'],
     ['--filter', 'api', 'exec', 'wrangler', 'deploy', '--env', 'production'],
     ['--filter', 'web', 'exec', 'wrangler', 'pages', 'deploy', 'dist', '--project-name', 'gokkan-keeper-web', '--branch', 'main'],
+    ['smoke:prod', 'all'],
   ]);
 });
 test('API preview preserves its target and still requires the whole quality gate', () => {

@@ -280,31 +280,75 @@ serves the latest HTML and assets. The current endpoints are
 
 ## Quality checks
 
-`pnpm check` runs strict TypeScript checks, ESLint, focused boundary tests, and
-`pnpm audit:dependencies`. CI runs the same checks plus a production build for
-pull requests and pushes to `main`. CI uses a dummy public Google client ID for
-compilation; it does not verify Google login or publish the resulting assets.
-Configure the GitHub `Quality checks / check` job as a required branch check in
-repository settings if merge protection is desired; the workflow alone does not
-enforce that setting.
+Install the Chromium test browser once after installing dependencies:
 
-- TypeScript includes web, Pages runtime, Vite/Capacitor config, API, shared
-  contracts, and API scripts.
-- ESLint checks JS/MJS syntax and common correctness errors. TypeScript uses
-  promise/async rules; DB files additionally prohibit `any` and unsafe type
-  propagation. JSX async handlers handle errors in their implementation; `void`
-  marks intentional calls to internally handled loading functions and declarative
-  router navigation. Other layers still contain legacy `any` and are not covered
-  by DB-specific unsafe-type rules.
-- `bash -n` checks the auth integration script's syntax, not shell behavior.
-- Boundary tests cover stored diary JSON, automation assets, legacy position
-  valuation, snapshot nulls, public/auth/CORS HTTP boundaries, dependency exception
-  restrictions, and deployment
-  stopping when checks/builds fail. They are not a general unit or browser suite.
-  The opt-in auth integration check remains in `docs/auth-integration-test.md`.
-- Dependency auditing covers both runtime and development dependencies. Critical
-  and High findings block checks; Moderate findings remain visible in the audit
-  summary. Audit/network errors fail the check instead of being treated as clean.
+```bash
+pnpm setup:test
+pnpm check
+```
+
+`pnpm check` runs types, lint, Node tests with coverage, isolated Worker/D1
+integration tests, Chromium browser tests, and dependency auditing. The supported
+deploy commands run this same gate and a fresh build, then execute a read-only
+production smoke check. Smoke failures return a nonzero exit after publishing;
+they do not automatically roll back a deployment.
+
+| Command | Scope |
+| --- | --- |
+| `pnpm test` | Tooling tests, covered unit tests, Worker/D1 integration tests; saves logs |
+| `pnpm test:boundaries` | Fast Node tests for domain/auth/Pages and tooling |
+| `pnpm test:integration` | Worker/D1 CRUD, publication, auth and alert transition tests |
+| `pnpm test:browser` | Chromium against Vite and an isolated local Worker/D1 |
+| `pnpm test:coverage` | Coverage reports and thresholds for selected core modules |
+| `pnpm smoke:prod [api\|web\|all]` | Read-only checks of the currently deployed endpoints |
+
+Test commands prepare shared artifacts automatically. D1 integration tests bundle
+`src/index.ts`, use the same compatibility date as Wrangler, and apply **all**
+numbered migrations with Wrangler's SQL parser. Miniflare uses ephemeral local
+storage, never the production D1 ID, remote bindings, `.dev.vars`, or real user
+credentials. Its version is pinned to the version used by Wrangler; its current
+v5 API uses the provided v4-option conversion helper.
+
+Integration tests allow only fixture Google verification responses and fixture
+Discord responses; all unexpected external requests fail. Browser tests use a
+fake Google UI with the real local cookie/API flow, and block non-local requests.
+The fixtures live entirely in test files and cannot authenticate against the
+production app. No real Google account, brokerage account or Discord webhook is
+required. The API servers listen only on loopback; tests do not reuse an existing
+server. Chromium is installed inside the workspace's ignored dependencies.
+
+Coverage includes session auth, alert rules, indicators, market quotes and their
+providers/cache, and shared utilities. It enforces **70% lines, 65% branches,
+65% functions** in that selected scope. This is not whole-project coverage and
+V8 coverage does not measure code running inside workerd. D1/browser assertions
+provide separate runtime evidence. Tests cover positive/negative login, session
+expiry/tampering, CRUD constraints, mixed public/private data, cached alert
+transitions/dedup, numeric warm-up/trend boundaries, provider/manual fallbacks,
+Pages cookie proxying, browser create/edit/reload/logout, and failed saves.
+Real Google availability, native apps, every page and all external automation
+flows are still outside the suite.
+
+CI runs for every branch push and pull request. It installs Chromium and executes
+`pnpm check` plus a production build using a dummy public Google client ID.
+It always preserves `test-results`, `coverage`, and `playwright-report` for 14
+days. Browser failures retain their first-attempt trace and screenshot; tests
+have no automatic retries. Set `Quality checks / check` as a required status in
+GitHub settings to enforce merge protection; the workflow does not change that
+server setting. CI changes take effect after the branch is pushed.
+
+Logs are under `test-results/*.log`, coverage HTML/LCOV/JSON under `coverage/api`,
+and browser HTML/JUnit/traces under `playwright-report` and `test-results`.
+The automated production smoke report is `test-results/production-smoke.json`;
+it records statuses and build asset checks, not user records or credentials.
+
+TypeScript also covers Vite/Capacitor configs and API scripts. ESLint adds promise
+rules and prohibits unsafe types in DB files; other layers retain some legacy
+`any`. `bash -n` checks auth-shell syntax; the integration suite additionally runs
+the strict curl auth check against its fixture Worker. That check requires `401`
+for invalid credentials, and a configuration `500` is a failure.
+Dependency auditing covers development/runtime dependencies, blocks Critical and
+High findings except the narrow temporary exception below, and fails on network
+errors. Moderate findings remain visible in its summary.
 
 ### Temporary dependency exception
 

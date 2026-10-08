@@ -125,17 +125,17 @@ list in `app-routes.tsx` so authentication and SEO exposure stay aligned.
 4. If persistence changes, add a migration, repository mapping, and shared type
    as applicable.
 5. Keep public and authenticated route behavior explicit.
-6. Run `pnpm check` (types, lint, boundary tests, dependency audit). Run `pnpm build` when build scripts, generated SEO
+6. Run `pnpm check` (types, lint, covered unit tests, Worker/D1 integration, Chromium, dependency audit). Install the test browser once with `pnpm setup:test`. Run `pnpm build` when build scripts, generated SEO
    assets, routing, or deployment behavior changes.
 
-There are focused DB/tooling boundary tests, but no general unit or browser-test
-suite. Do not claim test coverage from a successful typecheck. Auth has an opt-in
-integration check documented in
-`docs/auth-integration-test.md`. `pnpm typecheck` also checks the Pages server and all TypeScript API
-scripts. API script checking can be run alone with
-`pnpm --filter api run typecheck:scripts`. The legacy `test-candidate` and
-`test-tiering` CLI commands remain compatibility names for experiments, not
-unit-test suites.
+Tests and commands are documented in `DEVELOPMENT.md`. `pnpm test` runs Node
+and ephemeral Worker/D1 tests; `pnpm test:browser` runs Chromium with an isolated
+API, and both prepare shared artifacts. Test fixtures must never use production
+D1, credentials, or real notifications. Coverage thresholds apply only to the
+listed core modules, not the whole project or workerd. Production deploy commands
+also run read-only smoke checks after publishing. Do not equate typecheck/build
+success with behavioral coverage. The legacy `test-candidate` and `test-tiering`
+commands are experiments, not test suites.
 
 ## Conventions and pitfalls
 

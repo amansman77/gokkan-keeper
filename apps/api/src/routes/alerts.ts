@@ -14,6 +14,8 @@ alertsRouter.get('/', async (c) => {
 });
 
 alertsRouter.post('/run/:mode', async (c) => {
+  if (!c.env.API_SECRET) return c.json({ error: 'API_SECRET not configured' }, 500);
+  if (c.req.header('X-API-Secret') !== c.env.API_SECRET) return c.json({ error: 'Unauthorized' }, 401);
   const mode = c.req.param('mode');
   if (mode !== 'daily' && mode !== 'weekly') {
     return c.json({ error: 'mode must be daily or weekly' }, 400);

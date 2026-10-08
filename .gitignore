@@ -51,3 +51,7 @@ apps/web/.capacitor/
 # Testing
 coverage/
 .nyc_output/
+
+# Test reports and traces
+test-results/
+playwright-report/
