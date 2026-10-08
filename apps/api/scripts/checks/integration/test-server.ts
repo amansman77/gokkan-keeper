@@ -36,7 +36,10 @@ const productionFixture = createHttpsServer({ key: readFileSync(keyFile), cert: 
         let filename = path.resolve(assetRoot, '.'+pathname);
         if (!filename.startsWith(assetRoot)) return new Response(null, { status: 403 });
         if (!path.extname(filename) || !existsSync(filename)) filename = path.join(assetRoot, 'index.html');
-        return new Response(readFileSync(filename), { headers: { 'Content-Type': mime[path.extname(filename)] || 'application/octet-stream' } });
+        const asset = readFileSync(filename);
+        // Cloudflare Web Analytics injects this script outside the repository.
+        const content = path.extname(filename) === '.html' ? asset.toString().replace('</head>', '<script defer src="https://static.cloudflareinsights.com/beacon.min.js"></script></head>') : asset;
+        return new Response(content, { headers: { 'Content-Type': mime[path.extname(filename)] || 'application/octet-stream' } });
       } },
     });
     response.writeHead(result.status, Object.fromEntries(result.headers));

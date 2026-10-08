@@ -109,9 +109,9 @@ const worker = {
 };
 
 export const WEB_CONTENT_SECURITY_POLICY = [
-  "default-src 'self'", "script-src 'self' https://accounts.google.com https://challenges.cloudflare.com",
+  "default-src 'self'", "script-src 'self' https://accounts.google.com https://challenges.cloudflare.com https://static.cloudflareinsights.com",
   "style-src 'self' 'unsafe-inline' https://accounts.google.com", "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https:", "connect-src 'self' https://accounts.google.com https://challenges.cloudflare.com https://gokkan-keeper-api-production.amansman77.workers.dev https://localhost",
+  "img-src 'self' data: blob: https:", "connect-src 'self' https://accounts.google.com https://challenges.cloudflare.com https://cloudflareinsights.com https://gokkan-keeper-api-production.amansman77.workers.dev https://localhost",
   "frame-src https://accounts.google.com https://challenges.cloudflare.com",
   "object-src 'none'", "base-uri 'none'", "form-action 'self'", "frame-ancestors 'none'", 'upgrade-insecure-requests',
 ].join('; ');
