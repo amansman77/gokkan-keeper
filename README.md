@@ -10,6 +10,13 @@ Gokkan Keeper는
 개발 시 사용하는 정식 도메인 용어와 필드 의미는
 [Domain glossary](docs/DOMAIN_GLOSSARY.md)를 참고하세요.
 
+개발 문서는 역할에 따라 읽습니다:
+
+* [AGENTS.md](AGENTS.md): 코드 구조, 작업 규칙, 외부 API 계약
+* [DEVELOPMENT.md](DEVELOPMENT.md): 로컬 설정, Google 인증 설정, Cloudflare 배포
+* [Design system](docs/DESIGN_SYSTEM.md): 화면 색상과 타이포그래피 기준
+* [Auth integration test](docs/auth-integration-test.md): 인증 통합 검사 실행
+
 ## 🧭 What is Gokkan Keeper?
 
 **Gokkan Keeper(곶간 지기)** 는

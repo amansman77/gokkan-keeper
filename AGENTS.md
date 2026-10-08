@@ -38,17 +38,21 @@ around them flip, which is how dark mode breaks.
   them into both apps.
 - `migrations`: ordered D1 schema history. Never edit an applied migration;
   append a new numbered migration.
-- `docs`: feature-specific decisions and focused operational guides. The
-  repository-level system overview is `ARCHITECTURE.md`; local setup is
-  `DEVELOPMENT.md`.
+- `docs`: domain glossary, design system, and auth integration check. Local
+  setup, Google OAuth configuration, and deployment are in `DEVELOPMENT.md`.
+
+The runtime is Browser → Cloudflare Worker → D1. Cron triggers invoke the alert
+engine in the same Worker. Both apps consume `@gokkan-keeper/shared`; the root
+build compiles shared, then web, then API. D1 tables use the `gk_` prefix because
+the database may be shared with other services.
 
 ## Request and data flow
 
 ### Finding the right source
 
 Start with the glossary for meaning, then the executable source for behavior.
-Use `ARCHITECTURE.md` for boundaries and `DEVELOPMENT.md` for setup. Open only
-the domain files needed for the task:
+Use the workspace map above for boundaries and `DEVELOPMENT.md` only for setup
+or deployment tasks. Open only the domain files needed for the task:
 
 | Task | Starting points |
 | --- | --- |
@@ -78,6 +82,10 @@ React page/component
 Shared Zod schemas validate write input at the API boundary. Database mappers
 translate SQLite rows to the camelCase shared types. Do not access D1 from web
 code or embed SQL in route handlers when a repository already owns that domain.
+
+`apps/web/src/lib/api/client.ts` owns transport: private and auth calls include
+credentials; public calls omit them. Add a browser page to exactly one route
+list in `app-routes.tsx` so authentication and SEO exposure stay aligned.
 
 ## Authentication and publication rules
 

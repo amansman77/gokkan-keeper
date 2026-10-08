@@ -198,7 +198,81 @@ npx wrangler d1 migrations apply shared-db --local
 
 ### For Production
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for production database setup.
+See the production deployment section below. The existing D1 binding and
+migration directory are defined in `apps/api/wrangler.toml`.
+
+## Google OAuth configuration
+
+In Google Cloud Console, use a **Web Application** OAuth client. Register
+`http://localhost:5173` and `https://gokkan-keeper.yetimates.com` as authorized
+JavaScript origins. `GOOGLE_CLIENT_ID` on the Worker and `VITE_GOOGLE_CLIENT_ID`
+in the frontend must use that same client ID.
+
+The single owner is restricted by `ALLOWED_EMAIL` and optional `ALLOWED_SUB`.
+Use a random `SESSION_SECRET` of at least 32 bytes. The login flow and cookie
+rules are documented in [AGENTS.md](AGENTS.md); the local negative-path smoke
+check is in [docs/auth-integration-test.md](docs/auth-integration-test.md).
+
+## Production deployment (Cloudflare)
+
+The API runs on Cloudflare Workers; the frontend runs on Cloudflare Pages.
+Configuration lives in `apps/api/wrangler.toml` and the root `wrangler.toml`.
+Use the existing `shared-db` binding; deployment does not require recreating the
+database. Do not replace migrations with ad hoc schema SQL.
+
+Wrangler can use an existing OAuth login or `CLOUDFLARE_API_TOKEN`.
+`.envrc.example` documents optional direnv configuration; keep `.envrc` ignored
+and never print token values. Check the active account before deploying:
+
+```bash
+pnpm --filter api exec wrangler whoami
+```
+
+For a new production environment, configure the required Worker secrets:
+
+```bash
+pnpm --filter api exec wrangler secret put GOOGLE_CLIENT_ID --env production
+pnpm --filter api exec wrangler secret put ALLOWED_EMAIL --env production
+pnpm --filter api exec wrangler secret put SESSION_SECRET --env production
+```
+
+Set `API_SECRET` for operational alert runs and automated writes, and integration
+secrets only when needed. Existing deployments retain their configured secrets.
+Frontend builds require `VITE_GOOGLE_CLIENT_ID`; put public build settings in
+the ignored `apps/web/.env.production` using `.env.production.example` as a
+template, or provide them as environment variables. `VITE_API_BASE_URL` and
+`VITE_SITE_URL` are optional. Never put private tokens in `VITE_*` variables.
+
+From the repository root, validate and build before deploying:
+
+```bash
+pnpm typecheck
+pnpm build
+```
+
+Apply pending migrations only when the change includes them, using the
+production binding:
+
+```bash
+pnpm --filter api exec wrangler d1 migrations apply shared-db --remote --env production
+```
+
+Deploy the already-built API and frontend explicitly:
+
+```bash
+pnpm deploy:prod:api
+pnpm --filter web exec wrangler pages deploy dist --project-name gokkan-keeper-web --branch main
+```
+
+Pages uses `main` as its production deployment branch; other branches create
+previews. Before deploying, compare the intended commit with the latest
+production deployment so existing functionality is preserved.
+
+After deployment, verify `GET /health` returns `{"status":"ok"}`, an
+unauthenticated `GET /granaries` returns `401`, and the production frontend
+serves the latest HTML and assets. The current endpoints are
+`https://gokkan-keeper-api-production.amansman77.workers.dev` and
+`https://gokkan-keeper.yetimates.com`.
 
 ## Mobile App (Capacitor)
 
