@@ -1,13 +1,12 @@
 import { Hono } from 'hono';
 import type { Env } from '../types';
-import { DBClient } from '../db/client';
+import { getPublicPortfolio } from '../services/public-portfolio';
 import { handleConsultingRequest } from '../services/consulting-request';
 
 export const publicRouter = new Hono<{ Bindings: Env }>();
 
 publicRouter.get('/portfolio', async (c) => {
-  const db = new DBClient(c.env.DB);
-  const portfolio = await db.getPublicPortfolioEntries(c.env);
+  const portfolio = await getPublicPortfolio(c.env);
   return c.json(portfolio);
 });
 

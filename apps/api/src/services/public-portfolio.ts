@@ -1,26 +1,8 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import { getPositionMarketValue, type PublicPortfolioResponse, type Position } from '@gokkan-keeper/shared';
 import type { Env } from '../types';
+import { PositionRepository, type PublicPortfolioRow } from '../db/repositories/position-repository';
 import { enrichPositionWithQuote, loadQuotesForTargets, MarketQuoteService } from './market-price';
-
-interface PublicPortfolioRow {
-  id: string;
-  granary_id: string | null;
-  granary_name: string | null;
-  granary_currency: string | null;
-  market: string | null;
-  name: string;
-  symbol: string;
-  asset_type: string | null;
-  quantity: number | null;
-  avg_cost: number | null;
-  current_value: number | null;
-  profit_loss: number | null;
-  profit_loss_percent: number | null;
-  public_thesis: string | null;
-  public_order: number | null;
-  last_public_update: string | null;
-}
 
 const MARKET_CURRENCY_BY_MARKET: Record<string, string> = {
   KRX: 'KRW',
@@ -262,4 +244,10 @@ export async function buildPublicPortfolioResponse(
       },
     },
   };
+}
+
+/** Orchestrates the public-only query, quote enrichment and response projection. */
+export async function getPublicPortfolio(env: Env): Promise<PublicPortfolioResponse> {
+  const repository = new PositionRepository(env.DB);
+  return buildPublicPortfolioResponse(await repository.getPublicPortfolioRows(), env, env.DB);
 }

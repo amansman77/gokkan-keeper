@@ -12,8 +12,8 @@
  * Production directs a sell review only for P0 SELL_001; WARN_SELL_001 and
  * WARN_SELL_002 remain observations even if a simulation treats them as exits.
  */
-import { RULES, type AlertRuleContext } from '../src/services/alert-rules';
-import { aggregateWeekly, computeIndicatorsFromRows, type OhlcvRow } from '../src/services/technical-indicators';
+import { RULES, type AlertRuleContext } from '../../src/services/alert-rules';
+import { aggregateWeekly, computeIndicatorsFromRows, type OhlcvRow } from '../../src/services/technical-indicators';
 
 const args = process.argv.slice(2);
 const argOf = (k: string, d: string) => { const i = args.indexOf(`--${k}`); return i >= 0 && args[i + 1] ? args[i + 1] : d; };

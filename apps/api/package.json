@@ -9,14 +9,15 @@
     "deploy:preview": "wrangler deploy",
     "migrate": "wrangler d1 migrations apply shared-db --remote",
     "migrate:local": "wrangler d1 migrations apply shared-db --local",
-    "typecheck": "tsc --noEmit",
-    "test:auth:integration": "bash ./scripts/auth-integration-test.sh",
-    "simulate": "tsx scripts/simulate.ts",
-    "compare-entries": "tsx scripts/compare-entries.ts",
-    "compare-exits": "tsx scripts/compare-exits.ts",
-    "lead-lag": "tsx scripts/lead-lag.ts",
-    "test-candidate": "tsx scripts/test-candidate.ts",
-    "test-tiering": "tsx scripts/test-tiering.ts"
+    "typecheck": "tsc --noEmit && pnpm run typecheck:scripts",
+    "test:auth:integration": "bash ./scripts/checks/auth-integration-test.sh",
+    "simulate": "tsx scripts/simulation/simulate.ts",
+    "compare-entries": "tsx scripts/simulation/compare-entries.ts",
+    "compare-exits": "tsx scripts/simulation/compare-exits.ts",
+    "lead-lag": "tsx scripts/simulation/lead-lag.ts",
+    "test-candidate": "tsx scripts/experiments/compare-candidate-entries.ts",
+    "test-tiering": "tsx scripts/experiments/compare-buy-sizing.ts",
+    "typecheck:scripts": "tsc --project tsconfig.scripts.json"
   },
   "dependencies": {
     "@gokkan-keeper/shared": "workspace:*",

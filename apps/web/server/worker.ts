@@ -2,7 +2,7 @@ const CANONICAL_ORIGIN = 'https://gokkan-keeper.yetimates.com';
 const API_ORIGIN = 'https://gokkan-keeper-api-production.amansman77.workers.dev';
 const SITEMAP_STATIC_PATHS = ['/', '/archive', '/judgment-diary', '/consulting'];
 
-function slugify(text) {
+function slugify(text: string) {
   return text
     .toLowerCase()
     .trim()
@@ -11,7 +11,7 @@ function slugify(text) {
     .replace(/-+/g, '-');
 }
 
-function escapeXml(value) {
+function escapeXml(value: string) {
   return value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -20,7 +20,7 @@ function escapeXml(value) {
     .replace(/'/g, '&apos;');
 }
 
-function toIsoDate(value, fallback) {
+function toIsoDate(value: string | null | undefined, fallback: Date) {
   const date = value ? new Date(value) : fallback;
   if (Number.isNaN(date.getTime())) return fallback.toISOString();
   return date.toISOString();
@@ -38,15 +38,17 @@ async function createDynamicSitemap() {
     });
 
     if (response.ok) {
-      const entries = await response.json();
+      const entries: unknown = await response.json();
       if (Array.isArray(entries)) {
         for (const entry of entries) {
-          if (!entry || typeof entry.title !== 'string') continue;
+          if (!entry || typeof entry !== 'object' || !('title' in entry) || typeof entry.title !== 'string') continue;
           const slug = slugify(entry.title);
           if (!slug) continue;
 
           const loc = `${CANONICAL_ORIGIN}/judgment-diary/${slug}`;
-          const lastmod = toIsoDate(entry.updatedAt || entry.createdAt, now);
+          const updatedAt = 'updatedAt' in entry && typeof entry.updatedAt === 'string' ? entry.updatedAt : null;
+          const createdAt = 'createdAt' in entry && typeof entry.createdAt === 'string' ? entry.createdAt : null;
+          const lastmod = toIsoDate(updatedAt || createdAt, now);
           urlMap.set(loc, lastmod);
         }
       }
@@ -74,8 +76,12 @@ async function createDynamicSitemap() {
   });
 }
 
+interface PagesEnv {
+  ASSETS: { fetch(request: Request): Promise<Response> };
+}
+
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request: Request, env: PagesEnv): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.hostname.endsWith('.pages.dev')) {

@@ -217,6 +217,9 @@ check is in [docs/auth-integration-test.md](docs/auth-integration-test.md).
 
 The API runs on Cloudflare Workers; the frontend runs on Cloudflare Pages.
 Configuration lives in `apps/api/wrangler.toml` and the root `wrangler.toml`.
+The Pages runtime source is `apps/web/server/worker.ts`; web builds typecheck it
+and emit `apps/web/dist/_worker.js`. Static assets and redirects live in
+`apps/web/public`, not in the server source directory.
 Use the existing `shared-db` binding; deployment does not require recreating the
 database. Do not replace migrations with ad hoc schema SQL.
 

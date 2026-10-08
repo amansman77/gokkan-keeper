@@ -15,8 +15,8 @@
  * rules. Both entries are evaluated against a flat book, matching how the
  * promotion backtest was run.
  */
-import { RULES, type AlertRuleContext } from '../src/services/alert-rules';
-import { aggregateWeekly, computeIndicatorsFromRows, type OhlcvRow } from '../src/services/technical-indicators';
+import { RULES, type AlertRuleContext } from '../../src/services/alert-rules';
+import { aggregateWeekly, computeIndicatorsFromRows, type OhlcvRow } from '../../src/services/technical-indicators';
 
 const args = process.argv.slice(2);
 const argOf = (k: string, d: string) => { const i = args.indexOf(`--${k}`); return i >= 0 && args[i + 1] ? args[i + 1] : d; };

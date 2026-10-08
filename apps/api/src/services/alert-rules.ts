@@ -2,7 +2,7 @@ import type { TechnicalIndicatorResult } from './technical-indicators';
 
 /**
  * Alert rule definitions, deliberately free of D1 and network imports so the
- * same objects can be replayed over historical bars by scripts/simulate.ts.
+ * same objects can be replayed over historical bars by scripts/simulation/simulate.ts.
  * If the simulator had its own copy of these conditions it could drift from
  * production and report a backtest for rules that are not the live ones.
  */

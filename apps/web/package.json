@@ -4,15 +4,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node ./scripts/ensure-build-env.mjs production && node ./scripts/generate-seo-files.mjs && tsc && vite build",
-    "build:prod": "node ./scripts/ensure-build-env.mjs production && node ./scripts/generate-seo-files.mjs && tsc && vite build --mode production",
+    "build": "node ./scripts/ensure-build-env.mjs production && node ./scripts/generate-seo-files.mjs && tsc && vite build && pnpm run build:pages-worker",
+    "build:prod": "node ./scripts/ensure-build-env.mjs production && node ./scripts/generate-seo-files.mjs && tsc && vite build --mode production && pnpm run build:pages-worker",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.server.json",
     "deploy": "wrangler pages deploy",
     "deploy:prod": "pnpm build:prod && pnpm deploy",
     "cap:sync": "cap sync",
     "cap:ios": "cap open ios",
-    "cap:android": "cap open android"
+    "cap:android": "cap open android",
+    "build:pages-worker": "tsc --project tsconfig.server.json && node ./scripts/build-pages-worker.mjs"
   },
   "dependencies": {
     "@gokkan-keeper/shared": "workspace:*",

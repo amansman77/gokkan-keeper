@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const DEFAULT_STOCK_BASE_URL = 'https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService';
 const DEFAULT_SECURITIES_PRODUCT_BASE_URL = 'https://apis.data.go.kr/1160100/service/GetSecuritiesProductInfoService';
@@ -120,11 +121,11 @@ async function main() {
   const symbol = process.argv[2];
   const beginBasDtArg = process.argv[3];
   if (!symbol) {
-    console.error('Usage: node ./scripts/fsc-quote-probe.mjs <symbol>');
+    console.error('Usage: node ./scripts/checks/fsc-quote-probe.mjs <symbol>');
     process.exit(1);
   }
 
-  const apiDir = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const apiDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
   const envFile = path.join(apiDir, '.dev.vars');
   const devEnv = parseDevVars(envFile);
   const stockServiceKey = process.env.FSC_STOCK_API_SERVICE_KEY || devEnv.FSC_STOCK_API_SERVICE_KEY;

@@ -29,10 +29,15 @@ around them flip, which is how dark mode breaks.
 - `apps/web`: React/Vite client. `src/app-routes.tsx` is the public/private route
   inventory and `src/App.tsx` renders it. Domain HTTP calls live in
   `src/lib/api/*`; `src/lib/api.ts` is their stable barrel entry point.
+  `server/worker.ts` owns Pages redirects, the same-origin API proxy, and the
+  dynamic sitemap; the build emits it as `dist/_worker.js`. `public` holds static
+  assets and the single `_redirects` source.
 - `apps/api`: Hono Cloudflare Worker. `src/app.ts` composes the HTTP app while
   `src/index.ts` adapts it to Worker fetch and scheduled handlers. `src/routes`
   owns HTTP concerns, `src/services` owns external data and domain orchestration,
-  and `src/db/repositories` owns D1 queries.
+  and `src/db/repositories` owns D1 queries. `scripts/simulation` replays rules,
+  `scripts/experiments` compares candidate behavior, and `scripts/checks` holds
+  operational/auth probes. Scripts are not Worker runtime entry points.
 - `packages/shared`: types, Zod input schemas, constants, and pure utilities
   shared by web and API. Add cross-workspace contracts here instead of copying
   them into both apps.
@@ -125,13 +130,11 @@ list in `app-routes.tsx` so authentication and SEO exposure stay aligned.
 
 There is currently no general unit-test suite. Do not claim test coverage from a
 successful typecheck. Auth has an opt-in integration check documented in
-`docs/auth-integration-test.md`. The API tsconfig includes only `src`, so the root
-typecheck does not validate `apps/api/scripts`. When changing simulation scripts,
-also run this from `apps/api`:
-
-```sh
-pnpm exec tsc --noEmit --strict --skipLibCheck --module ESNext --moduleResolution bundler --target ES2022 --types node,@cloudflare/workers-types scripts/*.ts
-```
+`docs/auth-integration-test.md`. `pnpm typecheck` also checks the Pages server and all TypeScript API
+scripts. API script checking can be run alone with
+`pnpm --filter api run typecheck:scripts`. The legacy `test-candidate` and
+`test-tiering` CLI commands remain compatibility names for experiments, not
+unit-test suites.
 
 ## Conventions and pitfalls
 
@@ -159,7 +162,7 @@ Runs on Cloudflare Cron Triggers (daily weekdays + Friday weekly, see `wrangler.
 
 ### Rule simulator
 
-`apps/api/scripts/simulate.ts` (`pnpm --filter api simulate -- --symbols A,B --from 2021-06-01`)
+`apps/api/scripts/simulation/simulate.ts` (`pnpm --filter api simulate -- --symbols A,B --from 2021-06-01`)
 replays the P0 rules over historical bars. It imports `RULES` from
 `services/alert-rules.ts` and the indicator math from `services/technical-indicators.ts`
 rather than restating either, so a rule change is reflected in the simulation
@@ -167,7 +170,7 @@ automatically. `alert-rules.ts` contains no D1 or network I/O. The indicator mat
 functions are pure; `technical-indicators.ts` also owns quote fetching and caching,
 which the simulator does not invoke. Do not give the simulator its own copy of a condition.
 
-A companion, `scripts/compare-entries.ts` (`pnpm --filter api compare-entries -- --symbols 133690.KS`), pits entry rules against each other on CAGR/MDD/Sharpe/win rate/entry lag/exposure/trade count with the exit held constant. It evaluates entry signals with `heldQuantity = 0` and exit signals with
+A companion, `scripts/simulation/compare-entries.ts` (`pnpm --filter api compare-entries -- --symbols 133690.KS`), pits entry rules against each other on CAGR/MDD/Sharpe/win rate/entry lag/exposure/trade count with the exit held constant. It evaluates entry signals with `heldQuantity = 0` and exit signals with
 `heldQuantity = 1` to compare market timing independently of simulated holdings.
 The current entry rules (`BUY_001` and `WARN_BUY_002`) do not filter on holdings;
 `SELL_001` requires a positive holding. This normalization does not change production.

@@ -4,7 +4,7 @@
  *
  *   pnpm --filter api test-tiering -- --summary --symbols AAPL,QQQ
  *
- * The filter test (scripts/test-candidate.ts) showed the weekly golden cross
+ * The filter test (scripts/experiments/compare-candidate-entries.ts) showed the weekly golden cross
  * removes half of BUY_001's signals: drawdown improves but Sharpe falls, so as
  * a gate it costs more return than risk it removes. A grade is the middle
  * option — every signal still fires, but one below the weekly cross is sized
@@ -18,8 +18,8 @@
  * Entry and exit come from services/alert-rules; nothing here is a production
  * rule change.
  */
-import { RULES, type AlertRuleContext } from '../src/services/alert-rules';
-import { aggregateWeekly, computeIndicatorsFromRows, type OhlcvRow } from '../src/services/technical-indicators';
+import { RULES, type AlertRuleContext } from '../../src/services/alert-rules';
+import { aggregateWeekly, computeIndicatorsFromRows, type OhlcvRow } from '../../src/services/technical-indicators';
 
 const args = process.argv.slice(2);
 const argOf = (k: string, d: string) => { const i = args.indexOf(`--${k}`); return i >= 0 && args[i + 1] ? args[i + 1] : d; };

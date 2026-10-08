@@ -18,12 +18,12 @@
  *   - fills at the weekly close of the signal bar
  *   - `position` for rule purposes is the simulated holding, not today's book
  */
-import { RULES, type AlertRuleContext } from '../src/services/alert-rules';
+import { RULES, type AlertRuleContext } from '../../src/services/alert-rules';
 import {
   aggregateWeekly,
   computeIndicatorsFromRows,
   type OhlcvRow,
-} from '../src/services/technical-indicators';
+} from '../../src/services/technical-indicators';
 
 interface Args { from: string; unit: number; symbols: string[]; verbose: boolean }
 

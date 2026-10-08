@@ -2,12 +2,28 @@ import type { D1Database } from '@cloudflare/workers-types';
 import type {
   CreatePosition,
   Position,
-  PublicPortfolioResponse,
   UpdatePosition,
 } from '@gokkan-keeper/shared';
-import type { Env } from '../../types';
-import { buildPublicPortfolioResponse } from '../../services/public-portfolio';
 import { transformPosition } from '../mappers';
+
+export interface PublicPortfolioRow {
+  id: string;
+  granary_id: string | null;
+  granary_name: string | null;
+  granary_currency: string | null;
+  market: string | null;
+  name: string;
+  symbol: string;
+  asset_type: string | null;
+  quantity: number | null;
+  avg_cost: number | null;
+  current_value: number | null;
+  profit_loss: number | null;
+  profit_loss_percent: number | null;
+  public_thesis: string | null;
+  public_order: number | null;
+  last_public_update: string | null;
+}
 
 export class PositionRepository {
   constructor(private readonly db: D1Database) {}
@@ -132,7 +148,7 @@ export class PositionRepository {
     await this.db.prepare('DELETE FROM gk_positions WHERE id = ?').bind(id).run();
   }
 
-  async getPublicPortfolioEntries(env?: Env): Promise<PublicPortfolioResponse> {
+  async getPublicPortfolioRows(): Promise<PublicPortfolioRow[]> {
     const result = await this.db
       .prepare(`
         SELECT
@@ -157,8 +173,8 @@ export class PositionRepository {
         WHERE p.is_public = 1
         ORDER BY p.public_order ASC, p.updated_at DESC
       `)
-      .all<any>();
+      .all<PublicPortfolioRow>();
 
-    return buildPublicPortfolioResponse(result.results || [], env, this.db);
+    return result.results || [];
   }
 }
