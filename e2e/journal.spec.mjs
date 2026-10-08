@@ -75,7 +75,7 @@ test('failed save keeps the form and displays the API error', async ({ page }) =
 test('production bundle and real Pages CSP allow analytics, Google login and a verified consulting submission', async ({ page }) => {
   await page.addInitScript("window.fixtureCspViolations = []; document.addEventListener('securitypolicyviolation', (event) => window.fixtureCspViolations.push(event.violatedDirective));");
   const response = await page.goto('https://localhost:18887/login?next=/granaries/new');
-  await page.waitForFunction(() => window.fixtureBeaconLoaded && window.fixtureBeaconSent);
+  await page.waitForFunction('window.fixtureBeaconLoaded && window.fixtureBeaconSent');
   expect(response.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
   expect(response.headers()['x-frame-options']).toBe('DENY');
   await page.getByRole('button', { name: 'Fixture Google login' }).click();
@@ -83,7 +83,7 @@ test('production bundle and real Pages CSP allow analytics, Google login and a v
   await page.getByRole('button', { name: '로그아웃', exact: true }).click();
   expect(await page.evaluate('window.fixtureCspViolations')).toEqual([]);
   await page.goto('https://localhost:18887/consulting');
-  await page.waitForFunction(() => window.fixtureBeaconLoaded && window.fixtureBeaconSent);
+  await page.waitForFunction('window.fixtureBeaconLoaded && window.fixtureBeaconSent');
   await page.getByLabel('답변 받을 이메일').fill('fixture@example.com');
   await page.getByRole('textbox', { name: /고민/ }).fill('Fixture consulting concern');
   await page.locator('input[type="file"]').setInputFiles({ name: 'fixture.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==', 'base64') });
