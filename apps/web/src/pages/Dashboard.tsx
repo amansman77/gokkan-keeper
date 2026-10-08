@@ -6,6 +6,7 @@ import type { Granary, Snapshot, StatusSummary } from '../lib/types';
 import GranaryCard from '../components/GranaryCard';
 import StatusSummaryComponent from '../components/StatusSummary';
 import MarketIndices from '../components/MarketIndices';
+import AssetGoalProgress from '../components/AssetGoalProgress';
 
 export default function Dashboard() {
   const [granaries, setGranaries] = useState<(Granary & { latestSnapshot?: Snapshot; previousSnapshot?: Snapshot })[]>([]);
@@ -102,6 +103,8 @@ export default function Dashboard() {
           </button>
         )}
       </div>
+
+      {granaries.length > 0 && <AssetGoalProgress granaries={granaries} />}
 
       <MarketIndices />
 
