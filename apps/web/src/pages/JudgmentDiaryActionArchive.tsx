@@ -27,7 +27,7 @@ export default function JudgmentDiaryActionArchive() {
       title: `${normalizedAction} 판단 모음 | 추세 투자자의 판단일지`,
       description:
         actionDescriptions[normalizedAction] ||
-        '추세 투자자의 판단일지 아카이브입니다. Action별로 판단의 태도를 모아봅니다.',
+        '추세 투자자의 판단일지 목록입니다. 행동별로 판단의 태도를 모아봅니다.',
     });
   }, [normalizedAction]);
 
@@ -37,7 +37,7 @@ export default function JudgmentDiaryActionArchive() {
         setLoading(true);
         setError(null);
         if (!normalizedAction || !JUDGMENT_ACTIONS.includes(normalizedAction as any)) {
-          throw new Error('지원하지 않는 Action입니다.');
+          throw new Error('지원하지 않는 판단 행동입니다.');
         }
         const data = await getJudgmentDiaryEntries({ action: normalizedAction as any });
         setEntries(data);

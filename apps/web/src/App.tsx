@@ -36,7 +36,7 @@ function AppContent() {
   const navBaseClass = 'px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap';
   const navInactiveClass = 'text-ink-muted hover:text-ink';
   const navActiveClass = 'bg-accent-tint text-accent';
-  const createTrackRecordPath = '/login?next=/dashboard';
+  const dashboardLoginPath = '/login?next=/dashboard';
 
   useEffect(() => {
     setMenuOpen(false);
@@ -61,7 +61,7 @@ function AppContent() {
         to="/archive"
         className={({ isActive }) => `${navBaseClass} ${isActive ? navActiveClass : navInactiveClass}`}
       >
-        {UI_TERMS.publicArchive} 보기
+        {UI_TERMS.publicPortfolio} 보기
       </NavLink>
       {authenticated ? (
         <NavLink
@@ -91,10 +91,10 @@ function AppContent() {
       ) : null}
       {!authenticated ? (
         <Link
-          to={createTrackRecordPath}
+          to={dashboardLoginPath}
           className="block bg-accent text-accent-contrast px-4 py-2 rounded-md text-sm font-semibold hover:bg-accent-ink whitespace-nowrap text-center"
         >
-          나의 {UI_TERMS.trackRecord} 만들기
+          자산 기록 시작하기
         </Link>
       ) : null}
     </>

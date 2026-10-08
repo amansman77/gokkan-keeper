@@ -35,8 +35,8 @@ export default function PublicPortfolio() {
 
   useEffect(() => {
     setSeo({
-      title: `${UI_TERMS.publicArchive} 보기 | ${UI_TERMS.brandName}`,
-      description: `추천이 아닌 기록. 판단과 배분, 결과를 ${UI_TERMS.publicArchive}에서 확인합니다.`,
+      title: `${UI_TERMS.publicPortfolio} 보기 | ${UI_TERMS.brandName}`,
+      description: `추천이 아닌 기록. 판단과 배분, 결과를 ${UI_TERMS.publicPortfolio}에서 확인합니다.`,
     });
   }, []);
 
@@ -93,7 +93,7 @@ export default function PublicPortfolio() {
   return (
     <div className="space-y-8">
       <section className="bg-surface rounded-lg border border-line-soft p-6">
-        <h1 className="gk-page-title">{UI_TERMS.publicArchive}</h1>
+        <h1 className="gk-page-title">{UI_TERMS.publicPortfolio}</h1>
         <p className="text-ink-muted mt-2">추천이 아닌 기록. 판단과 배분, 결과를 투명하게 남깁니다.</p>
       </section>
 

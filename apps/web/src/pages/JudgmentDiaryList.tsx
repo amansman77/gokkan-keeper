@@ -6,6 +6,7 @@ import { JUDGMENT_ACTIONS } from '@gokkan-keeper/shared';
 import JudgmentDiaryCard from '../components/JudgmentDiaryCard';
 import { setSeo } from '../lib/seo';
 import { useAuth } from '../lib/auth-context';
+import { UI_TERMS } from '../lib/terminology';
 
 export default function JudgmentDiaryList() {
   const { authenticated } = useAuth();
@@ -36,7 +37,7 @@ export default function JudgmentDiaryList() {
     setSeo({
       title: '추세 투자자의 판단일지 – 시장을 대하는 태도 기록',
       description:
-        '이곳은 추세 투자자가 시장을 대하는 태도를 기록하는 판단일지 아카이브입니다. 매수·매도 같은 이벤트보다 판단의 맥락과 태도를 더 중요하게 기록합니다. 각 카드에는 제목과 한 줄 판단만 남겨서 철학이 먼저 읽히게 했습니다. 판단을 쌓아가며 반복되는 원칙을 발견하고, 행동보다 태도 중심의 투자 기록을 만들기 위해 설계되었습니다.',
+        '이곳은 추세 투자자가 시장을 대하는 태도를 기록하는 판단일지 목록입니다. 매수·매도 같은 이벤트보다 판단의 맥락과 태도를 더 중요하게 기록합니다. 각 카드에는 제목과 한 줄 판단만 남겨서 철학이 먼저 읽히게 했습니다. 판단을 쌓아가며 반복되는 원칙을 발견하고, 행동보다 태도 중심의 투자 기록을 만들기 위해 설계되었습니다.',
     });
   }, []);
 
@@ -46,7 +47,7 @@ export default function JudgmentDiaryList() {
         <div>
           <h1 className="gk-page-title">판단일지</h1>
           <p className="text-ink-muted">
-            추세 투자자가 시장을 대하는 태도를 기록하는 아카이브입니다.
+            추세 투자자가 시장을 대하는 태도를 기록하는 판단일지입니다.
             <br />
             매수·매도라는 결과보다 그 판단을 만든 철학과 태도가 먼저 읽히도록 구성했습니다.
             <br />
@@ -82,7 +83,7 @@ export default function JudgmentDiaryList() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
-        <Link to="/archive" className="text-accent hover:underline">공개 기록 보기</Link>
+        <Link to="/archive" className="text-accent hover:underline">{UI_TERMS.publicPortfolio} 보기</Link>
         <Link to="/judgment-diary/principles" className="text-accent hover:underline">판단 원칙 보기</Link>
       </div>
 

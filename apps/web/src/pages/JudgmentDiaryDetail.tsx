@@ -5,6 +5,7 @@ import type { JudgmentDiaryEntry } from '../lib/types';
 import { isUuid, slugify } from '../lib/slug';
 import { clearStructuredData, sanitizeDescription, setSeo, setStructuredData, stripMarkdown } from '../lib/seo';
 import { useAuth } from '../lib/auth-context';
+import { UI_TERMS } from '../lib/terminology';
 import MarkdownContent from '../components/MarkdownContent';
 import { SITE_BASE_URL } from '../lib/config';
 import { extractKeywords } from '../lib/keywords';
@@ -158,7 +159,7 @@ export default function JudgmentDiaryDetail() {
           to="/archive"
           className="gk-btn gk-btn-secondary"
         >
-          공개 기록 보기
+          {UI_TERMS.publicPortfolio} 보기
         </Link>
       </div>
 

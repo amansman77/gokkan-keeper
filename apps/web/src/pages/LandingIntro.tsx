@@ -5,10 +5,10 @@ import { useAuth } from '../lib/auth-context';
 import { setSeo } from '../lib/seo';
 import { UI_TERMS } from '../lib/terminology';
 
-interface TrackRecordData {
+interface PublicPortfolioSummaryData {
   publicPositionCount: number;
   weightedAverageReturn: number | null;
-  snapshotReferenceText: string;
+  valuationBasisText: string;
 }
 
 function formatPercent(value: number | null): string {
@@ -121,10 +121,10 @@ function MethodSection() {
   );
 }
 
-function TrackRecordSummary() {
+function PublicPortfolioSummary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<TrackRecordData | null>(null);
+  const [data, setData] = useState<PublicPortfolioSummaryData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,7 +149,7 @@ function TrackRecordSummary() {
         setData({
           publicPositionCount: result.data.length,
           weightedAverageReturn,
-          snapshotReferenceText: '공개 포지션 평가금액 기준 자동 계산',
+          valuationBasisText: '공개 포지션 평가금액 기준 자동 계산',
         });
       } catch (err: any) {
         if (cancelled) return;
@@ -157,7 +157,7 @@ function TrackRecordSummary() {
         setData({
           publicPositionCount: 0,
           weightedAverageReturn: null,
-          snapshotReferenceText: '데이터를 불러오지 못했습니다.',
+          valuationBasisText: '데이터를 불러오지 못했습니다.',
         });
       } finally {
         if (!cancelled) {
@@ -190,7 +190,7 @@ function TrackRecordSummary() {
         <StatCard
           label="기준"
           value={loading ? '로딩 중...' : '포트폴리오 기반'}
-          description={data?.snapshotReferenceText}
+          description={data?.valuationBasisText}
         />
       </div>
       {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
@@ -214,7 +214,7 @@ function DualCTASection() {
           </p>
           <div className="mt-auto pt-6">
             <PrimaryButton to={authenticated ? '/dashboard' : '/login?next=/dashboard'}>
-              {`나의 ${UI_TERMS.trackRecord} 만들기`}
+              자산 기록 시작하기
             </PrimaryButton>
           </div>
         </div>
@@ -252,7 +252,7 @@ export default function LandingIntro() {
         <HeroSection />
         <EmpathySection />
         <MethodSection />
-        <TrackRecordSummary />
+        <PublicPortfolioSummary />
         <DualCTASection />
       </div>
     </div>

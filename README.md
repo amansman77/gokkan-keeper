@@ -73,7 +73,7 @@ Gokkan Keeper는 질문을 바꿉니다.
 곳간은 단순한 카테고리가 아니라
 “지켜야 할 역할”을 가진 단위입니다.
 
-### 2️⃣ 곶간 지기 (Keeper)
+### 2️⃣ 곶간 지기의 역할
 
 곶간 지기는:
 
@@ -141,7 +141,7 @@ Gokkan Keeper는
 구조를 드러내며,
 장기 생존을 우선하는 도구입니다.
 
-## 🧩 공개 기록과의 연결
+## 🧩 판단일지와의 연결
 
 Gokkan Keeper는
 개인 자산 기록 도구입니다.
@@ -160,7 +160,7 @@ Gokkan Keeper는
 * [x] Core data model
 * [x] Manual snapshot input
 * [x] Granary status summary
-* [x] 판단일지 및 공개 기록 (트랙레코드)
+* [x] 판단일지 및 공개 포트폴리오
 
 ## 📄 License
 
