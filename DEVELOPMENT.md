@@ -484,3 +484,74 @@ pnpm cap:sync
 pnpm cap:ios
 pnpm cap:android
 ```
+
+## 데이터 보존·백업·복구
+
+마이그레이션 **0017–0020을 API보다 먼저 적용**한다. 기존 행과 REAL 금액을
+변환·삭제하지 않는다. DB 쓰기 트리거가 통화 변경, 날짜, 금액, boolean, 주요
+열거형과 JSON 배열을 검증한다. 실제 계정 자동화는 기존 계약을 계속 사용할 수
+있으며 원본 식별자 도입은 선택 사항이다. `source`/`sourceRecordId`는 계좌와
+보유 단위까지 구분해 POST에 함께 넣고, 재호출에서 반환된 기존 ID를 PATCH한다.
+외부 Toss/Upbit 스크립트를 이번 저장소 변경만으로 수정했다고 가정하지 않는다.
+
+현재 cron에서 만료 시세 캐시·세션·rate bucket을 제거한다. 성공한 알림 대기열과
+발송 중복 방지 키, 보안 요청 이력은 90일 보존한다. 실패한 대기열, 알림 로그,
+스냅샷·입출금·일지 및 비공개 수정·삭제 이력은 서비스 데이터로 계속 보존한다.
+개인 자료 삭제 요청에는 관련 변경 이력과 보관 백업까지 포함해 별도로 처리한다.
+자동 백업 업로드나 운영자 PC/Discord 자료 삭제는 이 저장소가 수행하지 않는다.
+
+알림 실패는 60초부터 최대 1시간의 backoff로 재시도 대상이 된다. 실제 재시도는
+다음 cron/운영 실행 때 일어나며 별도 분 단위 실행을 추가한 것은 아니다. 최대
+50건씩 처리하고 120초 claim lease와 15초 요청 timeout을 사용한다. HTTP 실패는
+발송 성공으로 기록하지 않는다. Discord 성공 직후 DB 저장 전 Worker가 종료되면
+재발송될 수 있다(외부 webhook에는 exactly-once 보장이 없음). 배포 이전에 잃은
+알림의 원본 payload는 없으므로 이 변경이 과거 누락분을 추정 발송하지 않는다.
+
+### 암호화한 Gokkan 전용 백업
+
+`scripts/data-backup.mjs`는 `gk_`의 영속 데이터·스키마만 읽는다. 다른 서비스와
+인증 세션·rate bucket·보안 요청 로그·시세 캐시의 행은 제외하고 빈 테이블로 복원한다. REAL 값은 17자리
+표현으로 손실 없이 보존한다. 전체 데이터는 한 SELECT 시점의 스냅샷이며, 도중
+스키마 변경은 실패한다. 현재 개인 서비스 규모를 위한 메모리 기반 백업으로,
+데이터 증가 시 D1 응답/메모리 제한에 맞춘 다른 export 방식이 필요하다.
+
+별도 비밀 저장소에서 생성·보관한 32바이트 키를 `GK_BACKUP_KEY`(64자 hex)로
+주입한다. 키를 파일명·명령 인자·Git·CI artifact·채팅에 넣지 않는다. 키를 잃으면
+백업을 복호화할 수 없다. 출력은 AES-256-GCM, 새 파일만 생성, 권한 0600이다.
+아래 실제 실행은 운영자의 백업 보관 경로와 보호된 환경 변수를 사용한다.
+
+```bash
+node scripts/data-backup.mjs export /private/tmp/gokkan-local.gkbackup --local
+node scripts/data-backup.mjs export /private/tmp/gokkan-production.gkbackup --remote
+node scripts/data-backup.mjs restore-sql /private/tmp/gokkan-production.gkbackup
+```
+
+복호화된 `.restore.sql`도 0600이지만 평문이다. 격리 환경에서 검증하고 즉시
+삭제한다. 백업은 코드·환경 변수·R2 파일의 백업이 아니며 인증 데이터는 재생성한다.
+운영 보관 목표: 매일 1회 암호화 export와 큰 마이그레이션 직전 추가 export,
+일별 30개·월별 12개 보관, 데이터 손실 목표(RPO) 24시간·복구 목표(RTO) 4시간.
+이는 운영 정책 목표이며 외부 스케줄러와 보관 저장소가 설정되었다는 뜻은 아니다.
+현재 배포된 D1의 실제 복구 가능 시각/요금제는 작업 때 별도로 확인해야 한다.
+
+### 복구 훈련과 운영 복구
+
+1. 쓰기와 외부 동기화, cron 알림을 중지하고 대상·복구 시각·RPO를 확인한다.
+2. 기존 shared-db에 복구 SQL을 적용하지 않는다. 새 격리 D1에 Gokkan 전용
+   restore SQL을 가져와 테이블별 건수·대표 금액/수량·JSON·외래 키를 확인한다.
+3. `PRAGMA foreign_key_check`가 비어 있어야 한다. 수정·삭제 이력과 트리거,
+   원본 식별자 고유 제약, pending 알림을 확인한다. 백업 이후 데이터 차이는
+   별도 대조한다. 알림 재개 전에 외부 실제 발송 여부와 pending을 대조한다.
+4. 인증/캐시 테이블은 빈 상태로 복원되므로 다시 로그인해야 한다.
+   해당 코드 버전에 적용된 **Gokkan 마이그레이션만** 새 DB 이력에 기록한다.
+   다른 서비스의 마이그레이션/데이터는 복원·표시하지 않는다. 자동 migrate를
+   재실행하기 전에 schema/history가 일치하는지 확인한다.
+5. 격리 Worker에서 private/public 접근과 읽기·쓰기 smoke를 검증한 뒤, 이
+   서비스의 DB binding만 전환한다. 기존 DB는 유지해 비교/rollback에 사용한다.
+   전체 shared-db 복구가 필요하면 다른 서비스 운영자와 영향/중단을 함께 결정한다.
+
+`pnpm test:integration`의 backup 테스트는 두 개의 실제 ephemeral Worker/D1에서
+암호화→복호화→새 스키마/데이터 복원→FK/금액/소수 수량/트리거 검증을 실행한다.
+fixture만 사용하며 운영 데이터 export나 운영 복구를 실행하지 않는다.
+Cloudflare [Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/)은
+Paid 30일/Free 7일의 전체 DB 복구 기능이다. 공유 DB를 되돌리는 작업은 다른
+서비스에도 영향을 주므로 이 Gokkan 전용 훈련과 구분한다.

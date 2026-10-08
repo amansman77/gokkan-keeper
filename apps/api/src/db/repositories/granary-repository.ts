@@ -8,7 +8,7 @@ export class GranaryRepository {
 
   async getAllGranaries(): Promise<Granary[]> {
     const result = await this.db
-      .prepare('SELECT * FROM gk_granaries ORDER BY created_at DESC')
+      .prepare('SELECT * FROM gk_granaries ORDER BY created_at DESC, id DESC')
       .all<GranaryRow>();
     return (result.results || []).map(transformGranary);
   }
@@ -19,14 +19,12 @@ export class GranaryRepository {
 
     const rankedSnapshots = await this.db
       .prepare(`
-        SELECT *
-        FROM (
-          SELECT
-            s.*,
-            ROW_NUMBER() OVER (PARTITION BY s.granary_id ORDER BY s.date DESC) AS snapshot_rank
-          FROM gk_snapshots s
+        SELECT s.*, CASE WHEN s.id = (
+          SELECT id FROM gk_snapshots WHERE granary_id = g.id ORDER BY date DESC LIMIT 1
+        ) THEN 1 ELSE 2 END AS snapshot_rank
+        FROM gk_granaries g JOIN gk_snapshots s ON s.id IN (
+          SELECT id FROM gk_snapshots WHERE granary_id = g.id ORDER BY date DESC LIMIT 2
         )
-        WHERE snapshot_rank <= 2
       `)
       .all<SnapshotRow & { snapshot_rank: number }>();
 

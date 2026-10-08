@@ -8,7 +8,7 @@ export class SnapshotRepository {
 
   async getLatestSnapshotByGranaryId(granaryId: string): Promise<Snapshot | null> {
     const result = await this.db
-      .prepare('SELECT * FROM gk_snapshots WHERE granary_id = ? ORDER BY date DESC LIMIT 1')
+      .prepare('SELECT * FROM gk_snapshots WHERE granary_id = ? ORDER BY date DESC, id DESC LIMIT 1')
       .bind(granaryId)
       .first<SnapshotRow>();
     return result ? transformSnapshot(result) : null;
@@ -16,7 +16,7 @@ export class SnapshotRepository {
 
   async getPreviousSnapshotByGranaryId(granaryId: string): Promise<Snapshot | null> {
     const result = await this.db
-      .prepare('SELECT * FROM gk_snapshots WHERE granary_id = ? ORDER BY date DESC LIMIT 1 OFFSET 1')
+      .prepare('SELECT * FROM gk_snapshots WHERE granary_id = ? ORDER BY date DESC, id DESC LIMIT 1 OFFSET 1')
       .bind(granaryId)
       .first<SnapshotRow>();
     return result ? transformSnapshot(result) : null;
@@ -25,7 +25,7 @@ export class SnapshotRepository {
   async getSnapshotsByGranaryId(granaryId: string, limit = 10): Promise<Snapshot[]> {
     const safeLimit = toSafeLimit(limit, 10, 200);
     const result = await this.db
-      .prepare('SELECT * FROM gk_snapshots WHERE granary_id = ? ORDER BY date DESC LIMIT ?')
+      .prepare('SELECT * FROM gk_snapshots WHERE granary_id = ? ORDER BY date DESC, id DESC LIMIT ?')
       .bind(granaryId, safeLimit)
       .all<SnapshotRow>();
     return (result.results || []).map(transformSnapshot);
@@ -34,7 +34,7 @@ export class SnapshotRepository {
   async getAllSnapshots(limit = 50): Promise<Snapshot[]> {
     const safeLimit = toSafeLimit(limit, 50, 200);
     const result = await this.db
-      .prepare('SELECT * FROM gk_snapshots ORDER BY date DESC LIMIT ?')
+      .prepare('SELECT * FROM gk_snapshots ORDER BY date DESC, id DESC LIMIT ?')
       .bind(safeLimit)
       .all<SnapshotRow>();
     return (result.results || []).map(transformSnapshot);
@@ -109,10 +109,14 @@ export class SnapshotRepository {
 
     values.push(id);
 
-    await this.db
-      .prepare(`UPDATE gk_snapshots SET ${updates.join(', ')} WHERE id = ?`)
-      .bind(...values)
-      .run();
+    try {
+      await this.db.prepare(`UPDATE gk_snapshots SET ${updates.join(', ')} WHERE id = ?`).bind(...values).run();
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('UNIQUE constraint')) {
+        throw new Error('Snapshot already exists for this granary and date');
+      }
+      throw error;
+    }
 
     const updated = await this.getSnapshotById(id);
     if (!updated) throw new Error('Failed to update snapshot');

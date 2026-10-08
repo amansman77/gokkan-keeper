@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CalendarDateSchema } from './calendar-date';
 import {
   CURRENCIES,
   GRANARY_PURPOSES,
@@ -20,7 +21,7 @@ export const GranarySchema = z.object({
   owner: z.string().min(1),
   isPublic: z.boolean().default(false),
   publicThesis: z.string().max(300).nullable().optional(),
-  publicOrder: z.number().int().min(0).nullable().optional(),
+  publicOrder: z.number().finite().int().min(0).nullable().optional(),
   lastPublicUpdate: z.string().datetime().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -29,13 +30,13 @@ export const GranarySchema = z.object({
 export const SnapshotSchema = z.object({
   id: z.string().uuid(),
   granaryId: z.string().uuid(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: CalendarDateSchema,
   // Total granary valuation on `date`; it is not a transaction amount.
-  totalAmount: z.number().nonnegative(),
+  totalAmount: z.number().finite().nonnegative(),
   // Optional cash balance. It is not guaranteed to reconcile with totalAmount.
-  availableBalance: z.number().nonnegative().nullable().optional(),
+  availableBalance: z.number().finite().nonnegative().nullable().optional(),
   // Optional signed unrealized gain/loss amount, not a percentage.
-  profitLoss: z.number().nullable().optional(),
+  profitLoss: z.number().finite().nullable().optional(),
   memo: z.string().max(500).nullable().optional(),
   createdAt: z.string().datetime(),
 });
@@ -47,7 +48,7 @@ export const CreateGranarySchema = z.object({
   owner: z.string().min(1).default(DEFAULT_OWNER),
   isPublic: z.boolean().optional().default(false),
   publicThesis: z.string().max(300).nullable().optional(),
-  publicOrder: z.number().int().min(0).nullable().optional(),
+  publicOrder: z.number().finite().int().min(0).nullable().optional(),
 });
 
 export const UpdateGranarySchema = z.object({
@@ -56,7 +57,7 @@ export const UpdateGranarySchema = z.object({
   currency: z.enum(CURRENCIES).optional(),
   isPublic: z.boolean().optional(),
   publicThesis: z.string().max(300).nullable().optional(),
-  publicOrder: z.number().int().min(0).nullable().optional(),
+  publicOrder: z.number().finite().int().min(0).nullable().optional(),
 });
 
 export const PublicPortfolioEntrySchema = z.object({
@@ -64,13 +65,13 @@ export const PublicPortfolioEntrySchema = z.object({
   name: z.string(),
   granaryId: z.string().uuid().nullable().optional(),
   granaryName: z.string().nullable().optional(),
-  allocationPercent: z.number().nullable(),
-  returnPercent: z.number().nullable(),
+  allocationPercent: z.number().finite().nullable(),
+  returnPercent: z.number().finite().nullable(),
   thesis: z.string().nullable(),
   lastUpdated: z.string().datetime().nullable(),
   isEstimatedReturn: z.boolean().default(false),
-  currentUnitPrice: z.number().nullable().optional(),
-  currentPriceAsOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  currentUnitPrice: z.number().finite().nullable().optional(),
+  currentPriceAsOf: CalendarDateSchema.nullable().optional(),
   currentPriceSource: z.enum(['MANUAL', 'FSC_STOCK_PRICE_API', 'YAHOO_FINANCE']).nullable().optional(),
 });
 
@@ -85,9 +86,9 @@ export const PublicPortfolioResponseSchema = z.object({
   meta: z.object({
     warnings: z.array(PublicPortfolioWarningSchema),
     pricing: z.object({
-      integratedCount: z.number().int().nonnegative(),
-      manualCount: z.number().int().nonnegative(),
-      latestAsOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+      integratedCount: z.number().finite().int().nonnegative(),
+      manualCount: z.number().finite().int().nonnegative(),
+      latestAsOf: CalendarDateSchema.nullable(),
     }),
   }),
 });
@@ -104,72 +105,81 @@ export const ConsultingRequestResultSchema = z.object({
 });
 
 export const PositionSchema = z.object({
+  source: z.string().nullable().optional(),
+  sourceRecordId: z.string().nullable().optional(),
+  currentValueKind: z.enum(['UNIT_PRICE', 'TOTAL_VALUE']).optional(),
   id: z.string().uuid(),
   granaryId: z.string().uuid().nullable().optional(),
   name: z.string().min(1).max(120),
   symbol: z.string().min(1).max(30),
   market: z.string().max(30).nullable().optional(),
   assetType: z.string().max(30).nullable().optional(),
-  quantity: z.number().nullable().optional(),
-  avgCost: z.number().nullable().optional(),
+  quantity: z.number().finite().nullable().optional(),
+  avgCost: z.number().finite().nullable().optional(),
   // Legacy manual value: unit price when quantity exists, otherwise total value.
   // Use getPositionMarketValue() when a normalized market value is needed.
-  currentValue: z.number().nullable().optional(),
+  currentValue: z.number().finite().nullable().optional(),
+  priceCurrency: z.enum(CURRENCIES).nullable().optional(),
   // Stored compatibility field; public allocation is currently derived by value.
-  weightPercent: z.number().min(0).max(100).nullable().optional(),
-  targetWeightPercent: z.number().min(0).max(100).nullable().optional(),
-  profitLoss: z.number().nullable().optional(),
-  profitLossPercent: z.number().nullable().optional(),
+  weightPercent: z.number().finite().min(0).max(100).nullable().optional(),
+  targetWeightPercent: z.number().finite().min(0).max(100).nullable().optional(),
+  profitLoss: z.number().finite().nullable().optional(),
+  profitLossPercent: z.number().finite().nullable().optional(),
   note: z.string().max(1000).nullable().optional(),
   isPublic: z.boolean().default(false),
   publicThesis: z.string().max(300).nullable().optional(),
-  publicOrder: z.number().int().min(0).default(0),
+  publicOrder: z.number().finite().int().min(0).default(0),
   lastPublicUpdate: z.string().datetime().nullable().optional(),
   // Enriched normalized unit price and total value; these are not write inputs.
-  currentUnitPrice: z.number().nullable().optional(),
-  currentMarketValue: z.number().nullable().optional(),
-  currentPriceAsOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  currentPriceChange: z.number().nullable().optional(),
-  currentPriceChangeRate: z.number().nullable().optional(),
+  currentUnitPrice: z.number().finite().nullable().optional(),
+  currentMarketValue: z.number().finite().nullable().optional(),
+  currentPriceAsOf: CalendarDateSchema.nullable().optional(),
+  currentPriceChange: z.number().finite().nullable().optional(),
+  currentPriceChangeRate: z.number().finite().nullable().optional(),
   currentPriceSource: z.enum(['MANUAL', 'FSC_STOCK_PRICE_API', 'YAHOO_FINANCE']).nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
 
-export const CreatePositionSchema = z.object({
+const PositionInputSchema = z.object({
   granaryId: z.string().uuid().nullable().optional(),
   name: z.string().min(1).max(120),
   symbol: z.string().min(1).max(30),
   market: z.string().max(30).nullable().optional(),
   assetType: z.string().max(30).nullable().optional(),
-  quantity: z.number().nullable().optional(),
-  avgCost: z.number().nullable().optional(),
-  currentValue: z.number().nullable().optional(),
-  targetWeightPercent: z.number().min(0).max(100).nullable().optional(),
-  profitLoss: z.number().nullable().optional(),
-  profitLossPercent: z.number().nullable().optional(),
+  quantity: z.number().finite().nullable().optional(),
+  avgCost: z.number().finite().nullable().optional(),
+  currentValue: z.number().finite().nullable().optional(),
+  priceCurrency: z.enum(CURRENCIES).nullable().optional(),
+  targetWeightPercent: z.number().finite().min(0).max(100).nullable().optional(),
+  profitLoss: z.number().finite().nullable().optional(),
+  profitLossPercent: z.number().finite().nullable().optional(),
   note: z.string().max(1000).nullable().optional(),
   isPublic: z.boolean().optional().default(false),
   publicThesis: z.string().max(300).nullable().optional(),
-  publicOrder: z.number().int().min(0).optional().default(0),
+  publicOrder: z.number().finite().int().min(0).optional().default(0),
 });
 
-export const UpdatePositionSchema = CreatePositionSchema.partial();
+export const CreatePositionSchema = PositionInputSchema.extend({
+  source: z.string().trim().min(1).max(60).optional(),
+  sourceRecordId: z.string().trim().min(1).max(200).optional(),
+}).refine((data) => !!data.source === !!data.sourceRecordId, 'source and sourceRecordId must be provided together');
+export const UpdatePositionSchema = PositionInputSchema.partial();
 
 export const CreateSnapshotSchema = z.object({
   granaryId: z.string().uuid(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  totalAmount: z.number().nonnegative(),
-  availableBalance: z.number().nonnegative().optional(),
-  profitLoss: z.number().optional(),
+  date: CalendarDateSchema,
+  totalAmount: z.number().finite().nonnegative(),
+  availableBalance: z.number().finite().nonnegative().optional(),
+  profitLoss: z.number().finite().optional(),
   memo: z.string().max(500).optional(),
 });
 
 export const UpdateSnapshotSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  totalAmount: z.number().nonnegative().optional(),
-  availableBalance: z.number().nonnegative().optional().nullable(),
-  profitLoss: z.number().optional().nullable(),
+  date: CalendarDateSchema.optional(),
+  totalAmount: z.number().finite().nonnegative().optional(),
+  availableBalance: z.number().finite().nonnegative().optional().nullable(),
+  profitLoss: z.number().finite().optional().nullable(),
   memo: z.string().max(500).optional().nullable(),
 });
 
@@ -180,8 +190,8 @@ export const JudgmentDiaryAssetSchema = z.object({
 
 export const JudgmentDiaryPositionChangeSchema = z.object({
   asset: z.string().min(1).max(50),
-  fromPct: z.number().min(0).max(100).nullable(),
-  toPct: z.number().min(0).max(100).nullable(),
+  fromPct: z.number().finite().min(0).max(100).nullable(),
+  toPct: z.number().finite().min(0).max(100).nullable(),
   note: z.string().max(200).nullable(),
 });
 
@@ -206,7 +216,7 @@ export const JudgmentDiaryEntrySchema = z.object({
   invalidateConditions: z.array(z.string().min(1).max(500)).optional(),
   nextCheck: z.string().datetime().nullable(),
   emotionState: z.enum(JUDGMENT_EMOTION_STATES).nullable(),
-  confidence: z.number().int().min(1).max(5).nullable(),
+  confidence: z.number().finite().int().min(1).max(5).nullable(),
   timeHorizon: z.enum(JUDGMENT_TIME_HORIZONS).nullable(),
   strategyTags: z.array(z.enum(JUDGMENT_STRATEGY_TAGS)).optional(),
   refs: z.array(JudgmentDiaryRefSchema).optional(),
@@ -233,7 +243,7 @@ export const CreateJudgmentDiaryEntrySchema = z.object({
   invalidateConditions: z.array(z.string().min(1).max(500)).optional(),
   nextCheck: z.string().datetime().nullable().optional(),
   emotionState: z.enum(JUDGMENT_EMOTION_STATES).nullable().optional(),
-  confidence: z.number().int().min(1).max(5).nullable().optional(),
+  confidence: z.number().finite().int().min(1).max(5).nullable().optional(),
   timeHorizon: z.enum(JUDGMENT_TIME_HORIZONS).nullable().optional(),
   strategyTags: z.array(z.enum(JUDGMENT_STRATEGY_TAGS)).optional(),
   refs: z.array(JudgmentDiaryRefSchema).optional(),
@@ -278,7 +288,7 @@ export const AlertThresholdSchema = z.object({
   symbol: z.string().min(1).max(30),
   label: z.string().min(1).max(60),
   direction: z.enum(['below', 'above']),
-  threshold: z.number(),
+  threshold: z.number().finite(),
   enabled: z.boolean(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -288,7 +298,7 @@ export const CreateAlertThresholdSchema = z.object({
   symbol: z.string().min(1).max(30),
   label: z.string().min(1).max(60),
   direction: z.enum(['below', 'above']),
-  threshold: z.number(),
+  threshold: z.number().finite(),
   enabled: z.boolean().optional().default(true),
 });
 
@@ -299,11 +309,13 @@ export type CreateAlertThreshold = z.infer<typeof CreateAlertThresholdSchema>;
 export type UpdateAlertThreshold = z.infer<typeof UpdateAlertThresholdSchema>;
 
 export const CashFlowSchema = z.object({
+  currency: z.enum(CURRENCIES).nullable().optional(),
+  amountMinor: z.number().finite().int().positive().nullable().optional(),
   id: z.string().uuid(),
   granaryId: z.string().uuid(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: CalendarDateSchema,
   type: z.enum(CASH_FLOW_TYPES),
-  amount: z.number().positive(),
+  amount: z.number().finite().positive(),
   memo: z.string().max(500).nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -311,9 +323,9 @@ export const CashFlowSchema = z.object({
 
 export const CreateCashFlowSchema = z.object({
   granaryId: z.string().uuid(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: CalendarDateSchema,
   type: z.enum(CASH_FLOW_TYPES),
-  amount: z.number().positive(),
+  amount: z.number().finite().positive(),
   memo: z.string().max(500).nullable().optional(),
 });
 

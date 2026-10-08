@@ -16,12 +16,14 @@ export class JudgmentDiaryRepository {
     const values: SqlValue[] = [];
 
     if (filters.from) {
-      conditions.push('date(created_at) >= date(?)');
+      conditions.push('created_at >= ?');
       values.push(filters.from);
     }
     if (filters.to) {
-      conditions.push('date(created_at) <= date(?)');
-      values.push(filters.to);
+      conditions.push('created_at < ?');
+      const nextDay = new Date(`${filters.to}T00:00:00.000Z`);
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+      values.push(nextDay.toISOString().slice(0, 10));
     }
     if (filters.action) {
       conditions.push('action = ?');
@@ -40,7 +42,7 @@ export class JudgmentDiaryRepository {
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const result = await this.db
-      .prepare(`SELECT * FROM gk_judgment_diary_entries ${whereClause} ORDER BY created_at DESC LIMIT ?`)
+      .prepare(`SELECT * FROM gk_judgment_diary_entries ${whereClause} ORDER BY created_at DESC, id DESC LIMIT ?`)
       .bind(...values, limit)
       .all<JudgmentDiaryEntryRow>();
 

@@ -6,6 +6,7 @@ import {
   CreateJudgmentDiaryEntrySchema,
   UpdateJudgmentDiaryEntrySchema,
   JUDGMENT_ACTIONS,
+  CalendarDateSchema,
   type JudgmentDiaryEntry,
 } from '@gokkan-keeper/shared';
 import { parseLimit } from '../utils/query';
@@ -25,6 +26,10 @@ judgmentDiaryRouter.get('/', async (c) => {
     ? actionQuery
     : undefined;
   const limit = parseLimit(c.req.query('limit'), 50, 200);
+
+  for (const value of [c.req.query('from'), c.req.query('to')]) {
+    if (value && !CalendarDateSchema.safeParse(value).success) return c.json({ error: 'Invalid calendar date' }, 400);
+  }
 
   const filters = {
     from: c.req.query('from') || undefined,

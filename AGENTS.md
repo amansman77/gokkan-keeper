@@ -67,7 +67,7 @@ or deployment tasks. Open only the domain files needed for the task:
 | Authentication and publication | `apps/api/src/http/route-access.ts`, `apps/web/src/app-routes.tsx` |
 | Prices and portfolio values | `apps/api/src/services/market-price.ts`, `public-portfolio.ts`, shared `getPositionMarketValue()` |
 | Alert conditions and simulations | `apps/api/src/services/alert-rules.ts`, `apps/api/scripts/*` |
-| Alert delivery and event state | `apps/api/src/services/alert-engine.ts` |
+| Alert delivery and event state | `apps/api/src/services/alert-engine.ts`, `db/repositories/alert-delivery-repository.ts` |
 
 Keep stored/API compatibility names (especially `currentValue` and `ruleId`)
 stable during terminology refactors. Internal evaluation input is
@@ -207,3 +207,15 @@ Five scheduled jobs run **outside this repo**, on the operator's own machine (`~
 - **Weekly** (Saturdays, 15 min after the candidate report): `upbit-sync.mjs` — same deterministic-ETL pattern as the Toss sync, but for the operator's real Upbit crypto holdings (BTC/ETH/DOGE — the same three coins the weekly candidate report and alert engine already track by symbol). Auth is a self-signed JWT (HS256, access key + nonce) per Upbit's API, no npm dependency needed. Updates the same BTC-USD/ETH-USD/DOGE-USD Positions in the "코인" granary that were originally created as 0-qty alert-engine placeholders, plus a Snapshot (holdings value + KRW cash).
 
 Practical implication for this repo: **`assets` on Judgment Diary entries, `GET /positions/indicators/series`, and `POST /automation/discord-notify` are a real external contract**, not unused surface — don't remove or change their shapes without accounting for that. `POST /automation/discord-notify` intentionally requires `X-API-Secret` specifically (checked in the handler, not just the generic auth middleware) so it can't be triggered by a logged-in browser session.
+
+## Data integrity and recovery
+
+Deploy migrations 0017–0020 before this API. D1 write guards protect calendar dates,
+amounts, flags and serialized arrays even for direct SQL. Granary currency is locked
+once snapshots, cash flows or positions exist. New cash-flow writes use integer
+minor units; preserve legacy REAL valuations and nullable exact-money fields.
+Position source identities are optional, immutable pairs; never deduplicate by symbol.
+Alert transitions and their outbox payloads must remain one D1 batch. Preserve retry
+leases and pending records during cleanup. Revisions contain private previous rows.
+Recovery and encrypted Gokkan-only backup commands are in DEVELOPMENT.md; never
+restore the shared production database as part of a routine coding change.

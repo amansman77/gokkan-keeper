@@ -75,19 +75,6 @@ snapshotsRouter.put('/:id', async (c) => {
       return c.json({ error: 'Snapshot not found' }, 404);
     }
     
-    // If date is being updated, check for unique constraint
-    if (validated.date && validated.date !== existing.date) {
-      // Check if another snapshot exists with the same granary_id and date
-      const checkResult = await c.env.DB
-        .prepare('SELECT id FROM gk_snapshots WHERE granary_id = ? AND date = ? AND id != ?')
-        .bind(existing.granaryId, validated.date, id)
-        .first();
-      
-      if (checkResult) {
-        return c.json({ error: 'Snapshot already exists for this granary and date' }, 409);
-      }
-    }
-    
     const snapshot = await db.updateSnapshot(id, validated);
     
     return c.json(snapshot);

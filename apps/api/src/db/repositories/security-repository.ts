@@ -29,6 +29,9 @@ export class SecurityRepository {
   }
   async cleanup(now = Math.floor(Date.now() / 1000)): Promise<void> {
     await this.db.batch([
+      this.db.prepare('DELETE FROM gk_quote_cache WHERE expires_at <= ?').bind(new Date(now * 1000).toISOString()),
+      this.db.prepare('DELETE FROM gk_alert_sent WHERE sent_at < ?').bind(new Date((now - 90 * 86400) * 1000).toISOString()),
+      this.db.prepare('DELETE FROM gk_alert_outbox WHERE delivered_at < ?').bind(new Date((now - 90 * 86400) * 1000).toISOString()),
       this.db.prepare('DELETE FROM gk_sessions WHERE expires_at <= ?').bind(now),
       this.db.prepare('DELETE FROM gk_security_rate_limits WHERE expires_at <= ?').bind(now),
       this.db.prepare('DELETE FROM gk_security_audit_log WHERE created_at < ?').bind(now - 90 * 86400),

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createIdentityFixture } from '../fixtures';
 
 export const owner = { aud: 'fixture.apps.googleusercontent.com', email: 'fixture@example.com', email_verified: 'true', sub: 'fixture-owner' };
-export async function createHarness(port?: number, alerts = false, extraBindings: Record<string, string> = {}) {
+export async function createHarness(port?: number, alerts = false, extraBindings: Record<string, string> = {}, applyMigrations = true) {
   const apiRoot = fileURLToPath(new URL('../../../', import.meta.url));
   const result = await build({ absWorkingDir: apiRoot, entryPoints: ['src/index.ts'], bundle: true, write: false, format: 'esm', platform: 'browser', target: 'es2022' });
   const outbound: string[] = [];
@@ -29,7 +29,7 @@ export async function createHarness(port?: number, alerts = false, extraBindings
   try {
     const db = await mf.getD1Database('DB');
     const migrationsDir = new URL('../../../../../migrations/', import.meta.url);
-    for (const name of (await readdir(migrationsDir)).filter((name) => name.endsWith('.sql')).sort()) {
+    for (const name of (applyMigrations ? await readdir(migrationsDir) : []).filter((name) => name.endsWith('.sql')).sort()) {
       const sql = await readFile(new URL(name, migrationsDir), 'utf8');
       for (const statement of splitSqlQuery(sql)) await db.prepare(statement).run();
     }

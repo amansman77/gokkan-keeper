@@ -29,6 +29,9 @@ export interface SnapshotRow {
 }
 
 export interface PositionRow {
+  price_currency?: Position['priceCurrency'];
+  source?: Position['source'];
+  source_record_id?: Position['sourceRecordId'];
   id: Exclude<Position['id'], undefined>;
   granary_id: Exclude<Position['granaryId'], undefined>;
   name: Exclude<Position['name'], undefined>;
@@ -92,6 +95,8 @@ export interface AlertThresholdRow {
 }
 
 export interface CashFlowRow {
+  money_currency?: CashFlow['currency'];
+  amount_minor?: CashFlow['amountMinor'];
   id: Exclude<CashFlow['id'], undefined>;
   granary_id: Exclude<CashFlow['granaryId'], undefined>;
   date: Exclude<CashFlow['date'], undefined>;

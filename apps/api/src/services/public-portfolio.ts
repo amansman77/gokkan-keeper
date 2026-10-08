@@ -35,7 +35,7 @@ function inferPositionCurrency(row: PublicPortfolioRow): string | null {
   if (normalizedMarket && MARKET_CURRENCY_BY_MARKET[normalizedMarket]) {
     return MARKET_CURRENCY_BY_MARKET[normalizedMarket];
   }
-  return normalizeCurrency(row.granary_currency);
+  return normalizeCurrency(row.price_currency) ?? normalizeCurrency(row.granary_currency);
 }
 
 function toPublicPosition(row: PublicPortfolioRow): Position {

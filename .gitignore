@@ -55,3 +55,7 @@ coverage/
 # Test reports and traces
 test-results/
 playwright-report/
+
+# Private encrypted database backups and decrypted restore files
+*.gkbackup
+*.gkbackup.restore.sql

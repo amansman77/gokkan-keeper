@@ -30,6 +30,7 @@ void test('alert state only fires on transitions, deduplicates the same day, and
     assert.equal(outbound.filter((url) => url === 'https://discord.fixture/alerts').length, 1);
     await cache(101); await run();
     await db.prepare('DELETE FROM gk_alert_sent').run();
+    await db.prepare('DELETE FROM gk_alert_outbox').run();
     await cache(98); assert.equal(await run(), 1);
     assert.equal(outbound.filter((url) => url === 'https://discord.fixture/alerts').length, 2);
   } finally { await mf.dispose(); }

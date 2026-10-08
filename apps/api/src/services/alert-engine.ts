@@ -1,8 +1,7 @@
-import type { D1Database } from '@cloudflare/workers-types';
 import type { Env } from '../types';
 import { DBClient } from '../db/client';
+import { AlertDeliveryRepository } from '../db/repositories/alert-delivery-repository';
 import { getTechnicalIndicators } from './technical-indicators';
-import type { TechnicalIndicatorResult } from './technical-indicators';
 import { getMarketIndices } from './market-indices';
 import type { AlertThreshold } from '@gokkan-keeper/shared';
 
@@ -24,87 +23,21 @@ interface AlertIndicatorLog {
   avgVolume20: number | null;
 }
 
-async function getRuleConditionMet(db: D1Database, symbol: string, ruleId: string): Promise<boolean> {
-  const row = await db.prepare('SELECT condition_met FROM gk_alert_rule_state WHERE symbol = ? AND rule_id = ?')
-    .bind(symbol, ruleId).first<{ condition_met: number }>();
-  return row?.condition_met === 1;
-}
-
-async function setRuleConditionMet(db: D1Database, symbol: string, ruleId: string, conditionMet: boolean): Promise<void> {
-  await db.prepare(`
-    INSERT INTO gk_alert_rule_state (symbol, rule_id, condition_met, updated_at)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(symbol, rule_id) DO UPDATE SET
-      condition_met = excluded.condition_met,
-      updated_at = excluded.updated_at
-  `).bind(symbol, ruleId, conditionMet ? 1 : 0, new Date().toISOString()).run();
-}
-
-async function evaluateRules(db: D1Database, snap: AlertRuleContext, mode: 'daily' | 'weekly'): Promise<Alert[]> {
-  const alerts: Alert[] = [];
-  const label = `${snap.name} (${snap.symbol})`;
-
-  for (const rule of RULES.filter((r) => r.mode === mode)) {
-    const conditionMet = rule.condition(snap);
-    const wasMet = await getRuleConditionMet(db, snap.symbol, rule.ruleId);
-    if (conditionMet !== wasMet) {
-      await setRuleConditionMet(db, snap.symbol, rule.ruleId, conditionMet);
-    }
-    if (conditionMet && !wasMet) {
-      alerts.push({
-        type: rule.type, priority: rule.priority, ruleId: rule.ruleId, symbol: snap.symbol, status: 'CONFIRMED',
-        title: rule.title,
-        message: rule.message(snap, label),
-        action: rule.action,
-      });
-    }
-  }
-
-  return alerts;
-}
-
-// ─── Dedup ────────────────────────────────────────────────────────────────────
-
 function todayKst(): string {
   return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
-async function isAlreadySent(db: D1Database, key: string): Promise<boolean> {
-  const row = await db.prepare('SELECT 1 FROM gk_alert_sent WHERE alert_key = ?').bind(key).first();
-  return !!row;
-}
-
-async function markSent(db: D1Database, key: string): Promise<void> {
-  await db.prepare('INSERT OR IGNORE INTO gk_alert_sent (alert_key, sent_at) VALUES (?, ?)')
-    .bind(key, new Date().toISOString()).run();
-}
-
-// ─── Alert log ────────────────────────────────────────────────────────────────
-
-async function logAlert(db: D1Database, alert: Alert, date: string, snap: AlertRuleContext): Promise<void> {
-  const indicators: AlertIndicatorLog = {
+function indicatorLog(snap: AlertRuleContext): AlertIndicatorLog {
+  return {
     weeklyMacdOsc: snap.weekly?.macdOsc ?? null,
     prevWeeklyMacdOsc: snap.weekly?.prevMacdOsc ?? null,
-    dailyRsi: snap.daily?.rsi ?? null,
-    dailyAdx: snap.daily?.adx ?? null,
-    ma5: snap.daily?.ma5 ?? null,
-    ma20: snap.daily?.ma20 ?? null,
-    weeklyMa40: snap.weekly?.ma40 ?? null,
-    prevWeeklyMa40: snap.weekly?.prevMa40 ?? null,
+    dailyRsi: snap.daily?.rsi ?? null, dailyAdx: snap.daily?.adx ?? null,
+    ma5: snap.daily?.ma5 ?? null, ma20: snap.daily?.ma20 ?? null,
+    weeklyMa40: snap.weekly?.ma40 ?? null, prevWeeklyMa40: snap.weekly?.prevMa40 ?? null,
     fiveDayReturn: snap.daily?.fiveDayReturn ?? null,
-    volume: snap.daily?.volume ?? null,
-    avgVolume20: snap.daily?.avgVolume20 ?? null,
+    volume: snap.daily?.volume ?? null, avgVolume20: snap.daily?.avgVolume20 ?? null,
   };
-  await db.prepare(`
-    INSERT INTO gk_alert_log (symbol, rule_id, date, priority, status, action, indicators_json, sent_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    alert.symbol, alert.ruleId, date, alert.priority, alert.status,
-    alert.action, JSON.stringify(indicators), new Date().toISOString(),
-  ).run();
 }
-
-// ─── Discord push ─────────────────────────────────────────────────────────────
 
 const PRIORITY_COLOR: Record<string, number> = {
   P0: 0xe74c3c,
@@ -157,7 +90,7 @@ function buildIndicatorFields(alert: Alert, snap: AlertRuleContext): Array<{ nam
   return fields;
 }
 
-async function sendDiscordAlert(alert: Alert, snap: AlertRuleContext, webhookUrl: string): Promise<void> {
+function discordPayload(alert: Alert, snap: AlertRuleContext): unknown {
   const fields = buildIndicatorFields(alert, snap);
   const payload = {
     embeds: [{
@@ -169,11 +102,7 @@ async function sendDiscordAlert(alert: Alert, snap: AlertRuleContext, webhookUrl
       timestamp: new Date().toISOString(),
     }],
   };
-  await fetch(webhookUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  return payload;
 }
 
 // ─── FX threshold rules (event-based, reuses the rule-state/dedup machinery above) ──
@@ -182,7 +111,7 @@ async function sendDiscordAlert(alert: Alert, snap: AlertRuleContext, webhookUrl
 // gets its own event-transition rule id (`FX_<row id>`) so add/edit/delete just works
 // without touching this file.
 
-async function sendFxAlert(webhookUrl: string, threshold: AlertThreshold, ruleId: string, value: number): Promise<void> {
+function fxPayload(threshold: AlertThreshold, ruleId: string, value: number): unknown {
   const verb = threshold.direction === 'below' ? '이하로 하락' : '이상으로 상승';
   const payload = {
     embeds: [{
@@ -193,18 +122,14 @@ async function sendFxAlert(webhookUrl: string, threshold: AlertThreshold, ruleId
       timestamp: new Date().toISOString(),
     }],
   };
-  await fetch(webhookUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  return payload;
 }
 
-async function checkFxThresholds(env: Env, today: string): Promise<{ processed: number; sent: number }> {
-  let processed = 0, sent = 0;
+async function checkFxThresholds(env: Env, today: string): Promise<number> {
+  let processed = 0;
   const db = new DBClient(env.DB);
   const thresholds = await db.getEnabledAlertThresholds();
-  if (thresholds.length === 0 || !env.DISCORD_WEBHOOK_URL) return { processed, sent };
+  if (thresholds.length === 0 || !env.DISCORD_WEBHOOK_URL) return processed;
 
   const indices = await getMarketIndices(env.YAHOO_FINANCE_API_BASE_URL, env.DB);
 
@@ -215,31 +140,15 @@ async function checkFxThresholds(env: Env, today: string): Promise<{ processed: 
 
     const ruleId = `FX_${threshold.id}`;
     const conditionMet = threshold.direction === 'below' ? index.value < threshold.threshold : index.value > threshold.threshold;
-    const wasMet = await getRuleConditionMet(env.DB, threshold.symbol, ruleId);
-    if (conditionMet !== wasMet) {
-      await setRuleConditionMet(env.DB, threshold.symbol, ruleId, conditionMet);
-    }
-    if (!conditionMet || wasMet) continue;
-
-    const key = `${threshold.symbol}:${ruleId}:${today}`;
-    if (await isAlreadySent(env.DB, key)) continue;
-
     const action = `${threshold.label} ${threshold.threshold}원 ${threshold.direction === 'below' ? '이하' : '이상'} 진입`;
-    await sendFxAlert(env.DISCORD_WEBHOOK_URL, threshold, ruleId, index.value);
-    await Promise.all([
-      markSent(env.DB, key),
-      env.DB.prepare(`
-        INSERT INTO gk_alert_log (symbol, rule_id, date, priority, status, action, indicators_json, sent_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        threshold.symbol, ruleId, today, 'P1', 'CONFIRMED', action,
-        JSON.stringify({ value: index.value, threshold: threshold.threshold }), new Date().toISOString(),
-      ).run(),
-    ]);
-    sent++;
+    await new AlertDeliveryRepository(env.DB).transition(threshold.symbol, ruleId, conditionMet, {
+      symbol: threshold.symbol, ruleId, date: today, priority: 'P1', status: 'CONFIRMED', action,
+      indicators: { value: index.value, threshold: threshold.threshold },
+      payload: fxPayload(threshold, ruleId, index.value),
+    });
   }
 
-  return { processed, sent };
+  return processed;
 }
 
 // ─── Main entry ───────────────────────────────────────────────────────────────
@@ -248,9 +157,12 @@ export async function runAlertEngine(env: Env, mode: 'daily' | 'weekly'): Promis
   if (!env.DISCORD_WEBHOOK_URL) return { processed: 0, sent: 0 };
 
   const db = new DBClient(env.DB);
+  const delivery = new AlertDeliveryRepository(env.DB);
+  // Drain persisted failures before fetching new quotes, including on provider outages.
+  let sent = await delivery.deliver(env.DISCORD_WEBHOOK_URL);
   const positions = await db.getPositions();
   const today = todayKst();
-  let processed = 0, sent = 0;
+  let processed = 0;
 
   for (const position of positions) {
     // Reuse D1-cached indicators (6h TTL) — no extra Yahoo Finance calls on cache hit
@@ -270,20 +182,20 @@ export async function runAlertEngine(env: Env, mode: 'daily' | 'weekly'): Promis
       weekly,
     };
 
-    for (const alert of await evaluateRules(env.DB, snap, mode)) {
-      const key = `${alert.symbol}:${alert.ruleId}:${today}`;
-      if (await isAlreadySent(env.DB, key)) continue;
-      await sendDiscordAlert(alert, snap, env.DISCORD_WEBHOOK_URL!);
-      await Promise.all([markSent(env.DB, key), logAlert(env.DB, alert, today, snap)]);
-      sent++;
+    const label = `${snap.name} (${snap.symbol})`;
+    for (const rule of RULES.filter((rule) => rule.mode === mode)) {
+      const alert: Alert = {
+        type: rule.type, priority: rule.priority, ruleId: rule.ruleId, symbol: snap.symbol,
+        status: 'CONFIRMED', title: rule.title, message: rule.message(snap, label), action: rule.action,
+      };
+      await delivery.transition(snap.symbol, rule.ruleId, rule.condition(snap), {
+        ...alert, date: today, indicators: indicatorLog(snap), payload: discordPayload(alert, snap),
+      });
     }
   }
 
-  if (mode === 'daily') {
-    const fx = await checkFxThresholds(env, today);
-    processed += fx.processed;
-    sent += fx.sent;
-  }
+  if (mode === 'daily') processed += await checkFxThresholds(env, today);
+  sent += await delivery.deliver(env.DISCORD_WEBHOOK_URL);
 
   return { processed, sent };
 }

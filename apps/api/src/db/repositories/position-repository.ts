@@ -12,6 +12,7 @@ export interface PublicPortfolioRow {
   granary_id: string | null;
   granary_name: string | null;
   granary_currency: string | null;
+  price_currency?: string | null;
   market: string | null;
   name: string;
   symbol: string;
@@ -32,11 +33,11 @@ export class PositionRepository {
   async getPositions(granaryId?: string): Promise<Position[]> {
     const result = granaryId
       ? await this.db
-          .prepare('SELECT * FROM gk_positions WHERE granary_id = ? ORDER BY updated_at DESC')
+          .prepare('SELECT * FROM gk_positions WHERE granary_id = ? ORDER BY updated_at DESC, id DESC')
           .bind(granaryId)
           .all<PositionRow>()
       : await this.db
-          .prepare('SELECT * FROM gk_positions ORDER BY updated_at DESC')
+          .prepare('SELECT * FROM gk_positions ORDER BY updated_at DESC, id DESC')
           .all<PositionRow>();
 
     return (result.results || []).map(transformPosition);
@@ -60,8 +61,9 @@ export class PositionRepository {
           id, granary_id, name, symbol, market, asset_type,
           quantity, avg_cost, current_value, weight_percent, target_weight_percent,
           profit_loss, profit_loss_percent, note,
-          is_public, public_thesis, public_order, last_public_update, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          is_public, public_thesis, public_order, last_public_update, created_at, updated_at, price_currency, source, source_record_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(source, source_record_id) WHERE source IS NOT NULL AND source_record_id IS NOT NULL DO NOTHING
       `)
       .bind(
         id,
@@ -84,10 +86,16 @@ export class PositionRepository {
         data.isPublic ? now : null,
         now,
         now,
+        data.priceCurrency ?? null,
+        data.source ?? null,
+        data.sourceRecordId ?? null,
       )
       .run();
 
-    const position = await this.getPositionById(id);
+    const stored = data.source && data.sourceRecordId
+      ? await this.db.prepare('SELECT * FROM gk_positions WHERE source = ? AND source_record_id = ?').bind(data.source, data.sourceRecordId).first<PositionRow>()
+      : null;
+    const position = stored ? transformPosition(stored) : await this.getPositionById(id);
     if (!position) throw new Error('Failed to create position');
     return position;
   }
@@ -108,6 +116,7 @@ export class PositionRepository {
     if (data.granaryId !== undefined) updateField('granary_id', data.granaryId ?? null);
     if (data.name !== undefined) updateField('name', data.name);
     if (data.symbol !== undefined) updateField('symbol', data.symbol);
+    if (data.priceCurrency !== undefined) updateField('price_currency', data.priceCurrency ?? null);
     if (data.market !== undefined) updateField('market', data.market ?? null);
     if (data.assetType !== undefined) updateField('asset_type', data.assetType ?? null);
     if (data.quantity !== undefined) updateField('quantity', data.quantity ?? null);
@@ -157,6 +166,7 @@ export class PositionRepository {
           p.granary_id,
           g.currency AS granary_currency,
           p.market,
+          p.price_currency,
           p.name,
           p.symbol,
           p.asset_type,
@@ -172,7 +182,7 @@ export class PositionRepository {
         FROM gk_positions p
         LEFT JOIN gk_granaries g ON p.granary_id = g.id
         WHERE p.is_public = 1
-        ORDER BY p.public_order ASC, p.updated_at DESC
+        ORDER BY p.public_order ASC, p.updated_at DESC, p.id DESC
       `)
       .all<PublicPortfolioRow>();
 

@@ -52,7 +52,7 @@ export class AlertLogRepository {
 
   async getAlertLog(limit: number): Promise<AlertLogEntry[]> {
     const result = await this.db
-      .prepare('SELECT * FROM gk_alert_log ORDER BY sent_at DESC LIMIT ?')
+      .prepare('SELECT * FROM gk_alert_log ORDER BY sent_at DESC, id DESC LIMIT ?')
       .bind(limit)
       .all<AlertLogRow>();
     return (result.results || []).map(transformAlertLogEntry);
