@@ -241,7 +241,7 @@ pnpm --filter api exec wrangler secret put SESSION_SECRET --env production
 
 Set `API_SECRET` for operational alert runs and automated writes, and integration
 secrets only when needed. Existing deployments retain their configured secrets.
-Frontend builds require `VITE_GOOGLE_CLIENT_ID`; put public build settings in
+Frontend builds require `VITE_GOOGLE_CLIENT_ID` and `VITE_TURNSTILE_SITE_KEY`; put public build settings in
 the ignored `apps/web/.env.production` using `.env.production.example` as a
 template, or provide them as environment variables. `VITE_API_BASE_URL` and
 `VITE_SITE_URL` are optional. Never put private tokens in `VITE_*` variables.
@@ -253,15 +253,16 @@ pnpm check
 pnpm build
 ```
 
-Apply pending migrations only when the change includes them, using the
-production binding:
+The production API deploy command applies pending numbered D1 migrations before
+publishing the Worker. To apply them separately, use the production binding:
 
 ```bash
 pnpm --filter api exec wrangler d1 migrations apply shared-db --remote --env production
 ```
 
 The supported deployment commands run `pnpm check` and build fresh artifacts
-before publishing. A failed check stops deployment:
+before publishing; API production deploys also apply pending migrations. A failed
+check or migration stops publishing:
 
 ```bash
 pnpm deploy:prod:api
@@ -277,6 +278,92 @@ unauthenticated `GET /granaries` returns `401`, and the production frontend
 serves the latest HTML and assets. The current endpoints are
 `https://gokkan-keeper-api-production.amansman77.workers.dev` and
 `https://gokkan-keeper.yetimates.com`.
+
+## Security configuration and rollout
+
+The API only accepts credentialed browser origins listed in
+`apps/api/src/http/origins.ts`. Production permits the canonical web origin and
+existing Capacitor origins; local HTTP origins require non-production mode.
+Cookie writes and login/logout require `Origin`, and JSON writes require
+`application/json`. SameSite=None remains for the existing native/direct-Worker
+transport. Public and automation routes retain their explicit access inventory.
+
+Google login verifies RS256 JWTs using Google's cached JWKS, rather than sending
+credentials to tokeninfo. Sessions now expire after seven days, require a D1
+registration, and are revoked on logout. Migration **0016 must precede this
+Worker**. Existing cookies require one re-login after deployment. Changing the
+owner email/subject or rotating SESSION_SECRET invalidates existing sessions.
+
+Consulting needs a managed Turnstile widget restricted to the canonical domain.
+Set its public site key in `VITE_TURNSTILE_SITE_KEY` for the build, and configure
+its secret on the API:
+
+```bash
+pnpm --filter api exec wrangler secret put TURNSTILE_SECRET_KEY --env production
+```
+
+Cloudflare may replace client IPs with a shared Worker IP for cross-zone
+subrequests ([header semantics](https://developers.cloudflare.com/fundamentals/reference/http-headers/)).
+Set the same independently generated, at least 32-character `PROXY_AUTH_SECRET`
+on both services so Pages can attest the edge IP to the API. Never reuse an owner
+or automation key, or put this value in VITE variables:
+
+```bash
+pnpm --filter api exec wrangler secret put PROXY_AUTH_SECRET --env production
+pnpm --filter web exec wrangler pages secret put PROXY_AUTH_SECRET --project-name gokkan-keeper-web
+```
+
+Pages strips client-supplied attestation headers. API checks HMAC, timestamp
+(within 30 seconds), method and path/query. Invalid/missing attestations fall
+back to Cloudflare's IP, never arbitrary forwarded headers. Without matching
+secrets, proxied clients can share a rate bucket. Roll out API and Pages together.
+Login allows 20 attempts per 10-minute fixed window; consulting allows 3 per hour.
+Buckets use HMAC identifiers in D1, not stored raw IPs. These limits bound abuse,
+but do not replace Cloudflare DDoS protection.
+
+Consulting additionally requires explicit consent to Discord transfer. The API
+validates bounded PNG/JPEG/WebP container structure and dimensions, replaces the
+original filename, and suppresses mentions. Structural checks are not a full
+image decoder or malware scan. Operators must define and enforce Discord access
+and retention outside this repository; no automatic Discord deletion is claimed.
+
+Security audit records contain request ID, actor category/job ID, fixed route
+domain, method and status. They omit credentials, email, IP, query and body.
+Scheduled cleanup retains audit rows for 90 days and removes expired sessions
+and rate buckets; cleanup runs on the existing cron schedule. Private responses
+use no-store; API/Pages apply CSP, framing, MIME, referrer and HTTPS HSTS controls.
+Client errors contain generic internal messages and request IDs, not raw exceptions.
+
+### External automation credentials
+
+`AUTOMATION_API_KEYS` is a secret containing a JSON array of up to 20 entries:
+`[{"id":"weekly-report","secret":"<random value, minimum 32 characters>","scopes":["indicators:read","settings:read","discord:notify"],"expiresAt":"<optional ISO timestamp>"}]`.
+Configure it with `wrangler secret put AUTOMATION_API_KEYS --env production`.
+Jobs keep using `X-API-Secret` as the transport header. Invalid configuration fails
+closed. See `apps/api/src/auth/automation.ts` for the exact method/path inventory.
+
+| Caller | Required scopes |
+| --- | --- |
+| Weekly candidate report | indicators:read, settings:read, discord:notify |
+| Quarterly candidate diary / annual NPS diary (separate keys) | diary:publish |
+| Toss / Upbit sync (separate keys) | portfolio:read, positions:sync, snapshots:sync |
+| Manual headless alert runner | alerts:run |
+
+Public diary reads remain public even when a job supplies its key. Position and
+snapshot sync retain their existing aliases and upsert methods. A scoped key
+cannot edit diary history, change settings, export private records, or modify
+unrelated owner domains. The legacy API_SECRET temporarily grants the union of
+existing job scopes only, for compatibility. Browser sessions cannot call the
+Discord automation endpoint or operational alert-run routes.
+
+The five jobs live outside this checkout in `~/gokkan-keeper-automation/`.
+Create separate random keys, install their matching entries on the Worker,
+update each job's own protected credential store, and verify its scheduled flow.
+Then remove the legacy API_SECRET. This repository change implements scoped keys;
+it does **not** claim those external jobs have been migrated or their host audited.
+Never include keys in Git, CI artifacts, reports, or chat output. Rotate a scoped
+key by temporarily configuring old/new entries with distinct IDs, moving its job,
+and deleting the old entry.
 
 ## Quality checks
 
@@ -298,7 +385,7 @@ they do not automatically roll back a deployment.
 | `pnpm test` | Tooling tests, covered unit tests, Worker/D1 integration tests; saves logs |
 | `pnpm test:boundaries` | Fast Node tests for domain/auth/Pages and tooling |
 | `pnpm test:integration` | Worker/D1 CRUD, publication, auth and alert transition tests |
-| `pnpm test:browser` | Chromium against Vite and an isolated local Worker/D1 |
+| `pnpm test:browser` | Chromium against Vite and the production bundle/Pages worker over local HTTPS, with isolated Worker/D1 |
 | `pnpm test:coverage` | Coverage reports and thresholds for selected core modules |
 | `pnpm smoke:prod [api\|web\|all]` | Read-only checks of the currently deployed endpoints |
 
@@ -309,15 +396,19 @@ storage, never the production D1 ID, remote bindings, `.dev.vars`, or real user
 credentials. Its version is pinned to the version used by Wrangler; its current
 v5 API uses the provided v4-option conversion helper.
 
-Integration tests allow only fixture Google verification responses and fixture
-Discord responses; all unexpected external requests fail. Browser tests use a
+Integration tests allow only fixture Google JWKS, Turnstile and Discord responses; all unexpected external requests fail. Browser tests use a
 fake Google UI with the real local cookie/API flow, and block non-local requests.
 The fixtures live entirely in test files and cannot authenticate against the
-production app. No real Google account, brokerage account or Discord webhook is
+production app. The production-bundle browser fixture uses a temporary self-signed
+TLS certificate and ignores certificate errors only in the test browser. It checks
+CSP violations through the login and consulting flows. No real Google account,
+brokerage account or Discord webhook is
 required. The API servers listen only on loopback; tests do not reuse an existing
 server. Chromium is installed inside the workspace's ignored dependencies.
 
-Coverage includes session auth, alert rules, indicators, market quotes and their
+Coverage includes JWT/session auth, automation permissions, origins, request
+security, image/challenge validation, security persistence, alert rules, indicators,
+market quotes and their
 providers/cache, and shared utilities. It enforces **70% lines, 65% branches,
 65% functions** in that selected scope. This is not whole-project coverage and
 V8 coverage does not measure code running inside workerd. D1/browser assertions
@@ -328,13 +419,16 @@ Pages cookie proxying, browser create/edit/reload/logout, and failed saves.
 Real Google availability, native apps, every page and all external automation
 flows are still outside the suite.
 
-CI runs for every branch push and pull request. It installs Chromium and executes
-`pnpm check` plus a production build using a dummy public Google client ID.
+CI runs for every branch push, pull request, and weekly scheduled scan. It installs Chromium and executes
+`pnpm check` plus a production build using dummy public Google/Turnstile build keys.
 It always preserves `test-results`, `coverage`, and `playwright-report` for 14
 days. Browser failures retain their first-attempt trace and screenshot; tests
-have no automatic retries. Set `Quality checks / check` as a required status in
-GitHub settings to enforce merge protection; the workflow does not change that
-server setting. CI changes take effect after the branch is pushed.
+have no automatic retries. The active GitHub `Protect main with PR and quality
+checks` ruleset requires a pull request, resolved discussions, and a passing
+`check` from GitHub Actions; force pushes and deletion are blocked. It requires
+zero reviewer approvals for the current single-maintainer repository. Dependabot
+security updates are enabled; `.github/dependabot.yml` schedules npm/actions
+updates. CI source changes take effect after the branch is pushed.
 
 Logs are under `test-results/*.log`, coverage HTML/LCOV/JSON under `coverage/api`,
 and browser HTML/JUnit/traces under `playwright-report` and `test-results`.
@@ -360,11 +454,16 @@ is not bundled in the browser or deployed Worker. Replacing Tailwind would be a
 separate design-system migration. `scripts/check-dependencies.mjs` permits only
 that advisory, version, and exact dependency path until **2026-11-09 UTC**. A
 new path, released patch, Critical severity, or expiry blocks checks. This is an
-accepted temporary development-tool risk, not a repaired vulnerability. Recheck
-upstream before expiry and remove the exception when a compatible fix is available.
+upstream-unfixed development-tool dependency with a local mitigation:
+`patches/braces@3.0.3.patch` limits parser and recursive AST traversal depth to 64.
+`scripts/braces-security.test.mjs` checks ordinary patterns, deeply nested patterns
+and cyclic ASTs using the actual watcher dependency. The registry still reports
+the advisory; the exception retains its expiry and exact path. Recheck upstream
+before expiry and remove the patch/exception when a compatible fix is available.
 
-The current audit also reports Moderate findings in Capacitor's `xcode > uuid`
-and Tailwind's `postcss-selector-parser`. They are not silently excluded.
+Overrides select patched `uuid` for Capacitor's xcode tooling and patched
+`postcss-selector-parser` for Tailwind and postcss-nested. Remove these overrides
+when their parent packages already select patched versions.
 The `miniflare > sharp` override selects a compatible patched 0.35.x release;
 remove it when Wrangler's dependency already includes the patched release.
 

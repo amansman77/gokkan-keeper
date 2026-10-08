@@ -1,5 +1,8 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { isTrustedOrigin } from './http/origins';
+import { internalError } from './http/errors';
+import { requestSecurity, browserRequestPolicy, requestBodyLimit, abuseProtection } from './middleware/security';
 import type { Env } from './types';
 import { API_ROUTE_PATHS } from './http/route-access';
 import { authMiddleware } from './middleware/auth';
@@ -16,18 +19,6 @@ import { publicRouter } from './routes/public';
 import { settingsRouter } from './routes/settings';
 import { snapshotsRouter } from './routes/snapshots';
 import { statusRouter } from './routes/status';
-
-const ALLOWED_PRODUCTION_ORIGIN = 'https://gokkan-keeper.yetimates.com';
-
-function resolveAllowedOrigin(origin: string): string | null {
-  if (!origin || origin.startsWith('http://localhost:') || origin.startsWith('capacitor://')) {
-    return origin;
-  }
-  if (origin.endsWith('.pages.dev') || origin === ALLOWED_PRODUCTION_ORIGIN) {
-    return origin;
-  }
-  return null;
-}
 
 function registerPublicRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get(API_ROUTE_PATHS.health, (c) => c.json({ status: 'ok' }));
@@ -55,8 +46,12 @@ function registerProtectedRoutes(app: Hono<{ Bindings: Env }>): void {
 export function createApp(): Hono<{ Bindings: Env }> {
   const app = new Hono<{ Bindings: Env }>();
 
+  app.onError((error, c) => internalError(c, error));
+  app.use('/*', requestSecurity);
+  app.use('/*', browserRequestPolicy);
+  app.use('/*', requestBodyLimit);
   app.use('/*', cors({
-    origin: resolveAllowedOrigin,
+    origin: (origin, c) => isTrustedOrigin(origin, c.env) ? origin : null,
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type'],
     credentials: true,
@@ -64,6 +59,7 @@ export function createApp(): Hono<{ Bindings: Env }> {
 
   // Hono applies middleware in registration order. Anonymous endpoints must be
   // registered before the authentication boundary.
+  app.use('/*', abuseProtection);
   registerPublicRoutes(app);
   app.use('/*', authMiddleware);
   registerProtectedRoutes(app);

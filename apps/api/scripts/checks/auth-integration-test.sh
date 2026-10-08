@@ -22,9 +22,9 @@ request() {
   body_file="$(mktemp)"
 
   if [[ -n "$body" ]]; then
-    status="$(curl -sS -D "$header_file" -o "$body_file" -w '%{http_code}' -X "$method" "${BASE_URL}${path}" -H 'Content-Type: application/json' --data "$body")"
+    status="$(curl -sS -D "$header_file" -o "$body_file" -w '%{http_code}' -X "$method" "${BASE_URL}${path}" -H "Origin: $BASE_URL" -H 'Content-Type: application/json' --data "$body")"
   else
-    status="$(curl -sS -D "$header_file" -o "$body_file" -w '%{http_code}' -X "$method" "${BASE_URL}${path}")"
+    status="$(curl -sS -D "$header_file" -o "$body_file" -w '%{http_code}' -X "$method" "${BASE_URL}${path}" -H "Origin: $BASE_URL")"
   fi
 
   echo "$header_file|$body_file|$status"

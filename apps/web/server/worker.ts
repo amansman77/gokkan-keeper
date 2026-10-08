@@ -1,3 +1,5 @@
+import { attestProxyClient } from '@gokkan-keeper/shared';
+
 const CANONICAL_ORIGIN = 'https://gokkan-keeper.yetimates.com';
 const API_ORIGIN = 'https://gokkan-keeper-api-production.amansman77.workers.dev';
 const SITEMAP_STATIC_PATHS = ['/', '/archive', '/judgment-diary', '/consulting'];
@@ -78,9 +80,11 @@ async function createDynamicSitemap() {
 
 interface PagesEnv {
   ASSETS: { fetch(request: Request): Promise<Response> };
+  API?: { fetch(request: Request): Promise<Response> };
+  PROXY_AUTH_SECRET?: string;
 }
 
-export default {
+const worker = {
   async fetch(request: Request, env: PagesEnv): Promise<Response> {
     const url = new URL(request.url);
 
@@ -92,7 +96,8 @@ export default {
       const upstreamPath = url.pathname === '/api' ? '' : url.pathname.slice(4);
       const upstreamUrl = `${API_ORIGIN}${upstreamPath}${url.search}`;
       const proxyRequest = new Request(upstreamUrl, request);
-      return fetch(proxyRequest);
+      await attestProxyClient(proxyRequest, request.headers.get('CF-Connecting-IP'), env.PROXY_AUTH_SECRET);
+      return env.API ? env.API.fetch(proxyRequest) : fetch(proxyRequest);
     }
 
     if (url.pathname === '/sitemap.xml') {
@@ -100,5 +105,28 @@ export default {
     }
 
     return env.ASSETS.fetch(request);
+  },
+};
+
+export const WEB_CONTENT_SECURITY_POLICY = [
+  "default-src 'self'", "script-src 'self' https://accounts.google.com https://challenges.cloudflare.com",
+  "style-src 'self' 'unsafe-inline' https://accounts.google.com", "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https:", "connect-src 'self' https://accounts.google.com https://challenges.cloudflare.com https://gokkan-keeper-api-production.amansman77.workers.dev https://localhost",
+  "frame-src https://accounts.google.com https://challenges.cloudflare.com",
+  "object-src 'none'", "base-uri 'none'", "form-action 'self'", "frame-ancestors 'none'", 'upgrade-insecure-requests',
+].join('; ');
+
+export default {
+  async fetch(request: Request, env: PagesEnv): Promise<Response> {
+    const response = await worker.fetch(request, env);
+    const secured = new Response(response.body, response);
+    secured.headers.set('Content-Security-Policy', WEB_CONTENT_SECURITY_POLICY);
+    secured.headers.set('X-Frame-Options', 'DENY');
+    secured.headers.set('X-Content-Type-Options', 'nosniff');
+    secured.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    secured.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    if (new URL(request.url).protocol === 'https:') secured.headers.set('Strict-Transport-Security', 'max-age=31536000');
+    if (new URL(request.url).pathname.startsWith('/api')) secured.headers.set('Cache-Control', 'no-store');
+    return secured;
   },
 };

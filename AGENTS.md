@@ -97,11 +97,19 @@ list in `app-routes.tsx` so authentication and SEO exposure stay aligned.
 - Owner authentication is Google ID token verification followed by a signed,
   HttpOnly `gk_session` cookie (`apps/api/src/routes/auth.ts` and
   `apps/api/src/auth/session.ts`). Client requests that need the session use
-  `credentials: 'include'` via `fetchAPI`.
+  `credentials: 'include'` via `fetchAPI`. Google JWTs are verified against JWKS.
+  Seven-day sessions are registered in D1, revoked on logout, and checked against
+  the current owner allowlist on each request. Deploy migration 0016 before this code.
 - Anonymous access is intentionally limited to health/auth, public portfolio and
   consulting endpoints, and read-only judgment-diary endpoints. Review
   `apps/api/src/http/route-access.ts` before adding or moving a route; it is the
   canonical inventory used by both app composition and authentication.
+- Cookie-authenticated writes and login/logout require an exact trusted `Origin`;
+  JSON writes also require `application/json`. CORS never trusts all Pages domains.
+  Review `http/origins.ts` and `middleware/security.ts` when changing transport.
+- `AUTOMATION_API_KEYS` defines per-job scopes in `auth/automation.ts`. The legacy
+  `API_SECRET` permits only existing automation operations, not arbitrary owner
+  writes or exports. Retire it after the five external jobs have separate keys.
 - `API_SECRET` is not the browser login mechanism. It only protects operational
   alert-run endpoints, plus a second automated-caller path (see below) for
   headless callers that need to write data, not just trigger a run.
@@ -113,6 +121,12 @@ list in `app-routes.tsx` so authentication and SEO exposure stay aligned.
   user sessions (e.g. `judgment-diary.ts` only fires the Discord "published"
   notification for API-Secret-authenticated creates, not manual entries — see
   external automation below).
+
+Public consulting requires verified Turnstile, explicit Discord-transfer consent,
+bounded image validation and a D1-backed rate limit. Pages signs edge client IP
+metadata with server-only `PROXY_AUTH_SECRET`; it is never an authentication key
+or a `VITE_*` value. Unsigned forwarded headers are ignored. Security headers are
+owned by the API middleware and Pages worker; keep login/challenge CSP tests passing.
 
 ## Change checklist
 

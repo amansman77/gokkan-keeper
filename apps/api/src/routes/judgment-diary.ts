@@ -1,3 +1,4 @@
+import { internalError } from '../http/errors';
 import { Hono } from 'hono';
 import type { Env, Variables } from '../types';
 import { DBClient } from '../db/client';
@@ -74,7 +75,7 @@ judgmentDiaryRouter.post('/', async (c) => {
     if (error.name === 'ZodError') {
       return c.json({ error: 'Validation error', details: error.errors }, 400);
     }
-    return c.json({ error: error.message || 'Internal server error' }, 500);
+    return internalError(c, error);
   }
 });
 
@@ -95,6 +96,6 @@ judgmentDiaryRouter.put('/:id', async (c) => {
     if (error.message?.includes('not found')) {
       return c.json({ error: error.message }, 404);
     }
-    return c.json({ error: error.message || 'Internal server error' }, 500);
+    return internalError(c, error);
   }
 });

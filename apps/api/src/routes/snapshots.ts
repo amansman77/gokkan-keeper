@@ -1,3 +1,4 @@
+import { internalError } from '../http/errors';
 import { Hono } from 'hono';
 import type { Env } from '../types';
 import { DBClient } from '../db/client';
@@ -56,7 +57,7 @@ snapshotsRouter.post('/', async (c) => {
     if (error.message?.includes('already exists')) {
       return c.json({ error: error.message }, 409);
     }
-    return c.json({ error: error.message || 'Internal server error' }, 500);
+    return internalError(c, error);
   }
 });
 
@@ -97,6 +98,6 @@ snapshotsRouter.put('/:id', async (c) => {
     if (error.message?.includes('already exists')) {
       return c.json({ error: error.message }, 409);
     }
-    return c.json({ error: error.message || 'Internal server error' }, 500);
+    return internalError(c, error);
   }
 });

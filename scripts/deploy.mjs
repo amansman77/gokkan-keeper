@@ -18,6 +18,7 @@ function run(args) {
 run(['check']);
 if (target !== 'api') run(['build']);
 else run(['--filter', 'api', 'build']);
+if (target !== 'web' && environment === 'production') run(['--filter', 'api', 'exec', 'wrangler', 'd1', 'migrations', 'apply', 'shared-db', '--remote', '--env', 'production']);
 if (target !== 'web') run(['--filter', 'api', 'exec', 'wrangler', 'deploy', ...(environment === 'production' ? ['--env', 'production'] : [])]);
 if (target !== 'api') run(['--filter', 'web', 'exec', 'wrangler', 'pages', 'deploy', 'dist', '--project-name', 'gokkan-keeper-web', '--branch', 'main']);
 

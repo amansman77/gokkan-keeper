@@ -38,6 +38,7 @@ test('failed build prevents any deployment', () => {
 test('full production deploy checks once and builds before either publish', () => {
   assert.deepEqual(invoke('all').calls, [
     ['check'], ['build'],
+    ['--filter', 'api', 'exec', 'wrangler', 'd1', 'migrations', 'apply', 'shared-db', '--remote', '--env', 'production'],
     ['--filter', 'api', 'exec', 'wrangler', 'deploy', '--env', 'production'],
     ['--filter', 'web', 'exec', 'wrangler', 'pages', 'deploy', 'dist', '--project-name', 'gokkan-keeper-web', '--branch', 'main'],
     ['smoke:prod', 'all'],

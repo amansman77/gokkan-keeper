@@ -4,6 +4,7 @@ import { trackEvent } from '../../lib/analytics';
 import ConcernTextarea from './ConcernTextarea';
 import ScreenshotUploadField from './ScreenshotUploadField';
 import SubmitSuccessMessage from './SubmitSuccessMessage';
+import TurnstileChallenge from './TurnstileChallenge';
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_SCREENSHOT_SIZE_BYTES = 10 * 1024 * 1024;
@@ -53,11 +54,15 @@ export default function ConsultingRequestForm() {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [challengeToken, setChallengeToken] = useState('');
+  const [challengeVersion, setChallengeVersion] = useState(0);
+  const [consent, setConsent] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
     setRequestId(null);
+    if (!challengeToken || !consent) { setSubmitError('보안 확인과 정보 전송 동의를 완료해 주세요.'); return; }
 
     const nextErrors = validateForm(email, concern, screenshot);
     setErrors(nextErrors);
@@ -79,6 +84,8 @@ export default function ConsultingRequestForm() {
     formData.set('concern', concern.trim());
     formData.set('sourcePage', typeof window !== 'undefined' ? window.location.pathname : '/consulting');
     formData.set('screenshot', screenshot);
+    formData.set('cf-turnstile-response', challengeToken);
+    formData.set('consent', 'true');
 
     try {
       const result = await submitConsultingRequest(formData);
@@ -104,6 +111,8 @@ export default function ConsultingRequestForm() {
       });
     } finally {
       setLoading(false);
+      setChallengeToken('');
+      setChallengeVersion((value) => value + 1);
     }
   }
 
@@ -153,13 +162,19 @@ export default function ConsultingRequestForm() {
         <ConcernTextarea value={concern} error={errors.concern} onChange={setConcern} />
       </div>
 
+      <label className="flex gap-3 text-sm text-ink-muted">
+        <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
+        이메일·고민·스크린샷이 상담 검토를 위해 운영자의 Discord 채널로 전송되는 데 동의합니다. 계좌번호 등 민감정보는 가린 뒤 올려 주세요.
+      </label>
+      <TurnstileChallenge onToken={setChallengeToken} resetVersion={challengeVersion} />
+
       {submitError ? (
         <div className="rounded-2xl border border-danger bg-danger-tint p-4 text-sm text-danger">{submitError}</div>
       ) : null}
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !challengeToken || !consent}
         className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl bg-accent px-5 py-4 text-base font-semibold text-accent-contrast transition hover:bg-accent-ink disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[240px]"
       >
         {loading ? '전송 중...' : '무료 구조 점검 요청 보내기'}

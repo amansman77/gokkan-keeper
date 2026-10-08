@@ -1,10 +1,12 @@
 import type { Context } from 'hono';
 import type { Env } from '../types';
+import { SecurityRepository } from '../db/repositories/security-repository';
 
 const SESSION_COOKIE_NAME = 'gk_session';
-const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 interface SessionPayload {
+  jti: string;
   sub: string;
   email: string;
   iat: number;
@@ -94,6 +96,7 @@ export async function createSessionToken(
 ): Promise<string> {
   const iat = nowSeconds();
   const fullPayload: SessionPayload = {
+    jti: crypto.randomUUID(),
     sub: payload.sub,
     email: payload.email,
     iat,
@@ -130,11 +133,27 @@ export async function readSessionFromCookie(
   }
 
   if (!payload) return null;
-  if (!payload.sub || !payload.email || !payload.exp || payload.exp <= nowSeconds()) {
+  if (typeof payload.jti !== 'string' || !/^[0-9a-f-]{36}$/.test(payload.jti)
+    || typeof payload.sub !== 'string' || !payload.sub || typeof payload.email !== 'string' || !payload.email
+    || !Number.isInteger(payload.iat) || !Number.isInteger(payload.exp) || payload.iat > nowSeconds() + 30
+    || payload.exp <= nowSeconds() || payload.exp - payload.iat > SESSION_TTL_SECONDS) {
     return null;
   }
 
   return payload;
+}
+
+export async function registerSession(env: Env, token: string): Promise<void> {
+  const payload = await readSessionFromCookie(new Request('https://session.internal', { headers: { Cookie: `gk_session=${token}` } }), env.SESSION_SECRET);
+  if (!payload) throw new Error('Invalid session');
+  await new SecurityRepository(env.DB).registerSession(payload.jti, payload.exp);
+}
+
+export async function readActiveSession(request: Request, env: Env): Promise<SessionPayload | null> {
+  if (!env.SESSION_SECRET) return null;
+  const payload = await readSessionFromCookie(request, env.SESSION_SECRET);
+  if (!payload || payload.email !== env.ALLOWED_EMAIL || (env.ALLOWED_SUB && payload.sub !== env.ALLOWED_SUB)) return null;
+  return await new SecurityRepository(env.DB).hasSession(payload.jti, nowSeconds()) ? payload : null;
 }
 
 function cookieBaseOptions(c: Context<{ Bindings: Env }>): string {

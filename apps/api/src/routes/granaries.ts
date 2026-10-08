@@ -1,3 +1,4 @@
+import { internalError } from '../http/errors';
 import { Hono } from 'hono';
 import type { Env } from '../types';
 import { DBClient } from '../db/client';
@@ -100,7 +101,7 @@ granariesRouter.post('/', async (c) => {
     if (error.name === 'ZodError') {
       return c.json({ error: 'Validation error', details: error.errors }, 400);
     }
-    return c.json({ error: error.message || 'Internal server error' }, 500);
+    return internalError(c, error);
   }
 });
 
@@ -125,6 +126,6 @@ granariesRouter.put('/:id', async (c) => {
     if (error.name === 'ZodError') {
       return c.json({ error: 'Validation error', details: error.errors }, 400);
     }
-    return c.json({ error: error.message || 'Internal server error' }, 500);
+    return internalError(c, error);
   }
 });

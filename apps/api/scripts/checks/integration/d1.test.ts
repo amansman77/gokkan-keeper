@@ -3,10 +3,13 @@ import assert from 'node:assert/strict';
 import { createHarness } from './harness';
 
 void test('Worker applies all migrations and persists CRUD with constraints and publication boundaries', { timeout: 45_000 }, async () => {
-  const { mf, db, outbound } = await createHarness();
+  const { mf, db, outbound, credential } = await createHarness();
   try {
+    const login = await mf.dispatchFetch('http://localhost/auth/google', { method: 'POST', headers: { Origin: 'http://localhost', 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }) });
+    assert.equal(login.status, 200);
+    const cookie = login.headers.get('set-cookie')!.split(';')[0];
     const call = (path: string, method = 'GET', data?: unknown, authenticated = true) => mf.dispatchFetch(`http://localhost${path}`, {
-      method, headers: { 'Content-Type': 'application/json', ...(authenticated ? { 'X-API-Secret': 'fixture-only-api-secret' } : {}) },
+      method, headers: { 'Content-Type': 'application/json', ...(authenticated ? { Cookie: cookie, Origin: 'http://localhost' } : {}) },
       ...(data === undefined ? {} : { body: JSON.stringify(data) }),
     });
     const created = await call('/granaries', 'POST', { name: 'Private reserve', purpose: '비상금', currency: 'KRW' });
@@ -39,6 +42,6 @@ void test('Worker applies all migrations and persists CRUD with constraints and 
       assert.ok(!JSON.stringify(portfolio).includes('Private owner note'));
       assert.ok(!JSON.stringify(portfolio).includes('Private reasoning'));
     }
-    assert.deepEqual(outbound, []);
+    assert.deepEqual(outbound, ['https://www.googleapis.com/oauth2/v3/certs']);
   } finally { await mf.dispose(); }
 });

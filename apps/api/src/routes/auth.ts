@@ -1,7 +1,11 @@
 import { Hono } from 'hono';
 import type { Env } from '../types';
 import { normalizeInternalPath } from '@gokkan-keeper/shared';
-import { clearSessionCookie, createSessionToken, readSessionFromCookie, setSessionCookie } from '../auth/session';
+import { clearSessionCookie, createSessionToken, readActiveSession, registerSession, setSessionCookie } from '../auth/session';
+
+import { verifyGoogleCredential } from '../auth/google';
+import { internalError } from '../http/errors';
+import { SecurityRepository } from '../db/repositories/security-repository';
 
 export const authRouter = new Hono<{ Bindings: Env }>();
 
@@ -19,47 +23,18 @@ authRouter.post('/google', async (c) => {
       return c.json({ error: 'Auth environment is not configured' }, 500);
     }
 
-    const tokenInfoResponse = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
-    if (!tokenInfoResponse.ok) {
-      return c.json({ error: 'Invalid Google credential' }, 401);
-    }
-
-    const tokenInfo = await tokenInfoResponse.json() as {
-      aud?: string;
-      email?: string;
-      email_verified?: string;
-      sub?: string;
-    };
-
-    if (tokenInfo.aud !== c.env.GOOGLE_CLIENT_ID) {
-      return c.json({ error: 'Invalid Google audience' }, 401);
-    }
-
-    if (tokenInfo.email_verified !== 'true') {
-      return c.json({ error: 'Unverified Google email' }, 401);
-    }
-
-    if (!tokenInfo.email || tokenInfo.email !== c.env.ALLOWED_EMAIL) {
-      return c.json({ error: 'Unauthorized account' }, 401);
-    }
-
-    if (c.env.ALLOWED_SUB && tokenInfo.sub !== c.env.ALLOWED_SUB) {
-      return c.json({ error: 'Unauthorized account subject' }, 401);
-    }
-
-    if (!tokenInfo.sub) {
-      return c.json({ error: 'Invalid Google subject' }, 401);
-    }
-
-    const sessionToken = await createSessionToken(c.env.SESSION_SECRET, {
-      sub: tokenInfo.sub,
-      email: tokenInfo.email,
-    });
+    let identity;
+    try { identity = await verifyGoogleCredential(credential, c.env); }
+    catch { return c.json({ error: '로그인에 실패했습니다.' }, 401); }
+    const sessionToken = await createSessionToken(c.env.SESSION_SECRET, identity);
+    await registerSession(c.env, sessionToken);
+    c.set('actor', 'owner');
 
     setSessionCookie(c, sessionToken);
-    return c.json({ ok: true, next, user: { email: tokenInfo.email } });
-  } catch {
-    return c.json({ error: '로그인에 실패했습니다.' }, 401);
+    return c.json({ ok: true, next, user: { email: identity.email } });
+  } catch (error) {
+    if (error instanceof SyntaxError) return c.json({ error: 'Invalid JSON' }, 400);
+    return internalError(c, error);
   }
 });
 
@@ -68,7 +43,7 @@ authRouter.get('/me', async (c) => {
     return c.json({ authenticated: false });
   }
 
-  const session = await readSessionFromCookie(c.req.raw, c.env.SESSION_SECRET);
+  const session = await readActiveSession(c.req.raw, c.env);
   if (!session) {
     return c.json({ authenticated: false });
   }
@@ -82,7 +57,12 @@ authRouter.get('/me', async (c) => {
   });
 });
 
-authRouter.post('/logout', (c) => {
+authRouter.post('/logout', async (c) => {
+  const session = await readActiveSession(c.req.raw, c.env);
+  if (session) {
+    await new SecurityRepository(c.env.DB).revokeSession(session.jti);
+    c.set('actor', 'owner');
+  }
   clearSessionCookie(c);
   return c.json({ ok: true });
 });

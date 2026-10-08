@@ -2,8 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { D1Database } from '@cloudflare/workers-types';
 import { createApp } from '../../src/app';
-import { createSessionToken } from '../../src/auth/session';
+import { createSessionToken, registerSession } from '../../src/auth/session';
 import type { Env } from '../../src/types';
+import { memorySecurityDatabase } from './fixtures';
 import type { PublicPortfolioRow } from '../../src/db/repositories/position-repository';
 
 function fixture() {
@@ -15,7 +16,9 @@ function fixture() {
     public_thesis: 'Published reasoning', public_order: 0, last_public_update: '2026-10-09T00:00:00Z',
   };
   // The double implements only the query path exercised by these HTTP tests.
+  const securityDb = memorySecurityDatabase();
   const db = { prepare(sql: string) {
+    if (sql.includes('gk_sessions') || sql.includes('gk_security_')) return securityDb.prepare(sql);
     queries.push(sql);
     return { all: async () => ({ results: [row] }) };
   } } as unknown as D1Database;
@@ -46,12 +49,13 @@ void test('public portfolio aliases use an explicit published projection and pro
 void test('automation notifications reject an owner cookie and require API-secret authentication', async () => {
   const { app, env } = fixture();
   const token = await createSessionToken(env.SESSION_SECRET, { sub: 'fixture-owner', email: env.ALLOWED_EMAIL });
+  await registerSession(env, token);
   const cookieResponse = await app.request('/automation/discord-notify', {
-    method: 'POST', headers: { Cookie: `gk_session=${token}` },
+    method: 'POST', headers: { Cookie: `gk_session=${token}`, Origin: 'https://gokkan-keeper.yetimates.com', 'Content-Type': 'application/json' },
   }, env);
   assert.equal(cookieResponse.status, 403);
   const secretResponse = await app.request('/automation/discord-notify', {
-    method: 'POST', headers: { 'X-API-Secret': env.API_SECRET! },
+    method: 'POST', headers: { 'X-API-Secret': env.API_SECRET!, 'Content-Type': 'application/json' },
   }, env);
   // No webhook in the fixture: the authenticated caller reaches the handler but
   // cannot send a real message or perform external I/O.

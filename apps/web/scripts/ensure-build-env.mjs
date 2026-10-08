@@ -48,7 +48,7 @@ function resolveEnv(modeName) {
 }
 
 const resolvedEnv = resolveEnv(mode);
-const requiredVars = ['VITE_GOOGLE_CLIENT_ID'];
+const requiredVars = ['VITE_GOOGLE_CLIENT_ID', 'VITE_TURNSTILE_SITE_KEY'];
 const missingVars = requiredVars.filter((name) => !resolvedEnv[name] || !String(resolvedEnv[name]).trim());
 
 if (missingVars.length > 0) {

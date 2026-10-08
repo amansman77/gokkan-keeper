@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { createHarness } from './harness';
 
 void test('real Worker cookie authentication and the strict curl auth smoke check', { timeout: 45_000 }, async () => {
-  const { mf, outbound } = await createHarness();
+  const { mf, outbound, credential } = await createHarness();
   try {
-    const response = await mf.dispatchFetch('http://localhost/auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential: 'fixture-owner-token', next: '/granaries/new' }) });
+    const response = await mf.dispatchFetch('http://localhost/auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://localhost' }, body: JSON.stringify({ credential, next: '/granaries/new' }) });
     assert.equal(response.status, 200);
     const cookie = response.headers.get('set-cookie')!;
     assert.ok(cookie.includes('HttpOnly'));
@@ -23,7 +23,7 @@ void test('real Worker cookie authentication and the strict curl auth smoke chec
       env: { ...process.env, BASE_URL: String(await mf.ready) }, timeout: 25_000,
     });
     assert.ok(stdout.includes('All auth integration checks passed.'));
-    assert.equal(outbound.length, 2);
-    assert.ok(outbound.every((url) => url.startsWith('https://oauth2.googleapis.com/tokeninfo?')));
+    assert.equal(outbound.length, 1);
+    assert.ok(outbound.every((url) => url === 'https://www.googleapis.com/oauth2/v3/certs'));
   } finally { await mf.dispose(); }
 });

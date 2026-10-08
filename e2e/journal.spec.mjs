@@ -1,23 +1,25 @@
 import { test, expect } from '@playwright/test';
 
-const googleScript = `window.google = { accounts: { id: {
+const googleScript = (credential) => `window.google = { accounts: { id: {
   initialize(options) { this.options = options; },
   renderButton(container) {
     const button = document.createElement('button');
     button.textContent = 'Fixture Google login';
-    button.onclick = () => this.options.callback({ credential: 'fixture-owner-token' });
+    button.onclick = () => this.options.callback({ credential: ${JSON.stringify(credential)} });
     container.appendChild(button);
   }
 } } };`;
 
 const browserErrors = new WeakMap();
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, request }) => {
+  const { credential } = await (await request.get('http://127.0.0.1:18788/credential')).json();
   const errors = [];
   browserErrors.set(page, errors);
   page.on('pageerror', (error) => { errors.push(error.message); });
   await page.route('**/*', async (route) => {
     const url = new URL(route.request().url());
-    if (url.href === 'https://accounts.google.com/gsi/client') return route.fulfill({ contentType: 'application/javascript', body: googleScript });
+    if (url.href === 'https://accounts.google.com/gsi/client') return route.fulfill({ contentType: 'application/javascript', body: googleScript(credential) });
+    if (url.origin === 'https://challenges.cloudflare.com') return route.fulfill({ contentType: 'application/javascript', body: `window.turnstile = { render(container, options) { const text = document.createElement('span'); text.textContent = 'Fixture bot check'; container.appendChild(text); queueMicrotask(() => options.callback('fixture-challenge-token')); return 'fixture-widget'; }, remove() {} };` });
     if (['127.0.0.1', 'localhost'].includes(url.hostname)) return route.continue();
     return route.abort('blockedbyclient');
   });
@@ -66,4 +68,24 @@ test('failed save keeps the form and displays the API error', async ({ page }) =
   await expect(page.getByText('Fixture save failure', { exact: true })).toBeVisible();
   await expect(page.getByLabel('곳간 이름')).toHaveValue('Failed reserve');
   await expect(page.getByRole('button', { name: '만들기', exact: true })).toBeEnabled();
+});
+
+test('production bundle and real Pages CSP allow Google login and a verified consulting submission', async ({ page }) => {
+  await page.addInitScript("window.fixtureCspViolations = []; document.addEventListener('securitypolicyviolation', (event) => window.fixtureCspViolations.push(event.violatedDirective));");
+  const response = await page.goto('https://localhost:18887/login?next=/granaries/new');
+  expect(response.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
+  expect(response.headers()['x-frame-options']).toBe('DENY');
+  await page.getByRole('button', { name: 'Fixture Google login' }).click();
+  await expect(page).toHaveURL(/\/granaries\/new$/);
+  await page.getByRole('button', { name: '로그아웃', exact: true }).click();
+  expect(await page.evaluate('window.fixtureCspViolations')).toEqual([]);
+  await page.goto('https://localhost:18887/consulting');
+  await page.getByLabel('답변 받을 이메일').fill('fixture@example.com');
+  await page.getByRole('textbox', { name: /고민/ }).fill('Fixture consulting concern');
+  await page.locator('input[type="file"]').setInputFiles({ name: 'fixture.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==', 'base64') });
+  await expect(page.getByRole('button', { name: '무료 구조 점검 요청 보내기' })).toBeDisabled();
+  await page.getByRole('checkbox').check();
+  await page.getByRole('button', { name: '무료 구조 점검 요청 보내기' }).click();
+  await expect(page.getByText(/요청이 접수/)).toBeVisible();
+  expect(await page.evaluate('window.fixtureCspViolations')).toEqual([]);
 });

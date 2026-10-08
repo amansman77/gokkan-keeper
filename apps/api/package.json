@@ -23,14 +23,15 @@
   },
   "dependencies": {
     "@gokkan-keeper/shared": "workspace:*",
-    "hono": "^4.13.13"
+    "hono": "^4.13.13",
+    "jose": "^6"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261008.1",
+    "esbuild": "^0.28.2",
+    "miniflare": "5.20261006.0-alpha",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
-    "wrangler": "^4.148.0",
-    "miniflare": "5.20261006.0-alpha",
-    "esbuild": "^0.28.2"
+    "wrangler": "^4.148.0"
   }
 }
