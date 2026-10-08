@@ -18,7 +18,7 @@
  *   - fills at the weekly close of the signal bar
  *   - `position` for rule purposes is the simulated holding, not today's book
  */
-import { RULES, type SymbolSnapshot } from '../src/services/alert-rules';
+import { RULES, type AlertRuleContext } from '../src/services/alert-rules';
 import {
   aggregateWeekly,
   computeIndicatorsFromRows,
@@ -96,11 +96,10 @@ function simulateSymbol(symbol: string, daily: OhlcvRow[], from: string, unit: n
     weeksTotal++;
     if (shares > 1e-9) weeksHolding++;
 
-    const snap: SymbolSnapshot = {
+    const snap: AlertRuleContext = {
       symbol,
       name: symbol,
-      positionId: symbol,
-      position: shares,
+      heldQuantity: shares,
       weekly: computeIndicatorsFromRows(weeklySlice, symbol),
       daily: computeIndicatorsFromRows(dailySlice.slice(-400), symbol),
     };

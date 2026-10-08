@@ -10,7 +10,7 @@
  *
  * Exit is SELL_001 for every variant, so only the entry differs.
  */
-import { RULES, type SymbolSnapshot } from '../src/services/alert-rules';
+import { RULES, type AlertRuleContext } from '../src/services/alert-rules';
 import { aggregateWeekly, computeIndicatorsFromRows, type OhlcvRow } from '../src/services/technical-indicators';
 
 const args = process.argv.slice(2);
@@ -23,7 +23,7 @@ const live = (id: string) => { const r = RULES.find((x) => x.ruleId === id); if 
 
 /** Candidate conditions. `weekly` indicators are computed from weekly bars, so
  *  weekly.ma5 / weekly.ma20 are the 5- and 20-week averages. */
-const CANDIDATES: Array<[string, (s: SymbolSnapshot) => boolean]> = [
+const CANDIDATES: Array<[string, (s: AlertRuleContext) => boolean]> = [
   ['현행 BUY_001 (전환+일봉GC+RSI)', (s) => live('BUY_001').condition(s)],
   // zero crossing instead of "rising", with the weekly golden cross added
   ['전환+일봉GC+주봉GC', (s) => cross(s) && dailyGC(s) && weeklyGC(s)],
@@ -34,15 +34,15 @@ const CANDIDATES: Array<[string, (s: SymbolSnapshot) => boolean]> = [
 ];
 
 /** weekly MACD OSC crossing up through zero */
-const cross = (s: SymbolSnapshot) =>
+const cross = (s: AlertRuleContext) =>
   s.weekly?.prevMacdOsc != null && s.weekly?.macdOsc != null &&
   s.weekly.prevMacdOsc <= 0 && s.weekly.macdOsc > 0;
-const dailyGC = (s: SymbolSnapshot) =>
+const dailyGC = (s: AlertRuleContext) =>
   s.daily?.ma5 != null && s.daily?.ma20 != null && s.daily.ma5 > s.daily.ma20;
 /** weekly indicators come from weekly bars, so ma5/ma20 are 5- and 20-week */
-const weeklyGC = (s: SymbolSnapshot) =>
+const weeklyGC = (s: AlertRuleContext) =>
   s.weekly?.ma5 != null && s.weekly?.ma20 != null && s.weekly.ma5 > s.weekly.ma20;
-const rsiOk = (s: SymbolSnapshot) => s.daily?.rsi != null && s.daily.rsi < 80;
+const rsiOk = (s: AlertRuleContext) => s.daily?.rsi != null && s.daily.rsi < 80;
 
 async function bars(sym: string): Promise<OhlcvRow[]> {
   const u = new URL(`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}`);
@@ -59,14 +59,14 @@ async function bars(sym: string): Promise<OhlcvRow[]> {
 
 function snapshots(sym: string, daily: OhlcvRow[]) {
   const weeks = aggregateWeekly(daily);
-  const out: Array<{ close: number; snap: SymbolSnapshot }> = [];
+  const out: Array<{ close: number; snap: AlertRuleContext }> = [];
   for (let i = 0; i < weeks.length; i++) {
     if (i < 41) { out.push(null as any); continue; }
     const upTo = daily.filter((d) => d.ts <= weeks[i].ts);
     out.push({
       close: weeks[i].close,
       snap: {
-        symbol: sym, name: sym, positionId: sym, position: 0,
+        symbol: sym, name: sym, heldQuantity: 0,
         weekly: computeIndicatorsFromRows(weeks.slice(0, i + 1), sym),
         daily: computeIndicatorsFromRows(upTo.slice(-400), sym),
       },
@@ -75,7 +75,7 @@ function snapshots(sym: string, daily: OhlcvRow[]) {
   return out;
 }
 
-function run(rows: ReturnType<typeof snapshots>, entry: (s: SymbolSnapshot) => boolean) {
+function run(rows: ReturnType<typeof snapshots>, entry: (s: AlertRuleContext) => boolean) {
   const sell = live('SELL_001');
   let cash = 100, shares = 0, buys = 0, sells = 0, held = 0, n = 0;
   let wasBuy = false, wasSell = false;
@@ -84,7 +84,7 @@ function run(rows: ReturnType<typeof snapshots>, entry: (s: SymbolSnapshot) => b
     if (!row) continue;
     n++; if (shares > 1e-9) held++;
     const b = entry(row.snap);
-    const s = sell.condition({ ...row.snap, position: 1 });
+    const s = sell.condition({ ...row.snap, heldQuantity: 1 });
     if (b && !wasBuy) { const spend = Math.min(UNIT, cash); if (spend > 0.01) { shares += spend / row.close; cash -= spend; buys++; } }
     if (s && !wasSell && shares > 1e-9) { const q = shares * 0.5; shares -= q; cash += q * row.close; sells++; }
     wasBuy = b; wasSell = s;

@@ -117,8 +117,9 @@ SESSION_SECRET=replace-with-a-long-random-secret
 **Note**: `.dev.vars` is used by `wrangler dev` for local development. This file is gitignored for security.
 
 `ALLOWED_SUB` can additionally pin the Google account subject. `API_SECRET` is
-only needed for the operational alert-run endpoints; it is not used for browser
-login. Market-data keys and the Discord webhook are optional unless you are
+needed for operational alert runs and headless automation writes; it is not
+used for browser login. `POST /automation/discord-notify` specifically requires
+`X-API-Secret`, even when a browser session is valid. Market-data keys and the Discord webhook are optional unless you are
 working on those integrations. See `.dev.vars.example` for the complete list.
 
 ### Frontend (Web) - `.env` file

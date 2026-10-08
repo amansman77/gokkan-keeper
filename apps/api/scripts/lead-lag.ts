@@ -15,7 +15,7 @@
  * rules. Both entries are evaluated against a flat book, matching how the
  * promotion backtest was run.
  */
-import { RULES, type SymbolSnapshot } from '../src/services/alert-rules';
+import { RULES, type AlertRuleContext } from '../src/services/alert-rules';
 import { aggregateWeekly, computeIndicatorsFromRows, type OhlcvRow } from '../src/services/technical-indicators';
 
 const args = process.argv.slice(2);
@@ -51,15 +51,15 @@ function signals(sym: string, daily: OhlcvRow[]) {
   for (let i = 0; i < weeks.length; i++) {
     if (i < 41) { ids.forEach((id) => fire[id].push(false)); continue; }
     const dailyUpTo = daily.filter((d) => d.ts <= weeks[i].ts);
-    const base: SymbolSnapshot = {
-      symbol: sym, name: sym, positionId: sym, position: 0,
+    const base: AlertRuleContext = {
+      symbol: sym, name: sym, heldQuantity: 0,
       weekly: computeIndicatorsFromRows(weeks.slice(0, i + 1), sym),
       daily: computeIndicatorsFromRows(dailyUpTo.slice(-400), sym),
     };
     for (const id of ids) {
       const r = rule(id);
       // SELL_001 needs a holding to evaluate its market condition
-      const snap = r.type === 'SELL' ? { ...base, position: 1 } : base;
+      const snap = r.type === 'SELL' ? { ...base, heldQuantity: 1 } : base;
       const met = r.condition(snap);
       fire[id].push(met && !was[id]);
       was[id] = met;

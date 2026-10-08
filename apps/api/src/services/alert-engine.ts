@@ -6,9 +6,9 @@ import type { TechnicalIndicatorResult } from './technical-indicators';
 import { getMarketIndices } from './market-indices';
 import type { AlertThreshold } from '@gokkan-keeper/shared';
 
-import type { SymbolSnapshot, Alert } from './alert-rules';
+import type { AlertRuleContext, Alert } from './alert-rules';
 import { RULES } from './alert-rules';
-export type { SymbolSnapshot, Alert } from './alert-rules';
+export type { AlertRuleContext, Alert } from './alert-rules';
 
 interface AlertIndicatorLog {
   weeklyMacdOsc: number | null;
@@ -40,7 +40,7 @@ async function setRuleConditionMet(db: D1Database, symbol: string, ruleId: strin
   `).bind(symbol, ruleId, conditionMet ? 1 : 0, new Date().toISOString()).run();
 }
 
-async function evaluateRules(db: D1Database, snap: SymbolSnapshot, mode: 'daily' | 'weekly'): Promise<Alert[]> {
+async function evaluateRules(db: D1Database, snap: AlertRuleContext, mode: 'daily' | 'weekly'): Promise<Alert[]> {
   const alerts: Alert[] = [];
   const label = `${snap.name} (${snap.symbol})`;
 
@@ -81,7 +81,7 @@ async function markSent(db: D1Database, key: string): Promise<void> {
 
 // ─── Alert log ────────────────────────────────────────────────────────────────
 
-async function logAlert(db: D1Database, alert: Alert, date: string, snap: SymbolSnapshot): Promise<void> {
+async function logAlert(db: D1Database, alert: Alert, date: string, snap: AlertRuleContext): Promise<void> {
   const indicators: AlertIndicatorLog = {
     weeklyMacdOsc: snap.weekly?.macdOsc ?? null,
     prevWeeklyMacdOsc: snap.weekly?.prevMacdOsc ?? null,
@@ -113,7 +113,7 @@ const PRIORITY_COLOR: Record<string, number> = {
 };
 const TYPE_EMOJI: Record<string, string> = { BUY: '🟢', SELL: '🔴', WARN: '⚠️' };
 
-function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name: string; value: string; inline: boolean }> {
+function buildIndicatorFields(alert: Alert, snap: AlertRuleContext): Array<{ name: string; value: string; inline: boolean }> {
   const fields: Array<{ name: string; value: string; inline: boolean }> = [];
   const fmt = (n: number | null | undefined, digits = 2) => n != null ? n.toFixed(digits) : '-';
 
@@ -157,7 +157,7 @@ function buildIndicatorFields(alert: Alert, snap: SymbolSnapshot): Array<{ name:
   return fields;
 }
 
-async function sendDiscordAlert(alert: Alert, snap: SymbolSnapshot, webhookUrl: string): Promise<void> {
+async function sendDiscordAlert(alert: Alert, snap: AlertRuleContext, webhookUrl: string): Promise<void> {
   const fields = buildIndicatorFields(alert, snap);
   const payload = {
     embeds: [{
@@ -262,11 +262,10 @@ export async function runAlertEngine(env: Env, mode: 'daily' | 'weekly'): Promis
     if (!daily && !weekly) continue;
     processed++;
 
-    const snap: SymbolSnapshot = {
+    const snap: AlertRuleContext = {
       symbol: position.symbol,
       name: position.name,
-      positionId: position.id,
-      position: position.quantity ?? 0,
+      heldQuantity: position.quantity ?? 0,
       daily,
       weekly,
     };

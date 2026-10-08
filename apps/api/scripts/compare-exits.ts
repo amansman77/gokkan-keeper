@@ -1,18 +1,18 @@
 /**
- * Compares exit rules head to head, holding BUY_001 as the entry.
+ * Compares exit rules head to head for each of the two current entry rules.
  *
  *   pnpm --filter api compare-exits -- --symbols 000660.KS,QQQ
  *
- * Unlike compare-entries, this steps day by day: SELL_002 is a `daily` rule and
+ * Unlike compare-entries, this steps day by day: WARN_SELL_002 is a `daily` rule and
  * evaluating it only on week boundaries would miss most of its fires. Weekly
  * rules are evaluated on week ends, daily rules every session — matching the
  * two cron schedules in production.
  *
- * Note "SELL_001 + SELL_002" is what production actually runs today: SELL_002
- * remains enabled at P1, so simulations that only replay P0 rules understate
- * how often the live system says to sell.
+ * Observation rules are included as hypothetical exits for comparison only.
+ * Production directs a sell review only for P0 SELL_001; WARN_SELL_001 and
+ * WARN_SELL_002 remain observations even if a simulation treats them as exits.
  */
-import { RULES, type SymbolSnapshot } from '../src/services/alert-rules';
+import { RULES, type AlertRuleContext } from '../src/services/alert-rules';
 import { aggregateWeekly, computeIndicatorsFromRows, type OhlcvRow } from '../src/services/technical-indicators';
 
 const args = process.argv.slice(2);
@@ -75,14 +75,14 @@ function simulate(sym: string, daily: OhlcvRow[], exitIds: string[], pre: Pre, e
     if (weekEnd.has(bar.ts)) {
       const wk = pre.weekly.get(bar.ts);
       if (wk) {
-        const wSnap: SymbolSnapshot = {
-          symbol: sym, name: sym, positionId: sym, position: shares,
+        const wSnap: AlertRuleContext = {
+          symbol: sym, name: sym, heldQuantity: shares,
           weekly: wk, daily: dSnapBase,
         };
         for (const r of [entry, ...exits].filter((r) => r.mode === 'weekly')) {
-          // WARN_BUY_001 requires position === 0; evaluating entries against a
-          // flat book keeps this a comparison of timing, not of that filter
-          const evalSnap = r.type === 'BUY' ? { ...wSnap, position: 0 } : wSnap;
+          // Evaluate entry timing against a flat book, independently of holdings.
+          // Current entry rules do not filter on heldQuantity.
+          const evalSnap = r.type === 'BUY' ? { ...wSnap, heldQuantity: 0 } : wSnap;
           const met = r.condition(evalSnap); const prev = was.get(r.ruleId) ?? false;
           was.set(r.ruleId, met);
           if (met && !prev) {
@@ -96,7 +96,7 @@ function simulate(sym: string, daily: OhlcvRow[], exitIds: string[], pre: Pre, e
     }
 
     // daily rules every session, matching the weekday cron
-    const dSnap: SymbolSnapshot = { symbol: sym, name: sym, positionId: sym, position: shares, weekly: null, daily: dSnapBase };
+    const dSnap: AlertRuleContext = { symbol: sym, name: sym, heldQuantity: shares, weekly: null, daily: dSnapBase };
     for (const r of exits.filter((r) => r.mode === 'daily')) {
       const met = r.condition(dSnap); const prev = was.get(r.ruleId) ?? false;
       was.set(r.ruleId, met);
@@ -158,7 +158,7 @@ for (const sym of SYMBOLS) {
     );
   } else {
     console.log(`\n${'='.repeat(80)}`);
-    console.log(`${sym}   ${D(daily[300].ts)} ~ ${D(daily[daily.length - 1].ts)}   연변동성 ${(hv * 100).toFixed(0)}%   (진입 BUY_001 고정)`);
+    console.log(`${sym}   ${D(daily[300].ts)} ~ ${D(daily[daily.length - 1].ts)}   연변동성 ${(hv * 100).toFixed(0)}%   (진입 모멘텀/추세 비교)`);
     console.log('='.repeat(80));
     console.log(`${'매도규칙'.padEnd(30)}${'CAGR'.padStart(9)}${'MDD'.padStart(10)}${'Sharpe'.padStart(8)}${'노출률'.padStart(8)}${'매수'.padStart(6)}${'매도'.padStart(6)}`);
     for (const r of res) console.log(`${r.label.padEnd(30)}${pct(r.m.cagr).padStart(9)}${pct(r.m.mdd).padStart(10)}${r.m.sharpe.toFixed(2).padStart(8)}${(r.m.exposure * 100).toFixed(0).padStart(7)}%${String(r.m.buys).padStart(6)}${String(r.m.sells).padStart(6)}`);
@@ -167,4 +167,4 @@ for (const sym of SYMBOLS) {
 }
 if (SUMMARY) console.log(`\n열 순서: ${CONFIGS.map((c) => c[0]).join(' | ')} | 보유`);
 console.log('\n※ 수수료·세금·배당·슬리피지 미반영, 신호 당일 종가 체결');
-console.log('※ SELL_002는 daily 규칙이라 매 영업일 평가 (운영의 평일 크론과 동일)');
+console.log('※ WARN_SELL_002는 관찰용 daily 규칙이며, 이 비교에서만 매도로 가정해 매 영업일 평가 (운영의 평일 크론과 동일)');

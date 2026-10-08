@@ -44,6 +44,28 @@ around them flip, which is how dark mode breaks.
 
 ## Request and data flow
 
+### Finding the right source
+
+Start with the glossary for meaning, then the executable source for behavior.
+Use `ARCHITECTURE.md` for boundaries and `DEVELOPMENT.md` for setup. Open only
+the domain files needed for the task:
+
+| Task | Starting points |
+| --- | --- |
+| Domain fields and write validation | `packages/shared/src/schemas.ts`, `utils.ts` |
+| Korean labels | `apps/web/src/lib/terminology.ts` |
+| Persistence | `apps/api/src/db/repositories/*`, `db/mappers.ts`, `migrations` |
+| Authentication and publication | `apps/api/src/http/route-access.ts`, `apps/web/src/app-routes.tsx` |
+| Prices and portfolio values | `apps/api/src/services/market-price.ts`, `public-portfolio.ts`, shared `getPositionMarketValue()` |
+| Alert conditions and simulations | `apps/api/src/services/alert-rules.ts`, `apps/api/scripts/*` |
+| Alert delivery and event state | `apps/api/src/services/alert-engine.ts` |
+
+Keep stored/API compatibility names (especially `currentValue` and `ruleId`)
+stable during terminology refactors. Internal evaluation input is
+`AlertRuleContext`, with `heldQuantity`; reserve `Snapshot` and `Position` for
+their persisted domain models. Record new concepts in the glossary and put
+repeated UI labels in `UI_TERMS`.
+
 ```text
 React page/component
   -> apps/web/src/lib/api.ts
@@ -95,7 +117,13 @@ code or embed SQL in route handlers when a repository already owns that domain.
 
 There is currently no general unit-test suite. Do not claim test coverage from a
 successful typecheck. Auth has an opt-in integration check documented in
-`docs/auth-integration-test.md`.
+`docs/auth-integration-test.md`. The API tsconfig includes only `src`, so the root
+typecheck does not validate `apps/api/scripts`. When changing simulation scripts,
+also run this from `apps/api`:
+
+```sh
+pnpm exec tsc --noEmit --strict --skipLibCheck --module ESNext --moduleResolution bundler --target ES2022 --types node,@cloudflare/workers-types scripts/*.ts
+```
 
 ## Conventions and pitfalls
 
@@ -119,7 +147,7 @@ Two largely independent halves of the app, both under the same auth:
 
 ## Alert engine (`services/alert-engine.ts`)
 
-Runs on Cloudflare Cron Triggers (daily weekdays + Friday weekly, see `wrangler.toml` and the `scheduled()` handler in `apps/api/src/index.ts`) and evaluates event-transition rules (not state rules — see rule comments for why: a rule fires only on the moment a condition newly becomes true, tracked per symbol+rule in `gk_alert_rule_state`, deduped same-day via `gk_alert_sent`). Rules are defined inline in that file (`RULES` array) with `condition`/`message`/`action` per rule; adding a rule means adding an entry there, not a schema migration, unless it needs new indicator fields. Note the split between advisory and actionable rules: `WARN_*` ids are observations that deliberately do **not** direct trades (the momentum rules `WARN_SELL_001`/`WARN_BUY_001` sit here after firing 116x against 12 buys with half the symbols whipsawing), while `SELL_001`/`BUY_001` are the P0 trade triggers. `SELL_001` is the MA40 trend break; `BUY_001` is the weekly MACD momentum turn, which beat the MA40 reclaim in all four exit configurations across 34 held symbols (see the 2026-09-21 diary entry), so the MA40 reclaim now sits at `WARN_BUY_002` as an observation. `WARN_SELL_002` (급등 후 차익실현) is likewise observation-only: running it alongside `SELL_001` meant two rules each calling for a 50% sale and roughly halved returns on volatile names. Note when reading `gk_alert_log` that the event-transition state (`gk_alert_rule_state`) only arrived on 2026-06-21: fires before that date repeat weekly while a condition held, so any frequency comparison spanning it overstates the earlier period. `SELL_001` is the P0 sell trigger (the MA40 trend break, formerly `WARN_003`; the id previously belonged to the momentum rule and `gk_alert_log` was migrated so one id never denotes two rules). Renaming a `ruleId` requires migrating `gk_alert_rule_state` in the same change — that table is keyed by `(symbol, rule_id)` and orphaned state makes an event-transition rule re-fire spuriously. `gk_alert_log` keeps the historical ids on purpose, so queries spanning a rename must account for both. FX threshold rules reuse the same rule-state/dedup machinery and are user-managed (see `gk_settings` / the `/alerts` page) rather than hardcoded.
+Runs on Cloudflare Cron Triggers (daily weekdays + Friday weekly, see `wrangler.toml` and the `scheduled()` handler in `apps/api/src/index.ts`) and evaluates event-transition rules (not state rules — see rule comments for why: a rule fires only on the moment a condition newly becomes true, tracked per symbol+rule in `gk_alert_rule_state`, deduped same-day via `gk_alert_sent`). Rules are defined in `services/alert-rules.ts` (`RULES` array) with `condition`/`message`/`action` per rule; adding a rule means adding an entry in `alert-rules.ts`, not a schema migration, unless it needs new indicator fields. Note the split between advisory and actionable rules: `WARN_*` ids are observations that deliberately do **not** direct trades (`WARN_SELL_001` observes downward momentum; `WARN_BUY_002` observes MA40 recovery), while `SELL_001`/`BUY_001` are the P0 trade triggers. `SELL_001` is the MA40 trend break; `BUY_001` is the weekly MACD momentum turn, which beat the MA40 reclaim in all four exit configurations across 34 held symbols (see the 2026-09-21 diary entry), so the MA40 reclaim now sits at `WARN_BUY_002` as an observation. `WARN_SELL_002` (급등 후 차익실현) is likewise observation-only: running it alongside `SELL_001` meant two rules each calling for a 50% sale and roughly halved returns on volatile names. Note when reading `gk_alert_log` that the event-transition state (`gk_alert_rule_state`) only arrived on 2026-06-21: fires before that date repeat weekly while a condition held, so any frequency comparison spanning it overstates the earlier period. `SELL_001` is the P0 sell trigger (the MA40 trend break, formerly `WARN_003`; the id previously belonged to the momentum rule and `gk_alert_log` was migrated so one id never denotes two rules). Renaming a `ruleId` requires migrating `gk_alert_rule_state` in the same change — that table is keyed by `(symbol, rule_id)` and orphaned state makes an event-transition rule re-fire spuriously. `gk_alert_log` keeps the historical ids on purpose, so queries spanning a rename must account for both. FX threshold rules reuse the same rule-state/dedup machinery and are user-managed (see `gk_alert_thresholds`, `/alert-thresholds`, and the `/alerts` page) rather than hardcoded.
 
 ### Rule simulator
 
@@ -127,10 +155,14 @@ Runs on Cloudflare Cron Triggers (daily weekdays + Friday weekly, see `wrangler.
 replays the P0 rules over historical bars. It imports `RULES` from
 `services/alert-rules.ts` and the indicator math from `services/technical-indicators.ts`
 rather than restating either, so a rule change is reflected in the simulation
-automatically — that is why those two modules are kept free of D1 and network
-imports. Do not give the simulator its own copy of a condition.
+automatically. `alert-rules.ts` contains no D1 or network I/O. The indicator math
+functions are pure; `technical-indicators.ts` also owns quote fetching and caching,
+which the simulator does not invoke. Do not give the simulator its own copy of a condition.
 
-A companion, `scripts/compare-entries.ts` (`pnpm --filter api compare-entries -- --symbols 133690.KS`), pits entry rules against each other on CAGR/MDD/Sharpe/win rate/entry lag/exposure/trade count with the exit held constant. It forces `position = 0` when generating signals, because `WARN_BUY_001` carries a `position === 0` condition that would otherwise let it fire once and never again against a sell rule that only halves a holding — that normalisation exists to compare entry timing, and does not change production.
+A companion, `scripts/compare-entries.ts` (`pnpm --filter api compare-entries -- --symbols 133690.KS`), pits entry rules against each other on CAGR/MDD/Sharpe/win rate/entry lag/exposure/trade count with the exit held constant. It evaluates entry signals with `heldQuantity = 0` and exit signals with
+`heldQuantity = 1` to compare market timing independently of simulated holdings.
+The current entry rules (`BUY_001` and `WARN_BUY_002`) do not filter on holdings;
+`SELL_001` requires a positive holding. This normalization does not change production.
 
 Read its output with the entry-controlled column ("규칙 효과"), not the
 whole-period hold: a rules strategy is out of the market until its first signal,

@@ -7,6 +7,7 @@ import {
   validatePublicPositionInput,
 } from '@gokkan-keeper/shared';
 import { lookupPositionQuote } from '../lib/api';
+import { UI_TERMS } from '../lib/terminology';
 import { PositionPricingSection } from './position-form/PositionPricingSection';
 import { PositionPublicSection } from './position-form/PositionPublicSection';
 
@@ -244,7 +245,7 @@ export default function PositionForm({
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label htmlFor="quantity" className="gk-label">수량(선택)</label>
+          <label htmlFor="quantity" className="gk-label">{UI_TERMS.positionQuantity}(선택)</label>
           <input
             id="quantity"
             type="number"
@@ -255,7 +256,7 @@ export default function PositionForm({
           />
         </div>
         <div>
-          <label htmlFor="avgCost" className="gk-label">평균단가(선택)</label>
+          <label htmlFor="avgCost" className="gk-label">{UI_TERMS.positionAverageCost}(선택)</label>
           <input
             id="avgCost"
             type="number"

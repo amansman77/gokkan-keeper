@@ -9,11 +9,12 @@ import type { TechnicalIndicatorResult } from './technical-indicators';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface SymbolSnapshot {
+/** Transient rule input, not a persisted Granary Snapshot or Position. */
+export interface AlertRuleContext {
   symbol: string;
   name: string;
-  positionId: string;
-  position: number;
+  /** Held asset units; zero also represents an unheld watchlist symbol. */
+  heldQuantity: number;
   daily: TechnicalIndicatorResult | null;
   weekly: TechnicalIndicatorResult | null;
 }
@@ -31,29 +32,29 @@ export interface Alert {
 
 // ─── Rule engine (event-based: fire only on a false → true condition transition) ──
 
-export interface Rule {
+export interface AlertRule {
   ruleId: string;
   type: Alert['type'];
   priority: Alert['priority'];
   title: string;
   mode: 'daily' | 'weekly';
-  condition: (snap: SymbolSnapshot) => boolean;
-  message: (snap: SymbolSnapshot, label: string) => string;
+  condition: (snap: AlertRuleContext) => boolean;
+  message: (snap: AlertRuleContext, label: string) => string;
   action: string;
 }
 
-export const RULES: Rule[] = [
+export const RULES: AlertRule[] = [
   {
     // Momentum turn, not a trend break. Fired 116x over four months against 12
     // BUY_001 fires, and 14 of 28 symbols fired it more than once (whipsaw), so
-    // it is kept as an early warning but no longer directs trades — WARN_003 does.
+    // it is kept as an early warning but no longer directs trades — SELL_001 does.
     ruleId: 'WARN_SELL_001',
     type: 'WARN',
     priority: 'P2',
     title: '주봉 하락 모멘텀 (관찰)',
     mode: 'weekly',
     condition: (snap) =>
-      snap.position > 0 &&
+      snap.heldQuantity > 0 &&
       snap.weekly?.prevMacdOsc != null && snap.weekly?.macdOsc != null &&
       snap.weekly.prevMacdOsc >= 0 &&
       snap.weekly.macdOsc < 0,
@@ -64,7 +65,7 @@ export const RULES: Rule[] = [
     // The buy trigger. Best of nine entry/exit combinations tested over 34 held
     // symbols (10.51% vs 4.87% for the previous configuration).
     //
-    // No `position === 0` filter, deliberately. The rule carried one while it
+    // No `heldQuantity === 0` filter, deliberately. The rule carried one while it
     // was an observation, but the backtest that justified promoting it
     // evaluated entries against a flat book, so keeping the filter would ship
     // something the measurement never covered — and SELL_001 only halves a
@@ -113,7 +114,7 @@ export const RULES: Rule[] = [
     title: '장기 추세 이탈',
     mode: 'weekly',
     condition: (snap) =>
-      snap.position > 0 &&
+      snap.heldQuantity > 0 &&
       snap.weekly?.prevClose != null && snap.weekly?.prevMa40 != null &&
       snap.weekly?.close != null && snap.weekly?.ma40 != null &&
       snap.weekly.prevClose >= snap.weekly.prevMa40 &&
@@ -131,7 +132,7 @@ export const RULES: Rule[] = [
     title: '급등 후 차익실현 (관찰)',
     mode: 'daily',
     condition: (snap) =>
-      snap.position > 0 &&
+      snap.heldQuantity > 0 &&
       snap.daily?.fiveDayReturn != null && snap.daily.fiveDayReturn >= 0.15 &&
       snap.daily?.close != null && snap.daily?.open != null && snap.daily.close < snap.daily.open &&
       snap.daily?.avgVolume20 != null && snap.daily?.volume != null && snap.daily.volume > snap.daily.avgVolume20,

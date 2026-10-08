@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { CreatePosition } from '../../lib/types';
+import { getManualPositionValueLabel } from '../../lib/terminology';
 
 interface PositionPricingSectionProps {
   formData: CreatePosition;
@@ -20,6 +21,7 @@ export function PositionPricingSection({
   setShowManualCurrentValue,
   setFormData,
 }: PositionPricingSectionProps) {
+  const manualValueLabel = getManualPositionValueLabel(formData.quantity);
   return (
     <>
       <div className="md:col-span-3">
@@ -50,7 +52,7 @@ export function PositionPricingSection({
             </div>
             {showManualCurrentValue && (
               <div className="mt-4">
-                <label htmlFor="currentValue" className="gk-label">현재 단가/평가금액 (수동 대체값)</label>
+                <label htmlFor="currentValue" className="gk-label">{manualValueLabel} (수동 대체값)</label>
                 <input
                   id="currentValue"
                   type="number"
@@ -59,12 +61,13 @@ export function PositionPricingSection({
                   onChange={(e) => setFormData((prev) => ({ ...prev, currentValue: parseNullableNumber(e.target.value) }))}
                   className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-surface"
                 />
+                <p className="mt-1 text-xs text-ink-faint">수량이 있으면 단가, 없으면 총 평가금액으로 사용합니다.</p>
               </div>
             )}
           </div>
         ) : (
           <div>
-            <label htmlFor="currentValue" className="gk-label">현재 단가/평가금액 (수동 입력)</label>
+            <label htmlFor="currentValue" className="gk-label">{manualValueLabel} (수동 입력)</label>
             <input
               id="currentValue"
               type="number"

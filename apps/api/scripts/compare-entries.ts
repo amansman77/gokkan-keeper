@@ -4,20 +4,19 @@
  *   pnpm --filter api compare-entries -- --symbols 133690.KS,QQQ
  *
  * Entries compared (conditions imported from services/alert-rules, not restated):
- *   BUY_001       주봉 종가가 상승 중인 MA40 회복        (추세)
- *   WARN_BUY_001  주봉 MACD OSC 음→양 + 일봉 골든크로스   (모멘텀)
+ *   BUY_001       주봉 MACD OSC 음→양 + 일봉 골든크로스 + RSI < 80 (모멘텀)
+ *   WARN_BUY_002  주봉 종가가 상승 중인 MA40 회복                  (추세 관찰)
  * Exit for both: SELL_001 (하락 중인 MA40 이탈) — sells half the holding.
  *
- * NORMALISATION: WARN_BUY_001 carries `position === 0` in production. Since
- * SELL_001 only ever halves a position, that rule would fire once and never
- * again here, which measures the position filter rather than entry timing. So
- * signals are generated with position forced to 0 for both rules. Production
- * behaviour is unchanged; this only makes the comparison meaningful.
+ * NORMALISATION: entries receive heldQuantity = 0 and exits receive 1 so this
+ * compares signal timing independently of simulated holdings. Neither current
+ * entry rule filters on heldQuantity; SELL_001 requires a holding. Production
+ * behaviour is unchanged.
  *
  * Metrics: no fees/tax/dividends/slippage; fills at the signal week's close;
  * Sharpe uses weekly returns annualised with a 0% risk-free rate.
  */
-import { RULES, type SymbolSnapshot } from '../src/services/alert-rules';
+import { RULES, type AlertRuleContext } from '../src/services/alert-rules';
 import { aggregateWeekly, computeIndicatorsFromRows, type OhlcvRow } from '../src/services/technical-indicators';
 
 const args = process.argv.slice(2);
@@ -62,15 +61,15 @@ function signalSeries(symbol: string, daily: OhlcvRow[], entryId: string): Row[]
     const date = D(w.ts);
     const dailyUpTo = daily.filter((d) => d.ts <= w.ts);
     if (dailyUpTo.length < 300) continue;
-    const snap: SymbolSnapshot = {
-      symbol, name: symbol, positionId: symbol,
-      position: 0, // normalised: compare entry timing, not the position filter
+    const snap: AlertRuleContext = {
+      symbol, name: symbol,
+      heldQuantity: 0, // normalised: compare entry timing, not the position filter
       weekly: computeIndicatorsFromRows(weeks.slice(0, i + 1), symbol),
       daily: computeIndicatorsFromRows(dailyUpTo.slice(-400), symbol),
     };
     const b = buyRule.condition(snap);
     // the sell rule needs a holding to fire; evaluate its market condition with one
-    const sellSnap: SymbolSnapshot = { ...snap, position: 1 };
+    const sellSnap: AlertRuleContext = { ...snap, heldQuantity: 1 };
     const s = sellRule.condition(sellSnap);
     out.push({ date, close: w.close, buy: b && !buyWas, sell: s && !sellWas });
     buyWas = b; sellWas = s;
@@ -148,7 +147,7 @@ for (const sym of SYMBOLS) {
 
   const series: Record<string, Row[]> = {
     BUY_001: signalSeries(sym, daily, 'BUY_001'),
-    WARN_BUY_001: signalSeries(sym, daily, 'WARN_BUY_001'),
+    WARN_BUY_002: signalSeries(sym, daily, 'WARN_BUY_002'),
   };
   const first = series.BUY_001;
   console.log(`\n${'='.repeat(78)}`);

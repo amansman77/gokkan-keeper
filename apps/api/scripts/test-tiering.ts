@@ -18,7 +18,7 @@
  * Entry and exit come from services/alert-rules; nothing here is a production
  * rule change.
  */
-import { RULES, type SymbolSnapshot } from '../src/services/alert-rules';
+import { RULES, type AlertRuleContext } from '../src/services/alert-rules';
 import { aggregateWeekly, computeIndicatorsFromRows, type OhlcvRow } from '../src/services/technical-indicators';
 
 const args = process.argv.slice(2);
@@ -30,7 +30,7 @@ const SUMMARY = args.includes('--summary');
 const live = (id: string) => { const r = RULES.find((x) => x.ruleId === id); if (!r) throw new Error(id); return r; };
 
 /** The grade: above the rising weekly 5/20 cross is P0, below it is P2. */
-const isP0 = (s: SymbolSnapshot) =>
+const isP0 = (s: AlertRuleContext) =>
   s.weekly?.ma5 != null && s.weekly?.ma20 != null && s.weekly.ma5 > s.weekly.ma20;
 
 /** [label, size of a P0 buy, size of a P2 buy] as multiples of one unit. */
@@ -65,13 +65,13 @@ function series(sym: string, daily: OhlcvRow[]): Row[] {
   let buyWas = false, sellWas = false;
   for (let i = 41; i < weeks.length; i++) {
     const upTo = daily.filter((d) => d.ts <= weeks[i].ts);
-    const snap: SymbolSnapshot = {
-      symbol: sym, name: sym, positionId: sym, position: 0,
+    const snap: AlertRuleContext = {
+      symbol: sym, name: sym, heldQuantity: 0,
       weekly: computeIndicatorsFromRows(weeks.slice(0, i + 1), sym),
       daily: computeIndicatorsFromRows(upTo.slice(-400), sym),
     };
     const b = buy.condition(snap);
-    const s = sell.condition({ ...snap, position: 1 });
+    const s = sell.condition({ ...snap, heldQuantity: 1 });
     out.push({ close: weeks[i].close, buy: b && !buyWas, sell: s && !sellWas, p0: isP0(snap) });
     buyWas = b; sellWas = s;
   }

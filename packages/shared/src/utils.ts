@@ -133,7 +133,7 @@ export function formatPublicPositionValidationError(
   const messages = {
     ko: {
       MISSING_PUBLIC_THESIS: '공개 포지션은 공개 한 줄 가설이 필요합니다.',
-      MISSING_PUBLIC_METRICS: '공개 포지션은 현재가치 또는 자동 시세 연동 가능한 (수량 + 평균단가)가 필요합니다.',
+      MISSING_PUBLIC_METRICS: '공개 포지션은 수동 값(보유 수량이 있으면 현재 단가, 없으면 총 평가금액) 또는 자동 시세 연동 가능한 (보유 수량 + 평균 취득가)가 필요합니다.',
     },
     en: {
       MISSING_PUBLIC_THESIS: 'Public position requires publicThesis.',

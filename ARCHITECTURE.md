@@ -89,7 +89,8 @@ Anonymous API access includes:
 - `/public/*` and its `/api/public/*` alias
 - read-only `GET /judgment-diary/*`
 
-Other application routes require a valid session. Operational `/alerts/run/*`
+Other application routes require a valid session or the supported automated-caller
+`X-API-Secret` path. The browser always uses a session cookie. Operational `/alerts/run/*`
 handlers use `API_SECRET` rather than the browser session. The exact allowlist is
 in `apps/api/src/http/route-access.ts`; the executable browser inventory is in
 `apps/web/src/app-routes.tsx`. The route-access module also names compatibility
@@ -105,11 +106,24 @@ services. The current domains are:
 - `gk_snapshots`: dated value observations for a granary;
 - `gk_positions`: holdings and optional public display metadata;
 - `gk_judgment_diary_entries`: public judgment/action records;
-- `gk_quote_cache`: cached external market quotes;
+- `gk_cash_flows`: external deposits/withdrawals per granary;
+- `gk_settings`: operator-managed configuration;
+- `gk_alert_thresholds`: user-managed FX thresholds;
+- `gk_quote_cache`: cached external market quotes and indicators;
+- `gk_alert_rule_state`: per-symbol/rule condition state for event transitions;
 - `gk_alert_sent` and `gk_alert_log`: alert deduplication/history.
 
 Migrations are ordered SQL files. Applied migrations are immutable; schema
 changes must use the next numbered file.
+
+## Alert rules and simulations
+
+`services/alert-rules.ts` owns the pure `RULES` definitions. `AlertRuleContext`
+is transient indicator input with `heldQuantity`, not a persisted `Snapshot`.
+`services/alert-engine.ts` owns D1 event state, deduplication, and delivery.
+`apps/api/scripts/*` import the same conditions and indicator math for historical
+simulation; do not duplicate production rules there. See the glossary for the
+distinction between observation alerts and P0 action-review alerts.
 
 ## External integrations
 
