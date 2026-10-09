@@ -56,13 +56,17 @@ function normalizeExchangeName(meta?: YahooChartMeta): string | null {
   const exchangeName = String(meta?.exchangeName ?? '').toUpperCase();
   const fullExchangeName = String(meta?.fullExchangeName ?? '').toUpperCase();
 
-  if (exchangeName === 'NMS' || fullExchangeName.includes('NASDAQ')) return 'NASDAQ';
-  if (exchangeName === 'NYQ' || fullExchangeName.includes('NYSE')) return 'NYSE';
-  if (exchangeName === 'ASE' || exchangeName === 'PCX' || fullExchangeName.includes('AMEX')) return 'AMEX';
-  if (exchangeName === 'JPX' || fullExchangeName.includes('TOKYO')) return 'TSE';
-  if (exchangeName === 'HKG' || fullExchangeName.includes('HONG KONG')) return 'HKEX';
-  if (exchangeName === 'SHH' || fullExchangeName.includes('SHANGHAI')) return 'SSE';
-  if (exchangeName === 'SHZ' || fullExchangeName.includes('SHENZHEN')) return 'SZSE';
+  const exchanges = [
+    { market: 'NASDAQ', codes: ['NMS'], label: 'NASDAQ' },
+    { market: 'NYSE', codes: ['NYQ'], label: 'NYSE' },
+    { market: 'AMEX', codes: ['ASE', 'PCX'], label: 'AMEX' },
+    { market: 'TSE', codes: ['JPX'], label: 'TOKYO' },
+    { market: 'HKEX', codes: ['HKG'], label: 'HONG KONG' },
+    { market: 'SSE', codes: ['SHH'], label: 'SHANGHAI' },
+    { market: 'SZSE', codes: ['SHZ'], label: 'SHENZHEN' },
+  ];
+  const exchange = exchanges.find(({ codes, label }) => codes.includes(exchangeName) || fullExchangeName.includes(label));
+  if (exchange) return exchange.market;
 
   return meta?.fullExchangeName ?? meta?.exchangeName ?? null;
 }
@@ -119,6 +123,80 @@ export function normalizeYahooSymbol(symbol: string, market?: string | null): st
   return null;
 }
 
+async function requestYahooChart(chartBaseUrl: string, resolvedSymbol: string): Promise<YahooChartResponse> {
+  const url = new URL(`${chartBaseUrl}/${encodeURIComponent(resolvedSymbol)}`);
+  url.searchParams.set('interval', '1d');
+  url.searchParams.set('range', '5d');
+  url.searchParams.set('includePrePost', 'false');
+
+  const response = await fetch(url.toString(), {
+    headers: YAHOO_REQUEST_HEADERS,
+  });
+  if (!response.ok) {
+    throw new Error(
+      response.status === 429
+        ? 'Yahoo Finance quote request was rate limited. Try again shortly.'
+        : `Yahoo Finance quote request failed with ${response.status}`,
+    );
+  }
+
+  return await response.json() as YahooChartResponse;
+}
+
+type YahooChartResult = NonNullable<NonNullable<YahooChartResponse['chart']>['result']>[number];
+function latestYahooCloseIndex(result: YahooChartResult): number {
+  const timestamps = result?.timestamp ?? [];
+  const closes = result?.indicators?.quote?.[0]?.close ?? [];
+
+  let latestIndex = -1;
+  for (let index = closes.length - 1;index >= 0;index -= 1) {
+    if (typeof closes[index] === 'number' && typeof timestamps[index] === 'number') {
+      latestIndex = index;
+      break;
+    }
+  }
+
+  return latestIndex;
+}
+
+function yahooQuoteMetadata(meta: YahooChartMeta | undefined, assetType: string | null | undefined) {
+  return {
+    name: meta?.longName ?? meta?.shortName ?? null,
+    marketCategory: normalizeExchangeName(meta),
+    assetType: inferAssetType(assetType, meta?.instrumentType),
+  };
+}
+
+function normalizeYahooQuote(payload: YahooChartResponse, resolvedSymbol: string, lookup: Omit<QuoteLookupInput, 'symbol'>): PositionQuote | null {
+  if (payload.chart?.error) {
+    throw new Error(payload.chart.error.description || 'Yahoo Finance chart API returned an error');
+  }
+
+  const result = payload.chart?.result?.[0];
+  if (!result) return null;
+  const latestIndex = latestYahooCloseIndex(result);
+  if (latestIndex === -1) return null;
+  const closes = result.indicators!.quote![0].close!;
+  const timestamps = result.timestamp!;
+  const closePrice = closes[latestIndex] as number;
+  const previousClose = result?.meta?.chartPreviousClose ?? null;
+  const change = previousClose !== null ? closePrice - previousClose : null;
+  const changeRate = previousClose ? (change! / previousClose) * 100 : null;
+
+  return {
+    shortCode: resolvedSymbol,
+    resolvedSymbol,
+    ...yahooQuoteMetadata(result.meta, lookup.assetType),
+    closePrice,
+    change,
+    changeRate,
+    asOfDate: toIsoDate(timestamps[latestIndex] as number),
+    operation: 'YAHOO_CHART',
+    source: 'YAHOO_FINANCE',
+
+  };
+}
+
 export class YahooFinanceQuoteService {
   private readonly chartBaseUrl: string;
 
@@ -156,75 +234,9 @@ export class YahooFinanceQuoteService {
       return cached;
     }
 
-    const url = new URL(`${this.chartBaseUrl}/${encodeURIComponent(resolvedSymbol)}`);
-    url.searchParams.set('interval', '1d');
-    url.searchParams.set('range', '5d');
-    url.searchParams.set('includePrePost', 'false');
-
-    const response = await fetch(url.toString(), {
-      headers: YAHOO_REQUEST_HEADERS,
-    });
-    if (!response.ok) {
-      throw new Error(
-        response.status === 429
-          ? 'Yahoo Finance quote request was rate limited. Try again shortly.'
-          : `Yahoo Finance quote request failed with ${response.status}`,
-      );
-    }
-
-    const payload = await response.json() as YahooChartResponse;
-    if (payload.chart?.error) {
-      throw new Error(payload.chart.error.description || 'Yahoo Finance chart API returned an error');
-    }
-
-    const result = payload.chart?.result?.[0];
-    const timestamps = result?.timestamp ?? [];
-    const closes = result?.indicators?.quote?.[0]?.close ?? [];
-
-    let latestIndex = -1;
-    for (let index = closes.length - 1; index >= 0; index -= 1) {
-      if (typeof closes[index] === 'number' && typeof timestamps[index] === 'number') {
-        latestIndex = index;
-        break;
-      }
-    }
-
-    if (latestIndex === -1) {
-      await setCachedQuote(this.db, {
-        cacheKey,
-        lookupSymbol: resolvedSymbol,
-        operation: 'YAHOO_CHART',
-        quote: null,
-      });
-      return null;
-    }
-
-    const closePrice = closes[latestIndex] as number;
-    const previousClose = result?.meta?.chartPreviousClose ?? null;
-    const change = previousClose !== null ? closePrice - previousClose : null;
-    const changeRate = previousClose ? (change! / previousClose) * 100 : null;
-
-    const quote: PositionQuote = {
-      shortCode: resolvedSymbol,
-      resolvedSymbol,
-      name: result?.meta?.longName ?? result?.meta?.shortName ?? null,
-      marketCategory: normalizeExchangeName(result?.meta),
-      closePrice,
-      change,
-      changeRate,
-      asOfDate: toIsoDate(timestamps[latestIndex] as number),
-      operation: 'YAHOO_CHART',
-      source: 'YAHOO_FINANCE',
-      assetType: inferAssetType(lookup.assetType, result?.meta?.instrumentType),
-    };
-
-    await setCachedQuote(this.db, {
-      cacheKey,
-      lookupSymbol: resolvedSymbol,
-      operation: 'YAHOO_CHART',
-      quote,
-    });
-
+    const payload = await requestYahooChart(this.chartBaseUrl, resolvedSymbol);
+    const quote = normalizeYahooQuote(payload, resolvedSymbol, lookup);
+    await setCachedQuote(this.db, { cacheKey, lookupSymbol: resolvedSymbol, operation: 'YAHOO_CHART', quote });
     return quote;
   }
 }

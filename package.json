@@ -15,14 +15,15 @@
     "migrate:local": "cd apps/api && pnpm migrate:local",
     "lint": "eslint . --max-warnings 0 && bash -n apps/api/scripts/checks/auth-integration-test.sh",
     "audit:dependencies": "node scripts/check-dependencies.mjs",
-    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:browser && pnpm audit:dependencies",
+    "check": "pnpm typecheck && pnpm lint && pnpm check:structure && pnpm test && pnpm test:browser && pnpm audit:dependencies",
     "test:boundaries": "pnpm --filter shared build && node --test scripts/*.test.mjs && pnpm --filter api test:boundaries",
     "test": "node scripts/run-tests.mjs",
     "test:integration": "pnpm --filter shared build && pnpm --filter api test:integration",
     "test:browser": "pnpm --filter shared build && VITE_GOOGLE_CLIENT_ID=fixture.apps.googleusercontent.com VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA VITE_API_BASE_URL=/api pnpm --filter web exec vite build --outDir ../../test-results/web-browser-fixture && PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
     "test:coverage": "pnpm --filter shared build && c8 --all --src=apps/api/src --src=packages/shared/src --include=\"apps/api/src/auth/session.ts\" --include=\"apps/api/src/services/alert-rules.ts\" --include=\"apps/api/src/services/technical-indicators.ts\" --include=\"apps/api/src/services/market-price.ts\" --include=\"apps/api/src/services/yahoo-finance.ts\" --include=\"apps/api/src/services/fsc-stock-price.ts\" --include=\"apps/api/src/services/quote-cache.ts\" --include=\"packages/shared/src/utils.ts\" --include=\"apps/api/src/auth/google.ts\" --include=\"apps/api/src/auth/automation.ts\" --include=\"apps/api/src/http/origins.ts\" --include=\"apps/api/src/middleware/security.ts\" --include=\"apps/api/src/services/turnstile.ts\" --include=\"apps/api/src/services/image-validation.ts\" --include=\"apps/api/src/db/repositories/security-repository.ts\" --include=\"packages/shared/src/proxy-attestation.ts\" --check-coverage --lines=70 --branches=65 --functions=65 --reporter=text --reporter=lcov --reporter=html --reporter=json-summary --reports-dir=coverage/api pnpm --filter api exec node --import tsx --test scripts/checks/*.test.ts",
     "setup:test": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium",
-    "smoke:prod": "node scripts/production-smoke.mjs"
+    "smoke:prod": "node scripts/production-smoke.mjs",
+    "check:structure": "node scripts/check-structure.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

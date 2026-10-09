@@ -73,6 +73,60 @@ function inferAssetType(operation: FscQuoteOperation): string {
     : 'STOCK';
 }
 
+interface FscQuoteResponse {
+  response?: {
+    header?: { resultCode?: string; resultMsg?: string };
+    body?: { items?: { item?: QuoteItem | QuoteItem[] } };
+  };
+}
+
+function latestFscItem(payload: FscQuoteResponse, shortCode: string): QuoteItem | undefined {
+  const rawItems = payload?.response?.body?.items?.item;
+  const items: QuoteItem[] = Array.isArray(rawItems) ? rawItems : rawItems ? [rawItems] : [];
+  const exactItems = items.filter((item) => {
+    const normalizedCode = normalizeItemShortCode(item.srtnCd);
+    return normalizedCode === shortCode || normalizedCode.endsWith(shortCode);
+  });
+  const candidateItems = exactItems.length > 0 ? exactItems : items;
+  const matchedItems = candidateItems
+    .map((item) => ({
+      item,
+      isoDate: toIsoDate(item.basDt),
+    }))
+    .filter((entry): entry is { item: QuoteItem; isoDate: string } => !!entry.isoDate)
+    .sort((a, b) => b.isoDate.localeCompare(a.isoDate));
+
+  return matchedItems[0]?.item;
+}
+
+function normalizeFscQuote(payload: FscQuoteResponse, shortCode: string, operation: FscQuoteOperation): PositionQuote | null {
+  const resultCode = payload?.response?.header?.resultCode;
+  if (resultCode && resultCode !== '00') {
+    throw new Error(payload?.response?.header?.resultMsg || 'FSC stock API returned an error');
+  }
+
+  const latest = latestFscItem(payload, shortCode);
+  if (!latest) return null;
+
+  const closePrice = toNumber(latest.clpr);
+  const asOfDate = toIsoDate(latest.basDt);
+  if (closePrice === null || !asOfDate) return null;
+
+  return {
+    shortCode,
+    resolvedSymbol: shortCode,
+    name: latest.itmsNm ?? null,
+    marketCategory: latest.mrktCtg ?? null,
+    closePrice,
+    change: toNumber(latest.vs),
+    changeRate: toNumber(latest.fltRt),
+    asOfDate,
+    operation,
+    source: 'FSC_STOCK_PRICE_API',
+    assetType: inferAssetType(operation),
+  };
+}
+
 export class FscStockPriceService {
   private readonly stockBaseUrl: string;
   private readonly securitiesProductBaseUrl: string;
@@ -136,6 +190,13 @@ export class FscStockPriceService {
       return cached;
     }
 
+    const payload = await this.requestQuote(shortCode, operation, serviceKey);
+    const quote = normalizeFscQuote(payload, shortCode, operation);
+    await setCachedQuote(this.db, { cacheKey, lookupSymbol: shortCode, operation, quote });
+    return quote;
+  }
+
+  private async requestQuote(shortCode: string, operation: FscQuoteOperation, serviceKey: string): Promise<FscQuoteResponse> {
     const baseUrl = operation === 'getETFPriceInfo'
       ? this.securitiesProductBaseUrl
       : this.stockBaseUrl;
@@ -156,72 +217,7 @@ export class FscStockPriceService {
       );
     }
 
-    const payload = await response.json() as any;
-    const resultCode = payload?.response?.header?.resultCode;
-    if (resultCode && resultCode !== '00') {
-      throw new Error(payload?.response?.header?.resultMsg || 'FSC stock API returned an error');
-    }
-
-    const rawItems = payload?.response?.body?.items?.item;
-    const items: QuoteItem[] = Array.isArray(rawItems) ? rawItems : rawItems ? [rawItems] : [];
-    const exactItems = items.filter((item) => {
-      const normalizedCode = normalizeItemShortCode(item.srtnCd);
-      return normalizedCode === shortCode || normalizedCode.endsWith(shortCode);
-    });
-    const candidateItems = exactItems.length > 0 ? exactItems : items;
-    const matchedItems = candidateItems
-      .map((item) => ({
-        item,
-        isoDate: toIsoDate(item.basDt),
-      }))
-      .filter((entry): entry is { item: QuoteItem; isoDate: string } => !!entry.isoDate)
-      .sort((a, b) => b.isoDate.localeCompare(a.isoDate));
-
-    const latest = matchedItems[0]?.item;
-    if (!latest) {
-      await setCachedQuote(this.db, {
-        cacheKey,
-        lookupSymbol: shortCode,
-        operation,
-        quote: null,
-      });
-      return null;
-    }
-
-    const closePrice = toNumber(latest.clpr);
-    const asOfDate = toIsoDate(latest.basDt);
-    if (closePrice === null || !asOfDate) {
-      await setCachedQuote(this.db, {
-        cacheKey,
-        lookupSymbol: shortCode,
-        operation,
-        quote: null,
-      });
-      return null;
-    }
-
-    const quote: PositionQuote = {
-      shortCode,
-      resolvedSymbol: shortCode,
-      name: latest.itmsNm ?? null,
-      marketCategory: latest.mrktCtg ?? null,
-      closePrice,
-      change: toNumber(latest.vs),
-      changeRate: toNumber(latest.fltRt),
-      asOfDate,
-      operation,
-      source: 'FSC_STOCK_PRICE_API',
-      assetType: inferAssetType(operation),
-    };
-
-    await setCachedQuote(this.db, {
-      cacheKey,
-      lookupSymbol: shortCode,
-      operation,
-      quote,
-    });
-
-    return quote;
+    return await response.json() as FscQuoteResponse;
   }
 
   private getUnauthorizedMessage(operation: FscQuoteOperation): string {

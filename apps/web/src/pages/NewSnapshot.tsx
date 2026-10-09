@@ -1,83 +1,18 @@
-import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { createSnapshot, getGranaries, getPositions } from '../lib/api';
-import { formatCurrency } from '@gokkan-keeper/shared';
-import type { CreateSnapshot, GranaryWithLatestSnapshot, Position } from '../lib/types';
+import { NewSnapshotBalance } from '../components/snapshot-form/NewSnapshotBalance';
+import { NewSnapshotProfit } from '../components/snapshot-form/NewSnapshotProfit';
+import { NewSnapshotTotal } from '../components/snapshot-form/NewSnapshotTotal';
+import { SnapshotDateField, SnapshotMemoField } from '../components/snapshot-form/SnapshotFields';
+import { useNewSnapshot } from '../components/snapshot-form/useNewSnapshot';
+import { createSnapshot } from '../lib/api';
 
 export default function NewSnapshot() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const granaryIdParam = searchParams.get('granaryId');
 
-  const [granaries, setGranaries] = useState<GranaryWithLatestSnapshot[]>([]);
-  const [formData, setFormData] = useState<CreateSnapshot>({
-    granaryId: granaryIdParam || '',
-    date: new Date().toISOString().split('T')[0],
-    totalAmount: 0,
-    availableBalance: undefined,
-    profitLoss: undefined,
-    memo: '',
-  });
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [isTotalAmountManual, setIsTotalAmountManual] = useState(false);
-  const [isProfitLossManual, setIsProfitLossManual] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const applyLatestSnapshotDefaults = (granaryId: string, granaryList: GranaryWithLatestSnapshot[]) => {
-    const selectedGranary = granaryList.find((item) => item.id === granaryId);
-    const latestSnapshot = selectedGranary?.latestSnapshot;
-
-    setIsTotalAmountManual(false);
-    setIsProfitLossManual(false);
-    setFormData((prev) => ({
-      ...prev,
-      granaryId,
-      totalAmount: latestSnapshot?.totalAmount ?? 0,
-      availableBalance: latestSnapshot?.availableBalance ?? undefined,
-      profitLoss: latestSnapshot?.profitLoss ?? undefined,
-    }));
-  };
-
-  useEffect(() => {
-    async function loadGranaries() {
-      try {
-        const data = await getGranaries();
-        setGranaries(data);
-        if (granaryIdParam && data.length > 0) {
-          applyLatestSnapshotDefaults(granaryIdParam, data);
-        }
-      } catch (err: any) {
-        setError(err.message || '곳간 목록을 불러오는데 실패했습니다.');
-      }
-    }
-    void loadGranaries();
-  }, [granaryIdParam]);
-
-  useEffect(() => {
-    if (!formData.granaryId) {
-      setPositions([]);
-      return;
-    }
-    getPositions(formData.granaryId).then(setPositions).catch(() => setPositions([]));
-  }, [formData.granaryId]);
-
-  // 예수금과 평가 손익이 모두 입력되면 총 평가 금액 자동 계산
-  useEffect(() => {
-    if (!isTotalAmountManual && formData.availableBalance !== undefined && formData.profitLoss !== undefined) {
-      const calculatedTotal = (formData.availableBalance || 0) + (formData.profitLoss || 0);
-      if (calculatedTotal >= 0) {
-        setFormData((prev) => ({ ...prev, totalAmount: calculatedTotal }));
-      }
-    }
-  }, [formData.availableBalance, formData.profitLoss, isTotalAmountManual]);
-
-  // 총 평가 금액(수동)과 예수금이 모두 입력되면 평가 손익 자동 계산
-  useEffect(() => {
-    if (isTotalAmountManual && !isProfitLossManual && formData.availableBalance !== undefined) {
-      setFormData((prev) => ({ ...prev, profitLoss: prev.totalAmount - (formData.availableBalance || 0) }));
-    }
-  }, [formData.totalAmount, formData.availableBalance, isTotalAmountManual, isProfitLossManual]);
+  const state = useNewSnapshot(granaryIdParam);
+  const { loadingGranaries, granaries, formData, setFormData, loading, setLoading, error, setError, applyLatestSnapshotDefaults } = state;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,12 +22,16 @@ export default function NewSnapshot() {
     try {
       const snapshot = await createSnapshot(formData);
       void navigate(`/granaries/${snapshot.granaryId}`);
-    } catch (err: any) {
-      setError(err.message || '스냅샷 생성에 실패했습니다.');
+    } catch (err: unknown) {
+      setError((err instanceof Error && err.message) || '스냅샷 생성에 실패했습니다.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (loadingGranaries) {
+    return <div className="gk-loading"><div className="text-ink-muted">로딩 중...</div></div>;
+  }
 
   return (
     <div className="gk-narrow">
@@ -120,139 +59,15 @@ export default function NewSnapshot() {
           </select>
         </div>
 
-        <div>
-          <label htmlFor="date" className="gk-label">
-            날짜
-          </label>
-          <input
-            type="date"
-            id="date"
-            required
-            value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="gk-input"
-          />
-        </div>
+        <SnapshotDateField value={formData.date} onChange={date => setFormData({ ...formData, date })} />
 
-        <div>
-          <label htmlFor="totalAmount" className="gk-label">
-            총 평가 금액
-            {!isTotalAmountManual && formData.availableBalance !== undefined && formData.profitLoss !== undefined && (
-              <span className="ml-2 text-xs text-ink-faint">(자동 계산됨)</span>
-            )}
-          </label>
-          <input
-            type="number"
-            id="totalAmount"
-            required
-            min="0"
-            step="0.01"
-            value={formData.totalAmount ?? ''}
-            onChange={(e) => {
-              setIsTotalAmountManual(true);
-              setIsProfitLossManual(false);
-              setFormData({ ...formData, totalAmount: parseFloat(e.target.value) || 0 });
-            }}
-            className="gk-input"
-          />
-          {isTotalAmountManual && (
-            <button
-              type="button"
-              onClick={() => {
-                setIsTotalAmountManual(false);
-                if (formData.availableBalance !== undefined && formData.profitLoss !== undefined) {
-                  const calculatedTotal = (formData.availableBalance || 0) + (formData.profitLoss || 0);
-                  if (calculatedTotal >= 0) {
-                    setFormData((prev) => ({ ...prev, totalAmount: calculatedTotal }));
-                  }
-                }
-              }}
-              className="mt-2 text-sm text-accent hover:text-accent-ink"
-            >
-              자동 계산으로 되돌리기
-            </button>
-          )}
-        </div>
+        <NewSnapshotTotal state={state} />
 
-        <div>
-          <label htmlFor="availableBalance" className="gk-label">
-            예수금 (선택)
-          </label>
-          <input
-            type="number"
-            id="availableBalance"
-            min="0"
-            step="0.01"
-            value={formData.availableBalance ?? ''}
-            onChange={(e) => setFormData({ ...formData, availableBalance: e.target.value ? parseFloat(e.target.value) : undefined })}
-            className="gk-input"
-          />
-        </div>
+        <NewSnapshotBalance state={state} />
 
-        <div>
-          <label htmlFor="profitLoss" className="gk-label">
-            평가 손익 (선택)
-            {isTotalAmountManual && !isProfitLossManual && formData.availableBalance !== undefined && (
-              <span className="ml-2 text-xs text-ink-faint">(자동 계산됨)</span>
-            )}
-          </label>
-          <input
-            type="number"
-            id="profitLoss"
-            step="0.01"
-            value={formData.profitLoss ?? ''}
-            onChange={(e) => {
-              setIsProfitLossManual(true);
-              setIsTotalAmountManual(false);
-              setFormData({ ...formData, profitLoss: e.target.value ? parseFloat(e.target.value) : undefined });
-            }}
-            className="gk-input"
-            placeholder="양수: 수익, 음수: 손실"
-          />
-          {isTotalAmountManual && isProfitLossManual && formData.availableBalance !== undefined && (
-            <button
-              type="button"
-              onClick={() => setIsProfitLossManual(false)}
-              className="mt-2 text-sm text-accent hover:text-accent-ink"
-            >
-              자동 계산으로 되돌리기
-            </button>
-          )}
-          {(() => {
-            const positionProfitLossTotal = positions
-              .filter((p) => p.profitLoss != null)
-              .reduce((sum, p) => sum + (p.profitLoss ?? 0), 0);
-            const selectedGranary = granaries.find((g) => g.id === formData.granaryId);
-            if (!selectedGranary || !positions.some((p) => p.profitLoss != null)) return null;
-            return (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsProfitLossManual(true);
-                  setIsTotalAmountManual(false);
-                  setFormData((prev) => ({ ...prev, profitLoss: positionProfitLossTotal }));
-                }}
-                className="mt-2 text-sm text-success hover:text-success"
-              >
-                포지션 합산 적용 ({formatCurrency(positionProfitLossTotal, selectedGranary.currency)})
-              </button>
-            );
-          })()}
-        </div>
+        <NewSnapshotProfit state={state} />
 
-        <div>
-          <label htmlFor="memo" className="gk-label">
-            메모 (선택)
-          </label>
-          <textarea
-            id="memo"
-            rows={3}
-            value={formData.memo || ''}
-            onChange={(e) => setFormData({ ...formData, memo: e.target.value || undefined })}
-            className="gk-input"
-            placeholder="간단한 메모를 남기세요"
-          />
-        </div>
+        <SnapshotMemoField value={formData.memo} onChange={memo => setFormData({ ...formData, memo })} />
 
         {error && (
           <div className="gk-alert">
