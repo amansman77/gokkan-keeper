@@ -139,6 +139,20 @@ Measured over 2021-06 onward, the rules cost roughly 30%p against holding on
 names that trended up and saved roughly 15-40%p on names that fell — they cap
 both tails, so the net depends on what is in the book.
 
+### Portfolio backtest
+
+`scripts/portfolio-backtest.ts` (`pnpm --filter api portfolio-backtest`) asks
+the question the per-symbol scripts cannot: what the rules do to the whole book.
+It trades index ETFs (not today's holdings, to avoid survivorship bias) in KRW
+with a starting balance and monthly contribution, next-session fills and
+costs, and splits 2008-2018 (choose) from 2019- (verify). It also imports
+`RULES` rather than restating them. Two data traps it works around: Yahoo's
+`range=max` silently returns monthly bars, and `069500.KS` has no closes before
+2009, so KOSPI is spliced in. Its 2026-10 result: on the core sleeves the live
+alerts trail an annually rebalanced hold by ~4%p/yr (10.3% vs 14.4% CAGR,
+2008-) while cutting MDD from -34% to -22%; much of the gap is slow re-entry
+(BUY_001 adds a 25% unit after SELL_001 halved).
+
 ## External automation depending on this API
 
 Five scheduled jobs run **outside this repo**, on the operator's own machine (`~/gokkan-keeper-automation/`, launchd-based, not part of this codebase or its deploys):
