@@ -16,6 +16,7 @@
     "compare-exits": "tsx scripts/compare-exits.ts",
     "lead-lag": "tsx scripts/lead-lag.ts",
     "test-candidate": "tsx scripts/test-candidate.ts",
+    "portfolio-backtest": "tsx scripts/portfolio-backtest.ts",
     "test-tiering": "tsx scripts/test-tiering.ts"
   },
   "dependencies": {
