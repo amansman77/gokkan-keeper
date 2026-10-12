@@ -153,6 +153,15 @@ alerts trail an annually rebalanced hold by ~4%p/yr (10.3% vs 14.4% CAGR,
 2008-) while cutting MDD from -34% to -22%; much of the gap is slow re-entry
 (BUY_001 adds a 25% unit after SELL_001 halved).
 
+`--sleeves A,B,...` swaps the core for an equal-weight basket (a sleeve's
+signal then trades only that sleeve). Run on baskets picked ex ante — 2010's
+largest KR/US caps and early-2021 hype names — the monthly 10-month-SMA filter
+(③, specified before any results) had the best risk-adjusted result in every
+basket: 9.7%/-12.7% vs alerts 10.5%/-18.2% on the 2010 caps, and +3.1%/-26%
+vs -2.1%/-54% on the hype names bought 2021-02. Neither the MA40 SELL_001/
+WARN_BUY_002 pair (slope conditions delay it) nor a weekly MA40 state rule
+(whipsaw) reproduced that, so the monthly cadence is part of the edge.
+
 ## External automation depending on this API
 
 Five scheduled jobs run **outside this repo**, on the operator's own machine (`~/gokkan-keeper-automation/`, launchd-based, not part of this codebase or its deploys):

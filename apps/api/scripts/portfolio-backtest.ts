@@ -26,15 +26,25 @@ const MONTHLY = Number(argOf('monthly', '1000000'));
 const COST = Number(argOf('cost', '0.0015')); // per side, on traded value
 const CASH_RATE = Number(argOf('cash-rate', '0.02')); // CMA/MMF yield on idle cash
 
+/**
+ * `--sleeves A,B,C` replaces the core with equal-weight sleeves (e.g. a basket
+ * of individual stocks picked by an ex-ante rule) and runs only the strategies
+ * that apply per sleeve; `--windows "label:from:to;..."` replaces the periods.
+ */
+const SLEEVES = argOf('sleeves', '').split(',').map((x) => x.trim()).filter(Boolean);
 /** The owner's core: Korea + US large caps, roughly today's 38/62 split. */
-const BASE: Record<string, number> = { '069500.KS': 0.4, SPY: 0.3, QQQ: 0.3 };
+const BASE: Record<string, number> = SLEEVES.length
+  ? Object.fromEntries(SLEEVES.map((x) => [x, 1 / SLEEVES.length]))
+  : { '069500.KS': 0.4, SPY: 0.3, QQQ: 0.3 };
 /** Momentum universe: broad, long-lived ETFs only, to avoid survivorship bias. */
-const UNIVERSE = ['069500.KS', 'SPY', 'QQQ', 'EFA', 'EEM', 'GLD', 'IEF', 'XLE', 'XLV', 'XLP'];
-const WINDOWS: Array<[string, string, string]> = [
-  ['학습 2008-2018', '2008-01-01', '2018-12-31'],
-  ['검증 2019-', '2019-01-01', '2099-12-31'],
-  ['전체 2008-', '2008-01-01', '2099-12-31'],
-];
+const UNIVERSE = SLEEVES.length ? [] : ['069500.KS', 'SPY', 'QQQ', 'EFA', 'EEM', 'GLD', 'IEF', 'XLE', 'XLV', 'XLP'];
+const WINDOWS: Array<[string, string, string]> = argOf('windows', '')
+  ? argOf('windows', '').split(';').map((w) => { const [l, f, t] = w.split(':'); return [l, f, t || '2099-12-31'] as [string, string, string]; })
+  : [
+      ['학습 2008-2018', '2008-01-01', '2018-12-31'],
+      ['검증 2019-', '2019-01-01', '2099-12-31'],
+      ['전체 2008-', '2008-01-01', '2099-12-31'],
+    ];
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -114,12 +124,15 @@ interface Asset {
 // ─── Engine ───────────────────────────────────────────────────────────────────
 
 type Weights = Record<string, number>;
+/** `only` limits the trade to those sleeves, so a signal on one stock does not
+ *  quietly rebalance every other sleeve back to weight. */
+type Decision = Weights | { weights: Weights; only: string[] };
 
 interface Strategy {
   name: string;
   /** Called after the close of day i. Return target weights to trade toward on
-   *  day i+1, 'invest' to put idle cash to work at the current targets, or null. */
-  decide(i: number, ctx: Ctx): Weights | 'invest' | null;
+   *  day i+1, or null to keep holdings. */
+  decide(i: number, ctx: Ctx): Decision | null;
 }
 
 interface Ctx {
@@ -134,7 +147,8 @@ interface Result { cagr: number; mdd: number; sharpe: number; vol: number; final
 function run(strategy: Strategy, cal: string[], assets: Map<string, Asset>, from: number, to: number): Result {
   const units = new Map<string, number>();
   let cash = START_BALANCE, contributed = START_BALANCE, costs = 0, trades = 0;
-  let pending: Weights | 'invest' | null = null;
+  let pending: Decision | null = null;
+  let investNow = false;
   let lastTarget: Weights = {};
   const value = (i: number) => cash + [...units].reduce((s, [k, u]) => s + u * assets.get(k)!.krw[i], 0);
 
@@ -148,32 +162,39 @@ function run(strategy: Strategy, cal: string[], assets: Map<string, Asset>, from
     let flow = 0;
     if (i > from && cal[i].slice(0, 7) !== cal[i - 1].slice(0, 7)) {
       cash += MONTHLY; contributed += MONTHLY; flow = MONTHLY;
-      if (!pending) pending = 'invest';
+      investNow = true;
     }
 
+    const trade = (sym: string, want: number) => {
+      const px = assets.get(sym)!.krw[i];
+      const diff = want - (units.get(sym) ?? 0) * px;
+      if (Math.abs(diff) < 1000) return;
+      const fee = Math.abs(diff) * COST;
+      units.set(sym, (units.get(sym) ?? 0) + diff / px);
+      cash -= diff + fee; costs += fee; trades++;
+    };
+
     if (pending) {
-      const target = pending === 'invest' ? lastTarget : pending;
-      if (pending !== 'invest') lastTarget = pending;
+      const partial = 'only' in pending && Array.isArray(pending.only);
+      const target = (partial ? (pending as { weights: Weights }).weights : pending) as Weights;
+      lastTarget = target;
       const V = value(i);
-      const totalW = Object.values(target).reduce((s, w) => s + w, 0);
-      const idle = cash - (1 - totalW) * V; // cash above the strategy's own cash weight
-      for (const [sym, a] of assets) {
-        const px = a.krw[i];
-        const cur = (units.get(sym) ?? 0) * px;
-        let want = (target[sym] ?? 0) * V;
-        // 'invest' only buys with idle cash, never sells: that is what monthly
-        // contributions do in practice between full rebalances
-        if (pending === 'invest') {
-          const share = totalW > 0 ? (target[sym] ?? 0) / totalW : 0;
-          want = cur + Math.max(0, idle) * share;
-        }
-        const diff = want - cur;
-        if (Math.abs(diff) < 1000) continue;
-        const fee = Math.abs(diff) * COST;
-        units.set(sym, (units.get(sym) ?? 0) + diff / px);
-        cash -= diff + fee; costs += fee; trades++;
-      }
+      for (const sym of partial ? (pending as { only: string[] }).only : [...assets.keys()]) trade(sym, (target[sym] ?? 0) * V);
       pending = null;
+    }
+
+    // monthly contributions only buy with idle cash, never sell: that is what
+    // they do in practice between full rebalances
+    if (investNow) {
+      const V = value(i);
+      const totalW = Object.values(lastTarget).reduce((s, w) => s + w, 0);
+      const idle = cash - (1 - totalW) * V; // cash above the strategy's own cash weight
+      if (idle > 0 && totalW > 0) {
+        for (const [sym, w] of Object.entries(lastTarget)) {
+          trade(sym, (units.get(sym) ?? 0) * assets.get(sym)!.krw[i] + idle * (w / totalW));
+        }
+      }
+      investNow = false;
     }
 
     const V = value(i);
@@ -291,16 +312,21 @@ function volTarget(target: number): Strategy {
  * halves it — the sizes the rules' `action` text names. Weekly rules are
  * evaluated on each asset's own week end, as the Friday cron does.
  */
-function liveAlerts(pre: Map<string, AlertPre>, buyStep = 0.25): Strategy {
-  const buy = RULES.find((r) => r.ruleId === 'BUY_001')!;
+function liveAlerts(
+  pre: Map<string, AlertPre>,
+  buyStep = 0.25,
+  opts: { name?: string; buyRuleId?: string; sellKeep?: number } = {},
+): Strategy {
+  const buy = RULES.find((r) => r.ruleId === (opts.buyRuleId ?? 'BUY_001'))!;
   const sell = RULES.find((r) => r.ruleId === 'SELL_001')!;
+  const sellKeep = opts.sellKeep ?? 0.5;
   const f = new Map<string, number>();
   const was = new Map<string, boolean>();
   return {
-    name: buyStep >= 1 ? '①b 알람, 매수 시 전량 복귀' : '① 현행 알람 (BUY_001/SELL_001)',
+    name: opts.name ?? (buyStep >= 1 ? '①b 알람, 매수 시 전량 복귀' : '① 현행 알람 (BUY_001/SELL_001)'),
     decide(i, ctx) {
       if (ctx.isFirstDay) { for (const s of Object.keys(BASE)) f.set(s, 1); was.clear(); }
-      let changed = ctx.isFirstDay;
+      const changed: string[] = [];
       for (const sym of Object.keys(BASE)) {
         const p = pre.get(sym)!;
         const wk = p.weeklyByDay.get(ctx.cal[i]);
@@ -314,12 +340,13 @@ function liveAlerts(pre: Map<string, AlertPre>, buyStep = 0.25): Strategy {
           const fired = met && !(was.get(key) ?? false);
           was.set(key, met);
           if (!fired) continue;
-          f.set(sym, r === buy ? Math.min(1, f.get(sym)! + buyStep) : f.get(sym)! * 0.5);
-          changed = true;
+          f.set(sym, r === buy ? Math.min(1, f.get(sym)! + buyStep) : f.get(sym)! * sellKeep);
+          if (!changed.includes(sym)) changed.push(sym);
         }
       }
-      if (!changed) return null;
-      return Object.fromEntries(Object.entries(BASE).map(([s, w]) => [s, w * f.get(s)!]));
+      const weights = Object.fromEntries(Object.entries(BASE).map(([s, w]) => [s, w * f.get(s)!]));
+      if (ctx.isFirstDay) return weights;
+      return changed.length ? { weights, only: changed } : null;
     },
   };
 }
@@ -347,10 +374,10 @@ function precomputeAlerts(a: Asset, from: string): AlertPre {
 const syms = [...new Set([...Object.keys(BASE), ...UNIVERSE])];
 const [fx, kospi, ...barsList] = await Promise.all([fetchFx(), fetchBars('^KS11'), ...syms.map(fetchBars)]);
 const bySym = new Map(syms.map((s, k) => [s, barsList[k]]));
-bySym.set('069500.KS', splice(bySym.get('069500.KS')!, kospi, 0.017));
+if (bySym.has('069500.KS')) bySym.set('069500.KS', splice(bySym.get('069500.KS')!, kospi, 0.017));
 
 // calendar: every day either the Korean or the US core trades, from 2006 on
-const cal = [...new Set([...bySym.get('069500.KS')!, ...bySym.get('SPY')!].map((b) => day(b.ts)))]
+const cal = [...new Set([...bySym.values()].flatMap((bars) => bars.map((b) => day(b.ts))))]
   .filter((d) => d >= '2005-06-01').sort();
 const fxDays = [...fx.keys()].sort();
 
@@ -379,9 +406,41 @@ console.log(`데이터: ${cal[firstValid]} ~ ${cal[cal.length - 1]}  (모든 자
 
 const alertPre = new Map(Object.keys(BASE).map((s) => [s, precomputeAlerts(assets.get(s)!, '2006-01-01')]));
 
-const makeStrategies = (): Strategy[] => [
-  liveAlerts(alertPre), liveAlerts(alertPre, 1), buyAndHold, trendFilter(), momentum(3), momentum(5), volTarget(0.12), volTarget(0.15),
-];
+/**
+ * ①c The two MA40 rules already in RULES as a symmetric pair: SELL_001 exits
+ * the whole sleeve, WARN_BUY_002 (the MA40 reclaim) buys it all back. This is
+ * the weekly-rule version of ③, built only from conditions production has.
+ */
+const maPair = () => liveAlerts(alertPre, 1, { name: '①c MA40 이탈 전량매도/회복 전량매수', buyRuleId: 'WARN_BUY_002', sellKeep: 0 });
+
+/**
+ * ③w Candidate (not in RULES): ③ evaluated on weekly bars — in while the week
+ * closes above MA40, out otherwise, no slope condition. Tells whether ③'s
+ * edge survives the weekly cadence production already runs on.
+ */
+function weeklyMa40(): Strategy {
+  const inMkt = new Map<string, boolean>();
+  return {
+    name: '③w 주봉 MA40 위/아래 (후보)',
+    decide(i, ctx) {
+      if (ctx.isFirstDay) inMkt.clear();
+      const changed: string[] = [];
+      for (const sym of Object.keys(BASE)) {
+        const wk = alertPre.get(sym)!.weeklyByDay.get(ctx.cal[i]);
+        if (!wk || wk.close == null || wk.ma40 == null) continue;
+        const want = wk.close > wk.ma40;
+        if (inMkt.get(sym) !== want) { inMkt.set(sym, want); changed.push(sym); }
+      }
+      const weights = Object.fromEntries(Object.entries(BASE).map(([s, w]) => [s, (inMkt.get(s) ?? true) ? w : 0]));
+      if (ctx.isFirstDay) return weights;
+      return changed.length ? { weights, only: changed } : null;
+    },
+  };
+}
+
+const makeStrategies = (): Strategy[] => SLEEVES.length
+  ? [liveAlerts(alertPre), liveAlerts(alertPre, 1), maPair(), buyAndHold, trendFilter(), weeklyMa40()]
+  : [liveAlerts(alertPre), liveAlerts(alertPre, 1), maPair(), buyAndHold, trendFilter(), weeklyMa40(), momentum(3), momentum(5), volTarget(0.12), volTarget(0.15)];
 
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 const eok = (x: number) => `${(x / 1e8).toFixed(2)}억`;
