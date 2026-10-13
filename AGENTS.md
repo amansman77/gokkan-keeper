@@ -162,6 +162,18 @@ vs -2.1%/-54% on the hype names bought 2021-02. Neither the MA40 SELL_001/
 WARN_BUY_002 pair (slope conditions delay it) nor a weekly MA40 state rule
 (whipsaw) reproduced that, so the monthly cadence is part of the edge.
 
+`scripts/robustness.ts` (`pnpm --filter api robustness -- --samples 300 --cache <dir>`)
+then tried to break that finding, and mostly did. The filter is insensitive to
+its window (6-14 months all behave alike), but across 300 random 20-stock
+baskets from 2010's large caps it trades return for drawdown rather than
+beating the alerts: CAGR -1.4%p (lower in 95% of baskets), MDD +7%p better
+(97%), Sharpe a coin flip (54%); against holding, -4.2%p CAGR for +21.5%p MDD.
+Tax barely moves this. It wins clearly only where a basket crashes without
+recovering (2021 hype names, the 2000 dot-com bust) and loses badly where
+volatile names whipsaw but end up (2015-19 Korean biotech: 1.6% vs 9.6%).
+Treat it as crash insurance with a price, not a better rule. The shared engine
+for both scripts is `scripts/lib/backtest.ts`.
+
 ## External automation depending on this API
 
 Five scheduled jobs run **outside this repo**, on the operator's own machine (`~/gokkan-keeper-automation/`, launchd-based, not part of this codebase or its deploys):
