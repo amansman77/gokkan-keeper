@@ -16,9 +16,11 @@
  * The engine lives in backtest-engine.ts; robustness.ts reuses it for sweeps.
  */
 import {
-  buildMarket, buyAndHold, equalWeights, fetchBars, fetchFx, liveAlerts, maPair, momentum,
-  precomputeAlerts, run, splice, trendFilter, volTarget, weeklyMa40, windowRange, type SimConfig, type Strategy,
+  buildMarket, fetchBars, fetchFx, run, splice, windowRange, type SimConfig, type Strategy,
 } from './backtest-engine';
+import {
+  buyAndHold, equalWeights, liveAlerts, maPair, momentum, precomputeAlerts, trendFilter, volTarget, weeklyMa40,
+} from './backtest-strategies';
 
 const args = process.argv.slice(2);
 const argOf = (k: string, d: string) => { const i = args.indexOf(`--${k}`); return i >= 0 && args[i + 1] ? args[i + 1] : d; };

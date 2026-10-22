@@ -46,20 +46,25 @@ equal-weight stock basket, where a sleeve's signal trades only that sleeve.
 sweeps the trend filter's window, draws random baskets from an ex-ante pool
 (2010's large caps), adds the dot-com, 2011 Korean cyclical and 2015 Korean
 biotech regimes, and models the 22% overseas-gains tax. Both share
-`backtest-engine.ts`, which imports `RULES` rather than restating them, and
-work around two data traps: Yahoo's `range=max` silently returns monthly bars,
+`backtest-engine.ts` (data, accounting) and `backtest-strategies.ts`, which
+imports `RULES` rather than restating them. The live rules see raw quote OHLC,
+as production computes them, while valuation uses dividend-adjusted prices;
+alert actions are sized off the actual holding (SELL_001 sells half of what is
+held, BUY_001 adds a 25% unit), sale proceeds stay cash until a buy, each sleeve
+fills on its own exchange's next session, and tax is part of the return series.
+Two data traps are handled: Yahoo's `range=max` silently returns monthly bars,
 and `069500.KS` has no closes before 2009, so KOSPI is spliced in.
 
-Results as of 2026-10 (production alerts were left unchanged):
-- Index core: the alerts trail an annually rebalanced hold by ~4%p/yr (10.3% vs
-  14.4% CAGR, 2008-) while cutting MDD from -34% to -22%; much of the gap is
-  slow re-entry (BUY_001 adds a 25% unit after SELL_001 halved).
+Results as of 2026-10 (data to 2026-10-12; production alerts left unchanged):
+- Index core, 2008-: the alerts trail an annually rebalanced hold by ~3.3%p/yr
+  (11.1% vs 14.4% CAGR) while cutting MDD from -34% to -22%; buying the whole
+  sleeve back on BUY_001 recovers about a third of that gap.
 - Satellite stocks: a monthly 10-month-SMA full in/out filter looked better on
   three hand-picked baskets, but across 300 random baskets it trades return for
-  drawdown (-1.4%p CAGR, +7%p MDD vs the alerts, Sharpe a coin flip). It wins
-  only where a basket crashes and stays down (2021 hype names, dot-com) and
-  loses where volatile names whipsaw but end higher (2015-19 biotech). Its
-  window (6-14 months) barely matters; the weekly MA40 variants are worse.
+  drawdown (-1.7%p CAGR, +9%p MDD vs the alerts, better Sharpe in 70%). It wins
+  where a basket crashes and stays down (2021 hype names, dot-com) and loses
+  where volatile names whipsaw but end higher (2015-19 biotech: 1.6% vs 11.4%).
+  Its window (6-14 months) barely matters; the weekly MA40 variants are worse.
   Treat it as crash insurance with a price, not a better rule.
 
 ## External automation depending on this API

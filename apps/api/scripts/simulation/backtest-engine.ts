@@ -1,17 +1,20 @@
 /**
- * Shared engine for the portfolio-level backtests (portfolio-backtest.ts,
- * robustness.ts in this directory). Kept free of top-level side effects so several scripts can
- * replay the same strategies over the same market data.
- *
- * The live rules are imported from services/alert-rules, never restated, so
- * "현행 알람" always measures what production would say.
+ * Data and accounting engine for the portfolio-level backtests
+ * (portfolio-backtest.ts, robustness.ts in this directory); the strategies
+ * live in backtest-strategies.ts. Kept free of top-level side effects so
+ * several scripts can replay the same strategies over the same market data.
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { RULES, type AlertRuleContext } from '../../src/services/alert-rules';
-import { aggregateWeekly, computeIndicatorsFromRows, type OhlcvRow } from '../../src/services/technical-indicators';
+import type { OhlcvRow } from '../../src/services/technical-indicators';
 
-export type { OhlcvRow };
+/**
+ * A daily bar valued on the dividend-adjusted series, carrying the raw quote
+ * alongside. Valuation uses the adjusted fields so returns include dividends;
+ * the live rules must see `raw`, because production's indicators are computed
+ * from Yahoo's unadjusted OHLC and adjusting moves MA40/MACD crossings.
+ */
+export interface Bar extends OhlcvRow { raw: OhlcvRow }
 export const day = (ts: number) => new Date(ts * 1000 + 9 * 3600e3).toISOString().slice(0, 10);
 export const isKrw = (sym: string) => sym.endsWith('.KS') || sym.endsWith('.KQ');
 
@@ -44,23 +47,24 @@ async function loadChart(sym: string, cacheDir?: string): Promise<YahooChart> {
 
 const positive = (x: Num): x is number => typeof x === 'number' && x > 0;
 
-/** Daily bars with OHLC scaled by adjclose/close, so returns include dividends
- *  and the indicators see the same total-return series. */
-export async function fetchBars(sym: string, cacheDir?: string): Promise<OhlcvRow[]> {
+/** Daily bars: adjusted OHLC (scaled by adjclose/close) for valuation, raw
+ *  quote OHLC in `raw` for the live rules' indicators. */
+export async function fetchBars(sym: string, cacheDir?: string): Promise<Bar[]> {
   const res = await loadChart(sym, cacheDir);
   const q = res.indicators.quote[0];
   const adj = res.indicators.adjclose?.[0]?.adjclose ?? q.close;
-  const out: OhlcvRow[] = [];
+  const out: Bar[] = [];
   (res.timestamp ?? []).forEach((ts, i) => {
     const c = q.close[i];
     const a = adj[i];
     if (!positive(c) || !positive(a)) return;
     // early Korean rows often lack open/high/low; requiring them would
     // silently drop years of history, so fall back to the close
-    const f = a / c;
-    const scaled = (x: Num) => (positive(x) ? x : c) * f;
+    const px = (x: Num) => (positive(x) ? x : c);
     const v = q.volume[i];
-    out.push({ ts, open: scaled(q.open[i]), high: scaled(q.high[i]), low: scaled(q.low[i]), close: a, volume: typeof v === 'number' ? v : 0 });
+    const raw: OhlcvRow = { ts, open: px(q.open[i]), high: px(q.high[i]), low: px(q.low[i]), close: c, volume: typeof v === 'number' ? v : 0 };
+    const f = a / c;
+    out.push({ ...raw, open: raw.open * f, high: raw.high * f, low: raw.low * f, close: a, raw });
   });
   return out;
 }
@@ -77,7 +81,7 @@ export async function fetchFx(cacheDir?: string): Promise<Map<string, number>> {
 /** Fetches many symbols a few at a time; symbols Yahoo cannot serve are
  *  reported and left out rather than failing the run. */
 export async function fetchMany(syms: string[], cacheDir?: string, concurrency = 6) {
-  const out = new Map<string, OhlcvRow[]>();
+  const out = new Map<string, Bar[]>();
   const missing: string[] = [];
   let next = 0;
   await Promise.all(Array.from({ length: concurrency }, async () => {
@@ -98,18 +102,21 @@ export async function fetchMany(syms: string[], cacheDir?: string, concurrency =
  * primary series becomes continuous, splice in the proxy index's daily moves
  * plus an approximate dividend yield, scaled to meet the primary's first price.
  */
-export function splice(primary: OhlcvRow[], proxy: OhlcvRow[], dividendYield: number): OhlcvRow[] {
+export function splice(primary: Bar[], proxy: Bar[], dividendYield: number): Bar[] {
   let start = 0;
   for (let k = 1; k < primary.length; k++) if (primary[k].ts - primary[k - 1].ts > 10 * 86_400) start = k;
   const joinTs = primary[start].ts;
   const before = proxy.filter((b) => b.ts < joinTs);
   if (before.length === 0) return primary.slice(start);
-  const out: OhlcvRow[] = [];
-  let scale = primary[start].close / before[before.length - 1].close;
+  const last = before[before.length - 1];
+  const scaleRow = (b: OhlcvRow, k: number): OhlcvRow => ({ ...b, open: b.open * k, high: b.high * k, low: b.low * k, close: b.close * k });
+  // the raw series joins the primary's raw close and carries no dividend drift
+  const rawScale = primary[start].raw.close / last.raw.close;
+  let scale = primary[start].close / last.close;
   const drift = Math.pow(1 + dividendYield, 1 / 252);
+  const out: Bar[] = [];
   for (let k = before.length - 1; k >= 0; k--) {
-    const b = before[k];
-    out.unshift({ ...b, open: b.open * scale, high: b.high * scale, low: b.low * scale, close: b.close * scale });
+    out.unshift({ ...scaleRow(before[k], scale), raw: scaleRow(before[k].raw, rawScale) });
     scale /= drift; // earlier rows sit lower by the dividends not yet paid
   }
   return [...out, ...primary.slice(start)];
@@ -117,7 +124,9 @@ export function splice(primary: OhlcvRow[], proxy: OhlcvRow[], dividendYield: nu
 
 export interface Asset {
   sym: string;
-  bars: OhlcvRow[];
+  bars: Bar[];
+  /** whether this symbol's own exchange traded on each calendar day */
+  open: boolean[];
   /** valuation-currency price on each calendar day (forward-filled), aligned to cal */
   krw: number[];
   /** local adjusted close on each calendar day (forward-filled) */
@@ -131,7 +140,7 @@ export interface Market { cal: string[]; assets: Map<string, Asset> }
  * in KRW; without it (e.g. before 2003, where KRW=X has no history) everything
  * stays in its local currency, which is only meaningful for one-currency sets.
  */
-export function buildMarket(bySym: Map<string, OhlcvRow[]>, fx: Map<string, number> | null, from = '1998-01-01'): Market {
+export function buildMarket(bySym: Map<string, Bar[]>, fx: Map<string, number> | null, from = '1998-01-01'): Market {
   const cal = [...new Set([...bySym.values()].flatMap((bars) => bars.map((b) => day(b.ts))))].filter((d) => d >= from).sort();
   const ffill = (pairs: Map<string, number>) => {
     const out: number[] = []; let last = NaN; const keys = [...pairs.keys()].sort(); let k = 0;
@@ -143,7 +152,8 @@ export function buildMarket(bySym: Map<string, OhlcvRow[]>, fx: Map<string, numb
   for (const [sym, bars] of bySym) {
     const local = ffill(new Map(bars.map((b) => [day(b.ts), b.close])));
     const krw = fxArr && !isKrw(sym) ? local.map((p, i) => p * fxArr[i]) : local;
-    assets.set(sym, { sym, bars, local, krw });
+    const days = new Set(bars.map((b) => day(b.ts)));
+    assets.set(sym, { sym, bars, open: cal.map((d) => days.has(d)), local, krw });
   }
   return { cal, assets };
 }
@@ -163,11 +173,35 @@ export function windowRange(m: Market, syms: string[], fromD: string, toD = '209
 // ─── Engine ───────────────────────────────────────────────────────────────────
 
 export type Weights = Record<string, number>;
-/** `only` limits the trade to those sleeves, so a signal on one stock does not
- *  quietly rebalance every other sleeve back to weight. */
-export type Decision = Weights | { weights: Weights; only: string[] };
+/**
+ * A sized action on the sleeve's actual holding, as the live alerts word it:
+ * `keep` sells down to that fraction of what is held ("보유 수량 50% 매도"),
+ * `add` buys that fraction of the sleeve's base weight of the book, never past
+ * the full sleeve and never with more than the idle cash ("1회 매수 단위").
+ */
+export type Adjust = { keep: number } | { add: number; base: number };
+/**
+ * `rebalance` moves every sleeve to its weight; `only` limits the trade to those
+ * sleeves, so a signal on one stock does not quietly rebalance the others;
+ * `adjust` sizes trades off current holdings. `weights` always states the
+ * allocation that new monthly contributions should follow.
+ */
+export type Decision =
+  | { kind: 'rebalance'; weights: Weights }
+  | { kind: 'only'; weights: Weights; only: string[] }
+  | { kind: 'adjust'; weights: Weights; adjust: Record<string, Adjust> };
 
-export interface Ctx { cal: string[]; assets: Map<string, Asset>; isMonthEnd: boolean; isFirstDay: boolean }
+export interface Ctx {
+  cal: string[];
+  assets: Map<string, Asset>;
+  isMonthEnd: boolean;
+  isFirstDay: boolean;
+  /** KRW value currently held in a sleeve */
+  heldValue(sym: string): number;
+}
+
+export const rebalance = (weights: Weights): Decision => ({ kind: 'rebalance', weights });
+export const onlySleeves = (weights: Weights, only: string[]): Decision => ({ kind: 'only', weights, only });
 
 export interface Strategy {
   name: string;
@@ -247,26 +281,63 @@ class Book {
     this.basis.set(sym, b * (1 - share));
   }
 
-  apply(d: Decision, i: number) {
-    const partial = 'only' in d && Array.isArray(d.only);
-    const target = (partial ? (d as { weights: Weights }).weights : d) as Weights;
-    this.lastTarget = target;
+  held(sym: string, i: number) { return (this.units.get(sym) ?? 0) * this.m.assets.get(sym)!.krw[i]; }
+
+  /**
+   * Executes a decision for the sleeves whose exchange is open on day i and
+   * returns what is left for the rest, so a US sleeve is never filled at a
+   * stale price on a US holiday — it waits for its own next session.
+   */
+  apply(d: Decision, i: number): Decision | null {
+    const open = (sym: string) => this.m.assets.get(sym)!.open[i];
     const V = this.value(i);
-    const syms = partial ? (d as { only: string[] }).only : [...new Set([...Object.keys(target), ...this.units.keys()])];
-    for (const sym of syms) this.trade(sym, (target[sym] ?? 0) * V, i);
+    this.lastTarget = d.weights;
+    if (d.kind === 'adjust') {
+      const rest: Record<string, Adjust> = {};
+      for (const [sym, adj] of Object.entries(d.adjust)) {
+        if (open(sym)) this.trade(sym, this.adjusted(sym, adj, V, i), i); else rest[sym] = adj;
+      }
+      return Object.keys(rest).length ? { kind: 'adjust', weights: d.weights, adjust: rest } : null;
+    }
+    const syms = d.kind === 'only' ? d.only : [...new Set([...Object.keys(d.weights), ...this.units.keys()])];
+    const rest = syms.filter((sym) => !open(sym));
+    for (const sym of syms) if (open(sym)) this.trade(sym, (d.weights[sym] ?? 0) * V, i);
+    return rest.length ? { kind: 'only', weights: d.weights, only: rest } : null;
   }
 
-  /** Monthly contributions only buy with idle cash, never sell: that is what
-   *  they do in practice between full rebalances. */
-  investIdle(i: number) {
+  private adjusted(sym: string, adj: Adjust, V: number, i: number) {
+    const h = this.held(sym, i);
+    if ('keep' in adj) return h * adj.keep;
+    const full = adj.base * V;
+    const room = Math.max(0, Math.min(adj.add * full, full - h, this.cash));
+    return h + room;
+  }
+
+  /** Monthly contributions only buy, never sell: that is what they do in
+   *  practice between full rebalances. Each sleeve's share is fixed now and
+   *  filled on that sleeve's next open session. */
+  queueIdle(i: number) {
     const V = this.value(i);
     const totalW = Object.values(this.lastTarget).reduce((s, w) => s + w, 0);
-    const idle = this.cash - (1 - totalW) * V; // cash above the strategy's own cash weight
+    const queued = [...this.queue.values()].reduce((s, x) => s + x, 0);
+    // only the new contribution is invested: cash a sell signal raised stays
+    // cash until a buy signal spends it, as it would in the live account
+    const idle = Math.min(this.cfg.monthly, this.cash - queued - (1 - totalW) * V);
     if (idle <= 0 || totalW <= 0) return;
     for (const [sym, w] of Object.entries(this.lastTarget)) {
-      if (w > 0) this.trade(sym, (this.units.get(sym) ?? 0) * this.m.assets.get(sym)!.krw[i] + idle * (w / totalW), i);
+      if (w > 0) this.queue.set(sym, (this.queue.get(sym) ?? 0) + idle * (w / totalW));
     }
   }
+
+  fillQueue(i: number) {
+    for (const [sym, amount] of this.queue) {
+      if (!this.m.assets.get(sym)!.open[i]) continue;
+      this.trade(sym, this.held(sym, i) + Math.min(amount, Math.max(0, this.cash)), i);
+      this.queue.delete(sym);
+    }
+  }
+
+  private readonly queue = new Map<string, number>();
 }
 
 /** Time-weighted return statistics, so contributions do not count as gains. */
@@ -281,6 +352,16 @@ function summarize(rets: number[], years: number, cashRate: number) {
     sharpe: sd > 0 ? ((mean - cashRate / perYear) / sd) * Math.sqrt(perYear) : 0,
     vol: sd * Math.sqrt(perYear),
   };
+}
+
+/** A new decision supersedes what is still waiting for a closed exchange,
+ *  except that sized actions on different sleeves both stand. */
+function merge(waiting: Decision | null, next: Decision | null): Decision | null {
+  if (!next) return waiting;
+  if (waiting?.kind === 'adjust' && next.kind === 'adjust') {
+    return { kind: 'adjust', weights: next.weights, adjust: { ...waiting.adjust, ...next.adjust } };
+  }
+  return next;
 }
 
 export function run(strategy: Strategy, m: Market, from: number, to: number, cfg: SimConfig): Result {
@@ -298,17 +379,23 @@ export function run(strategy: Strategy, m: Market, from: number, to: number, cfg
       if (cal[i].slice(0, 4) !== cal[i - 1].slice(0, 4)) book.payTax();
       if (cal[i].slice(0, 7) !== cal[i - 1].slice(0, 7)) { book.contribute(); flow = cfg.monthly; }
     }
-    if (pending) { book.apply(pending, i); pending = null; }
-    if (flow) book.investIdle(i);
+    if (pending) pending = book.apply(pending, i);
+    if (flow) book.queueIdle(i);
+    book.fillQueue(i);
+    // the last year's tax belongs in the return series, not only in `final`
+    if (i === to) book.payTax();
 
     const V = book.value(i);
     if (i > from) rets.push((V - flow) / prevV - 1);
     prevV = V;
 
-    const isMonthEnd = i === to || cal[i + 1].slice(0, 7) !== cal[i].slice(0, 7);
-    pending = strategy.decide(i, { cal, assets, isMonthEnd, isFirstDay: i === from }) ?? null;
+    const ctx: Ctx = {
+      cal, assets, isFirstDay: i === from,
+      isMonthEnd: i === to || cal[i + 1].slice(0, 7) !== cal[i].slice(0, 7),
+      heldValue: (sym) => book.held(sym, i),
+    };
+    pending = merge(pending, strategy.decide(i, ctx));
   }
-  book.payTax();
 
   const years = (Date.parse(cal[to]) - Date.parse(cal[from])) / (365.25 * 86_400_000);
   return {
@@ -316,202 +403,3 @@ export function run(strategy: Strategy, m: Market, from: number, to: number, cfg
     final: book.value(to), contributed: book.contributed, costs: book.costs, taxes: book.taxes, trades: book.trades,
   };
 }
-
-// ─── Strategies ───────────────────────────────────────────────────────────────
-
-/** Per calendar: the month ordinal of each day and the last index of each
- *  month, so month-end lookups stay O(1) inside sweeps of thousands of runs. */
-const monthIndex = new WeakMap<string[], { ord: number[]; lastOf: number[] }>();
-function months(cal: string[]) {
-  let mi = monthIndex.get(cal);
-  if (!mi) {
-    const ord: number[] = []; const lastOf: number[] = [];
-    cal.forEach((d, i) => {
-      if (i > 0 && d.slice(0, 7) !== cal[i - 1].slice(0, 7)) lastOf.push(i - 1);
-      ord.push(lastOf.length);
-    });
-    lastOf.push(cal.length - 1);
-    mi = { ord, lastOf };
-    monthIndex.set(cal, mi);
-  }
-  return mi;
-}
-
-/** day i itself for monthsBack 0, else the last calendar day of the month
- *  `monthsBack` months before day i's month */
-const monthEndIdx = (i: number, monthsBack: number, cal: string[]) => {
-  if (monthsBack === 0) return i;
-  const { ord, lastOf } = months(cal);
-  return lastOf[Math.max(0, ord[i] - monthsBack)];
-};
-
-export const buyAndHold = (base: Weights): Strategy => ({
-  name: '② 적립 + 연1회 리밸런싱',
-  decide(i, ctx) {
-    if (ctx.isFirstDay) return { ...base };
-    if (ctx.isMonthEnd && ctx.cal[i].slice(5, 7) === '12') return { ...base };
-    return null;
-  },
-});
-
-/** ③ Faber: hold each sleeve only while its month-end close is above its N-month average. */
-export function trendFilter(base: Weights, months = 10): Strategy {
-  return {
-    name: `③ 추세 필터 (${months}개월선)`,
-    decide(i, ctx) {
-      if (!ctx.isMonthEnd && !ctx.isFirstDay) return null;
-      const w: Weights = {};
-      for (const [sym, bw] of Object.entries(base)) {
-        const a = ctx.assets.get(sym)!;
-        const closes = Array.from({ length: months }, (_, k) => a.local[monthEndIdx(i, k, ctx.cal)]);
-        if (closes.some((c) => !Number.isFinite(c))) { w[sym] = bw; continue; } // not enough history yet: hold
-        const sma = closes.reduce((s, x) => s + x, 0) / months;
-        w[sym] = a.local[i] > sma ? bw : 0;
-      }
-      return w;
-    },
-  };
-}
-
-/** ④ Relative + absolute momentum over a universe, top N monthly. */
-export function momentum(universe: string[], top: number): Strategy {
-  return {
-    name: `④ 상대 모멘텀 (상위 ${top})`,
-    decide(i, ctx) {
-      if (!ctx.isMonthEnd && !ctx.isFirstDay) return null;
-      const scored = universe.map((sym) => {
-        const a = ctx.assets.get(sym)!;
-        const r = (k: number) => a.krw[i] / a.krw[monthEndIdx(i, k, ctx.cal)] - 1;
-        return { sym, score: (r(3) + r(6) + r(12)) / 3 };
-      }).sort((x, y) => y.score - x.score);
-      const w: Weights = {};
-      for (const { sym, score } of scored.slice(0, top)) if (score > 0) w[sym] = 1 / top;
-      return w;
-    },
-  };
-}
-
-/** ⑤ Weights scaled so realized 3-month portfolio volatility targets `target`. */
-export function volTarget(base: Weights, target: number): Strategy {
-  return {
-    name: `⑤ 변동성 목표 ${(target * 100).toFixed(0)}%`,
-    decide(i, ctx) {
-      if (!ctx.isMonthEnd && !ctx.isFirstDay) return null;
-      const rs: number[] = [];
-      for (let j = Math.max(1, i - 63); j <= i; j++) {
-        if (!Object.keys(base).every((sym) => Number.isFinite(ctx.assets.get(sym)!.krw[j - 1]))) continue;
-        let r = 0;
-        for (const [sym, bw] of Object.entries(base)) {
-          const a = ctx.assets.get(sym)!;
-          r += bw * (a.krw[j] / a.krw[j - 1] - 1);
-        }
-        rs.push(r);
-      }
-      if (rs.length < 20) return { ...base };
-      const m = rs.reduce((s, x) => s + x, 0) / rs.length;
-      const vol = Math.sqrt(rs.reduce((s, x) => s + (x - m) ** 2, 0) / rs.length * 252);
-      const scale = Math.min(1, target / vol);
-      return Object.fromEntries(Object.entries(base).map(([s, w]) => [s, w * scale]));
-    },
-  };
-}
-
-export interface AlertPre {
-  weeklyByDay: Map<string, ReturnType<typeof computeIndicatorsFromRows>>;
-  dailyByDay: Map<string, ReturnType<typeof computeIndicatorsFromRows>>;
-}
-
-export function precomputeAlerts(a: Asset, from: string): AlertPre {
-  const weeks = aggregateWeekly(a.bars);
-  const weeklyByDay = new Map<string, ReturnType<typeof computeIndicatorsFromRows>>();
-  weeks.forEach((w, wi) => {
-    if (wi >= 41 && day(w.ts) >= from) weeklyByDay.set(day(w.ts), computeIndicatorsFromRows(weeks.slice(Math.max(0, wi - 199), wi + 1), a.sym));
-  });
-  const dailyByDay = new Map<string, ReturnType<typeof computeIndicatorsFromRows>>();
-  a.bars.forEach((b, bi) => {
-    if (bi >= 300 && weeklyByDay.has(day(b.ts))) dailyByDay.set(day(b.ts), computeIndicatorsFromRows(a.bars.slice(Math.max(0, bi - 399), bi + 1), a.sym));
-  });
-  return { weeklyByDay, dailyByDay };
-}
-
-/**
- * ① The live alerts per sleeve. Each sleeve has an allowed exposure f in
- * [0, 1], starting fully invested: BUY_001 adds one 25% unit, SELL_001 halves
- * it — the sizes the rules' `action` text names. Weekly rules are evaluated on
- * each asset's own week end, as the Friday cron does. `buyStep: 1` is ①b (the
- * same rules, buying the whole sleeve back) to isolate slow re-entry.
- */
-export function liveAlerts(
-  base: Weights,
-  pre: Map<string, AlertPre>,
-  buyStep = 0.25,
-  opts: { name?: string; buyRuleId?: string; sellKeep?: number } = {},
-): Strategy {
-  const buy = RULES.find((r) => r.ruleId === (opts.buyRuleId ?? 'BUY_001'))!;
-  const sell = RULES.find((r) => r.ruleId === 'SELL_001')!;
-  const sellKeep = opts.sellKeep ?? 0.5;
-  const f = new Map<string, number>();
-  const was = new Map<string, boolean>();
-  return {
-    name: opts.name ?? (buyStep >= 1 ? '①b 알람, 매수 시 전량 복귀' : '① 현행 알람 (BUY_001/SELL_001)'),
-    decide(i, ctx) {
-      if (ctx.isFirstDay) { for (const s of Object.keys(base)) f.set(s, 1); was.clear(); }
-      const changed: string[] = [];
-      for (const sym of Object.keys(base)) {
-        const p = pre.get(sym)!;
-        const wk = p.weeklyByDay.get(ctx.cal[i]);
-        const dl = p.dailyByDay.get(ctx.cal[i]);
-        if (!wk || !dl) continue;
-        const cur = f.get(sym)!;
-        const snap: AlertRuleContext = { symbol: sym, name: sym, heldQuantity: cur > 0 ? 1 : 0, weekly: wk, daily: dl };
-        for (const r of [buy, sell]) {
-          const key = `${sym}:${r.ruleId}`;
-          const met = r.condition(snap);
-          const fired = met && !(was.get(key) ?? false);
-          was.set(key, met);
-          if (!fired) continue;
-          f.set(sym, r === buy ? Math.min(1, f.get(sym)! + buyStep) : f.get(sym)! * sellKeep);
-          if (!changed.includes(sym)) changed.push(sym);
-        }
-      }
-      const weights = Object.fromEntries(Object.entries(base).map(([s, w]) => [s, w * f.get(s)!]));
-      if (ctx.isFirstDay) return weights;
-      return changed.length ? { weights, only: changed } : null;
-    },
-  };
-}
-
-/**
- * ①c The two MA40 rules already in RULES as a symmetric pair: SELL_001 exits
- * the whole sleeve, WARN_BUY_002 (the MA40 reclaim) buys it all back — the
- * weekly-rule version of ③, built only from conditions production has.
- */
-export const maPair = (base: Weights, pre: Map<string, AlertPre>) =>
-  liveAlerts(base, pre, 1, { name: '①c MA40 이탈 전량매도/회복 전량매수', buyRuleId: 'WARN_BUY_002', sellKeep: 0 });
-
-/**
- * ③w Candidate (not in RULES): ③ evaluated on weekly bars — in while the week
- * closes above MA40, out otherwise, no slope condition. Tells whether ③'s
- * edge survives the weekly cadence production already runs on.
- */
-export function weeklyMa40(base: Weights, pre: Map<string, AlertPre>): Strategy {
-  const inMkt = new Map<string, boolean>();
-  return {
-    name: '③w 주봉 MA40 위/아래 (후보)',
-    decide(i, ctx) {
-      if (ctx.isFirstDay) inMkt.clear();
-      const changed: string[] = [];
-      for (const sym of Object.keys(base)) {
-        const wk = pre.get(sym)!.weeklyByDay.get(ctx.cal[i]);
-        if (!wk || wk.close == null || wk.ma40 == null) continue;
-        const want = wk.close > wk.ma40;
-        if (inMkt.get(sym) !== want) { inMkt.set(sym, want); changed.push(sym); }
-      }
-      const weights = Object.fromEntries(Object.entries(base).map(([s, w]) => [s, (inMkt.get(s) ?? true) ? w : 0]));
-      if (ctx.isFirstDay) return weights;
-      return changed.length ? { weights, only: changed } : null;
-    },
-  };
-}
-
-export const equalWeights = (syms: string[]): Weights => Object.fromEntries(syms.map((s) => [s, 1 / syms.length]));

@@ -63,3 +63,25 @@ export function fromDraft(draft: DraftPlan, baseline: AssetGoalPlan['baseline'])
   });
 }
 
+
+/**
+ * The expected/target paths compare today's total with a baseline captured for
+ * one set of counted granaries. When the excluded purposes change, that
+ * baseline no longer describes the same money, so it restarts today for the
+ * new scope — or is dropped when the new total cannot be computed in KRW.
+ */
+export function baselineForScope(
+  plan: AssetGoalPlan,
+  excludedPurposes: AssetGoalPlan['excludedPurposes'],
+  granaries: AssetGoalProgressProps['granaries'],
+  usdKrw: number | null,
+): AssetGoalPlan['baseline'] {
+  const same = plan.excludedPurposes.length === excludedPurposes.length
+    && plan.excludedPurposes.every((p) => excludedPurposes.includes(p));
+  if (!plan.baseline || same) return plan.baseline;
+  const counted = granaries.filter((g) => !excludedPurposes.includes(g.purpose));
+  const { total, excluded } = totalInKrw(counted, usdKrw);
+  const usdMissing = !usdKrw && counted.some((g) => g.currency === 'USD' && g.latestSnapshot);
+  if (excluded.length > 0 || usdMissing) return undefined;
+  return { date: new Date().toISOString().slice(0, 10), amount: Math.round(total) };
+}

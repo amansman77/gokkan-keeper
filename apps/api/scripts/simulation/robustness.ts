@@ -16,14 +16,19 @@
  * pick date have no Yahoo history and drop out of every pool here.
  */
 import {
-  buildMarket, buyAndHold, equalWeights, fetchFx, fetchMany, liveAlerts, precomputeAlerts, run,
-  splice, trendFilter, windowRange, type AlertPre, type Result, type SimConfig, type Strategy, type Weights,
+  buildMarket, fetchFx, fetchMany, run, splice, windowRange, type Result, type SimConfig, type Strategy,
+  type Weights,
 } from './backtest-engine';
+import {
+  buyAndHold, equalWeights, liveAlerts, precomputeAlerts, trendFilter, type AlertPre,
+} from './backtest-strategies';
 
 const args = process.argv.slice(2);
 const argOf = (k: string, d: string) => { const i = args.indexOf(`--${k}`); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
 const SAMPLES = Number(argOf('samples', '300'));
 const CACHE = argOf('cache', '') || undefined;
+/** `--until YYYY-MM-DD` caps the open-ended windows, to reproduce a past run. */
+const UNTIL = argOf('until', '2099-12-31');
 
 /** Satellite scale from the owner's plan: 5M KRW to start, 200k KRW a month. */
 const SAT: SimConfig = { startBalance: 5_000_000, monthly: 200_000, cost: 0.0015, cashRate: 0.02 };
@@ -123,7 +128,7 @@ console.log(`  지표 사전계산 ${((Date.now() - t0) / 1000).toFixed(0)}초`)
 
 /** Equal-weight `syms` under one strategy over the random-sample window. */
 const runOn = (syms: string[], cfg: SimConfig, mk: (b: Weights) => Strategy) => {
-  const [from, to] = windowRange(krwMarket, syms, '2011-01-01', '2099-12-31');
+  const [from, to] = windowRange(krwMarket, syms, '2011-01-01', UNTIL);
   return run(mk(equalWeights(syms)), krwMarket, from, to, cfg);
 };
 
@@ -137,7 +142,7 @@ const sweepSets: Array<[string, string[], Weights | null, SimConfig, string]> = 
 ];
 for (const [label, syms, w, cfg, fromD] of sweepSets) {
   const base = w ?? equalWeights(syms);
-  const [from, to] = windowRange(krwMarket, syms, fromD, '2099-12-31');
+  const [from, to] = windowRange(krwMarket, syms, fromD, UNTIL);
   console.log(`\n${label}`);
   header();
   console.log(line('① 현행 알람', run(liveAlerts(base, preK), krwMarket, from, to, cfg)));

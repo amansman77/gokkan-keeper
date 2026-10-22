@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { getMarketIndices, getSettings, updateSetting } from '../lib/api';
 import { GoalEditor } from './asset-goal/GoalEditor';
 import { GoalSummary } from './asset-goal/GoalSummary';
-import { formatEok, fromDraft, toDraft, totalInKrw, type AssetGoalProgressProps, type DraftPlan } from './asset-goal/model';
+import { baselineForScope, formatEok, fromDraft, toDraft, totalInKrw, type AssetGoalProgressProps, type DraftPlan } from './asset-goal/model';
 
 export default function AssetGoalProgress({ granaries }: AssetGoalProgressProps) {
   const [plan, setPlan] = useState<AssetGoalPlan | null>(null);
@@ -51,7 +51,7 @@ export default function AssetGoalProgress({ granaries }: AssetGoalProgressProps)
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!draft || !plan) return;
-    const parsed = fromDraft(draft, plan.baseline);
+    const parsed = fromDraft(draft, baselineForScope(plan, draft.excludedPurposes, granaries, usdKrw));
     if (!parsed.success) {
       setError('입력값을 확인해 주세요. 연도와 금액은 양수여야 합니다.');
       return;
