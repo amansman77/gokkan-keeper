@@ -51,3 +51,11 @@ apps/web/.capacitor/
 # Testing
 coverage/
 .nyc_output/
+
+# Test reports and traces
+test-results/
+playwright-report/
+
+# Private encrypted database backups and decrypted restore files
+*.gkbackup
+*.gkbackup.restore.sql

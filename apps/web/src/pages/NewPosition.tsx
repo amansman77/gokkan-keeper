@@ -22,7 +22,7 @@ export default function NewPosition() {
         setError(err.message || '곳간 목록을 불러오지 못했습니다.');
       }
     }
-    loadGranaries();
+    void loadGranaries();
   }, []);
 
   const initialData: CreatePosition = {
@@ -47,7 +47,7 @@ export default function NewPosition() {
     setError(null);
     try {
       const created = await createPosition(data);
-      navigate(created.granaryId ? `/granaries/${created.granaryId}` : '/');
+      void navigate(created.granaryId ? `/granaries/${created.granaryId}` : '/');
     } catch (err: any) {
       setError(err.message || '포지션 생성에 실패했습니다.');
     } finally {

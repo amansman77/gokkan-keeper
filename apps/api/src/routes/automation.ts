@@ -28,7 +28,7 @@ automationRouter.post('/discord-notify', async (c) => {
   let response: Response;
   if (body.fileContent) {
     const form = new FormData();
-    form.set('payload_json', JSON.stringify({ username: 'Gokkan Keeper', content: body.content }));
+    form.set('payload_json', JSON.stringify({ username: 'Gokkan Keeper', allowed_mentions: { parse: [] }, content: body.content }));
     form.set(
       'files[0]',
       new Blob([body.fileContent], { type: 'text/plain; charset=utf-8' }),
@@ -39,7 +39,7 @@ automationRouter.post('/discord-notify', async (c) => {
     response = await fetch(c.env.DISCORD_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'Gokkan Keeper', content: body.content }),
+      body: JSON.stringify({ username: 'Gokkan Keeper', allowed_mentions: { parse: [] }, content: body.content }),
     });
   }
 

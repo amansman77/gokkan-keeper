@@ -1,3 +1,4 @@
+import type { JudgmentDiaryEntryRow, SqlValue } from '../rows';
 import type { D1Database } from '@cloudflare/workers-types';
 import type {
   CreateJudgmentDiaryEntry,
@@ -12,15 +13,17 @@ export class JudgmentDiaryRepository {
 
   async getJudgmentDiaryEntries(filters: JudgmentDiaryListFilters = {}): Promise<JudgmentDiaryEntry[]> {
     const conditions: string[] = [];
-    const values: any[] = [];
+    const values: SqlValue[] = [];
 
     if (filters.from) {
-      conditions.push('date(created_at) >= date(?)');
+      conditions.push('created_at >= ?');
       values.push(filters.from);
     }
     if (filters.to) {
-      conditions.push('date(created_at) <= date(?)');
-      values.push(filters.to);
+      conditions.push('created_at < ?');
+      const nextDay = new Date(`${filters.to}T00:00:00.000Z`);
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+      values.push(nextDay.toISOString().slice(0, 10));
     }
     if (filters.action) {
       conditions.push('action = ?');
@@ -39,9 +42,9 @@ export class JudgmentDiaryRepository {
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const result = await this.db
-      .prepare(`SELECT * FROM gk_judgment_diary_entries ${whereClause} ORDER BY created_at DESC LIMIT ?`)
+      .prepare(`SELECT * FROM gk_judgment_diary_entries ${whereClause} ORDER BY created_at DESC, id DESC LIMIT ?`)
       .bind(...values, limit)
-      .all<any>();
+      .all<JudgmentDiaryEntryRow>();
 
     return (result.results || []).map(transformJudgmentDiaryEntry);
   }
@@ -50,7 +53,7 @@ export class JudgmentDiaryRepository {
     const result = await this.db
       .prepare('SELECT * FROM gk_judgment_diary_entries WHERE id = ?')
       .bind(id)
-      .first<any>();
+      .first<JudgmentDiaryEntryRow>();
     return result ? transformJudgmentDiaryEntry(result) : null;
   }
 
@@ -108,9 +111,9 @@ export class JudgmentDiaryRepository {
     if (!existing) throw new Error('Judgment diary entry not found');
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: SqlValue[] = [];
 
-    const updateField = (field: string, value: any) => {
+    const updateField = (field: string, value: SqlValue) => {
       updates.push(`${field} = ?`);
       values.push(value);
     };

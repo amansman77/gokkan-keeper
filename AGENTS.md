@@ -29,20 +29,51 @@ around them flip, which is how dark mode breaks.
 - `apps/web`: React/Vite client. `src/app-routes.tsx` is the public/private route
   inventory and `src/App.tsx` renders it. Domain HTTP calls live in
   `src/lib/api/*`; `src/lib/api.ts` is their stable barrel entry point.
+  `server/worker.ts` owns Pages redirects, the same-origin API proxy, and the
+  dynamic sitemap; the build emits it as `dist/_worker.js`. `public` holds static
+  assets and the single `_redirects` source.
 - `apps/api`: Hono Cloudflare Worker. `src/app.ts` composes the HTTP app while
   `src/index.ts` adapts it to Worker fetch and scheduled handlers. `src/routes`
   owns HTTP concerns, `src/services` owns external data and domain orchestration,
-  and `src/db/repositories` owns D1 queries.
+  and `src/db/repositories` owns D1 queries. `scripts/simulation` replays rules,
+  `scripts/experiments` compares candidate behavior, and `scripts/checks` holds
+  operational/auth probes. Scripts are not Worker runtime entry points.
 - `packages/shared`: types, Zod input schemas, constants, and pure utilities
   shared by web and API. Add cross-workspace contracts here instead of copying
   them into both apps.
 - `migrations`: ordered D1 schema history. Never edit an applied migration;
   append a new numbered migration.
-- `docs`: feature-specific decisions and focused operational guides. The
-  repository-level system overview is `ARCHITECTURE.md`; local setup is
-  `DEVELOPMENT.md`.
+- `docs`: domain glossary, design system, and auth integration check. Local
+  setup, Google OAuth configuration, and deployment are in `DEVELOPMENT.md`.
+
+The runtime is Browser → Cloudflare Worker → D1. Cron triggers invoke the alert
+engine in the same Worker. Both apps consume `@gokkan-keeper/shared`; the root
+build compiles shared, then web, then API. D1 tables use the `gk_` prefix because
+the database may be shared with other services.
 
 ## Request and data flow
+
+### Finding the right source
+
+Start with the glossary for meaning, then the executable source for behavior.
+Use the workspace map above for boundaries and `DEVELOPMENT.md` only for setup
+or deployment tasks. Open only the domain files needed for the task:
+
+| Task | Starting points |
+| --- | --- |
+| Domain fields and write validation | `packages/shared/src/schemas.ts`, `utils.ts` |
+| Korean labels | `apps/web/src/lib/terminology.ts` |
+| Persistence | `apps/api/src/db/repositories/*`, `db/mappers.ts`, `migrations` |
+| Authentication and publication | `apps/api/src/http/route-access.ts`, `apps/web/src/app-routes.tsx` |
+| Prices and portfolio values | `apps/api/src/services/market-price.ts`, `public-portfolio.ts`, shared `getPositionMarketValue()` |
+| Alert conditions and simulations | `apps/api/src/services/alert-rules.ts`, `apps/api/scripts/*` |
+| Alert delivery and event state | `apps/api/src/services/alert-engine.ts`, `db/repositories/alert-delivery-repository.ts` |
+
+Keep stored/API compatibility names (especially `currentValue` and `ruleId`)
+stable during terminology refactors. Internal evaluation input is
+`AlertRuleContext`, with `heldQuantity`; reserve `Snapshot` and `Position` for
+their persisted domain models. Record new concepts in the glossary and put
+repeated UI labels in `UI_TERMS`.
 
 ```text
 React page/component
@@ -57,19 +88,28 @@ Shared Zod schemas validate write input at the API boundary. Database mappers
 translate SQLite rows to the camelCase shared types. Do not access D1 from web
 code or embed SQL in route handlers when a repository already owns that domain.
 
+`apps/web/src/lib/api/client.ts` owns transport: private and auth calls include
+credentials; public calls omit them. Add a browser page to exactly one route
+list in `app-routes.tsx` so authentication and SEO exposure stay aligned.
+
 ## Authentication and publication rules
 
 - Owner authentication is Google ID token verification followed by a signed,
   HttpOnly `gk_session` cookie (`apps/api/src/routes/auth.ts` and
   `apps/api/src/auth/session.ts`). Client requests that need the session use
-  `credentials: 'include'` via `fetchAPI`.
+  `credentials: 'include'` via `fetchAPI`. Google JWTs are verified against JWKS.
+  Seven-day sessions are registered in D1, revoked on logout, and checked against
+  the current owner allowlist on each request. Deploy migration 0016 before this code.
 - Anonymous access is intentionally limited to health/auth, public portfolio and
   consulting endpoints, and read-only judgment-diary endpoints. Review
   `apps/api/src/http/route-access.ts` before adding or moving a route; it is the
   canonical inventory used by both app composition and authentication.
-- `API_SECRET` is not the browser login mechanism. It only protects operational
-  alert-run endpoints, plus a second automated-caller path (see below) for
-  headless callers that need to write data, not just trigger a run.
+- Cookie-authenticated writes and login/logout require an exact trusted `Origin`;
+  JSON writes also require `application/json`. CORS never trusts all Pages domains.
+  Review `http/origins.ts` and `middleware/security.ts` when changing transport.
+- `API_SECRET` is not browser login. `AUTOMATION_API_KEYS` defines per-job scopes in `auth/automation.ts`. The legacy
+  `API_SECRET` permits only existing automation operations, not arbitrary owner
+  writes or exports. Retire it after the five external jobs have separate keys.
 - When adding public data, opt in explicitly at the query/DTO layer. Do not
   serialize private database records and remove fields afterward.
 - A request authenticated via the `X-API-Secret` header (rather than the
@@ -77,7 +117,13 @@ code or embed SQL in route handlers when a repository already owns that domain.
   layer; route handlers can check it to distinguish automated calls from real
   user sessions (e.g. `judgment-diary.ts` only fires the Discord "published"
   notification for API-Secret-authenticated creates, not manual entries — see
-  external automation below).
+  docs/DOMAIN_OPERATIONS.md).
+
+Public consulting requires verified Turnstile, explicit Discord-transfer consent,
+bounded image validation and a D1-backed rate limit. Pages signs edge client IP
+metadata with server-only `PROXY_AUTH_SECRET`; it is never an authentication key
+or a `VITE_*` value. Unsigned forwarded headers are ignored. Security headers are
+owned by the API middleware and Pages worker; keep login/challenge CSP tests passing.
 
 ## Change checklist
 
@@ -90,12 +136,19 @@ code or embed SQL in route handlers when a repository already owns that domain.
 4. If persistence changes, add a migration, repository mapping, and shared type
    as applicable.
 5. Keep public and authenticated route behavior explicit.
-6. Run `pnpm typecheck`. Run `pnpm build` when build scripts, generated SEO
+6. Run `pnpm check` (types, lint, structure regression, covered unit tests,
+   Worker/D1 integration, Chromium, dependency audit). Install Chromium once with
+   `pnpm setup:test`. Run `pnpm build` when build scripts, generated SEO
    assets, routing, or deployment behavior changes.
 
-There is currently no general unit-test suite. Do not claim test coverage from a
-successful typecheck. Auth has an opt-in integration check documented in
-`docs/auth-integration-test.md`.
+Tests and commands are documented in `DEVELOPMENT.md`. `pnpm test` runs Node
+and ephemeral Worker/D1 tests; `pnpm test:browser` runs Chromium with an isolated
+API, and both prepare shared artifacts. Test fixtures must never use production
+D1, credentials, or real notifications. Coverage thresholds apply only to the
+listed core modules, not the whole project or workerd. Production deploy commands
+also run read-only smoke checks after publishing. Do not equate typecheck/build
+success with behavioral coverage. The legacy `test-candidate` and `test-tiering`
+commands are experiments, not test suites.
 
 ## Conventions and pitfalls
 
@@ -111,41 +164,36 @@ successful typecheck. Auth has an opt-in integration check documented in
   metadata and fallback behavior when modifying price services.
 - Never commit `.dev.vars`, `.env`, tokens, Google credentials, or webhook URLs.
 
-## Judgment Diary vs. Positions/Granaries
+## Domain-specific guardrails
 
-Two largely independent halves of the app, both under the same auth:
-- **Granary/Snapshot/Position**: the actual asset-tracking data model (README's "곳간" concept) — purpose-based asset buckets, periodic value snapshots, individual holdings with live-quote enrichment (`services/market-price.ts`, FSC API for KR tickers falling back to Yahoo Finance) and technical indicators (`services/technical-indicators.ts`, Yahoo Finance only, D1-cached 6h TTL via `gk_quote_cache`). `gk_cash_flows` (per-granary DEPOSIT/WITHDRAWAL ledger, `CashFlowManager.tsx` on the granary detail page) records external cash flows separately from Snapshots — this exists so a granary's total-value change can eventually be split into "money the user added/removed" vs. "actual investment performance" (time-weighted return), since a naive snapshot-to-snapshot % comparison conflates the two. No TWR calculation is implemented yet; this is just the ledger.
-- **Judgment Diary**: a public, append-mostly decision log (`gk_judgment_diary_entries`). Entries are meant to record a decision *and its reasoning at the time it was made* (`title`/`summary`/`mainContent`/`action`); the schema also has later-review fields (`outcome`, `whatWasRight`, `lesson`, etc.) but **no UI currently exposes them** — only create/edit of the decision-time fields exists in `JudgmentDiaryForm.tsx`. Treat this distinction as load-bearing: don't casually add "outcome" UI without confirming that's actually wanted, since the diary's whole purpose (per README) is publishing judgment criteria before the fact, not narrating results after.
+- Snapshot changes can include deposits/withdrawals. Keep cash flows separate;
+  the detail page adjusts changes for those flows, but does not calculate TWR.
+- The judgment diary records reasoning at decision time. Later-review fields
+  exist in storage but have no UI; do not introduce outcome editing casually.
+- Alert conditions live in `services/alert-rules.ts`. Production and simulation
+  share these rules and indicator math. Alerts fire on event transitions;
+  `WARN_*` observes, while `SELL_001`/`BUY_001` are actionable.
+- A `ruleId` rename needs a matching `gk_alert_rule_state` migration. Historical
+  alert logs retain old IDs, so historical queries must account for both.
+- Five scheduled jobs live outside this repository. Preserve diary `assets`,
+  `GET /positions/indicators/series`, `POST /automation/discord-notify`, and
+  positions/snapshots sync contracts. Discord automation requires a scoped
+  `X-API-Secret` caller, not a browser session.
 
-## Alert engine (`services/alert-engine.ts`)
+Read [docs/DOMAIN_OPERATIONS.md](docs/DOMAIN_OPERATIONS.md) for rule history,
+simulation interpretation and the five external jobs before changing those areas.
+Large screens use domain folders under `apps/web/src/components`: `granary-detail`,
+`asset-goal`, `position-form`, and `snapshot-form`. Page files compose their parts;
+keep loading hooks, calculations, and field groups with their owning domain.
 
-Runs on Cloudflare Cron Triggers (daily weekdays + Friday weekly, see `wrangler.toml` and the `scheduled()` handler in `apps/api/src/index.ts`) and evaluates event-transition rules (not state rules — see rule comments for why: a rule fires only on the moment a condition newly becomes true, tracked per symbol+rule in `gk_alert_rule_state`, deduped same-day via `gk_alert_sent`). Rules are defined inline in that file (`RULES` array) with `condition`/`message`/`action` per rule; adding a rule means adding an entry there, not a schema migration, unless it needs new indicator fields. Note the split between advisory and actionable rules: `WARN_*` ids are observations that deliberately do **not** direct trades (the momentum rules `WARN_SELL_001`/`WARN_BUY_001` sit here after firing 116x against 12 buys with half the symbols whipsawing), while `SELL_001`/`BUY_001` are the P0 trade triggers. `SELL_001` is the MA40 trend break; `BUY_001` is the weekly MACD momentum turn, which beat the MA40 reclaim in all four exit configurations across 34 held symbols (see the 2026-09-21 diary entry), so the MA40 reclaim now sits at `WARN_BUY_002` as an observation. `WARN_SELL_002` (급등 후 차익실현) is likewise observation-only: running it alongside `SELL_001` meant two rules each calling for a 50% sale and roughly halved returns on volatile names. Note when reading `gk_alert_log` that the event-transition state (`gk_alert_rule_state`) only arrived on 2026-06-21: fires before that date repeat weekly while a condition held, so any frequency comparison spanning it overstates the earlier period. `SELL_001` is the P0 sell trigger (the MA40 trend break, formerly `WARN_003`; the id previously belonged to the momentum rule and `gk_alert_log` was migrated so one id never denotes two rules). Renaming a `ruleId` requires migrating `gk_alert_rule_state` in the same change — that table is keyed by `(symbol, rule_id)` and orphaned state makes an event-transition rule re-fire spuriously. `gk_alert_log` keeps the historical ids on purpose, so queries spanning a rename must account for both. FX threshold rules reuse the same rule-state/dedup machinery and are user-managed (see `gk_settings` / the `/alerts` page) rather than hardcoded.
+## Data integrity and recovery
 
-### Rule simulator
-
-`apps/api/scripts/simulate.ts` (`pnpm --filter api simulate -- --symbols A,B --from 2021-06-01`)
-replays the P0 rules over historical bars. It imports `RULES` from
-`services/alert-rules.ts` and the indicator math from `services/technical-indicators.ts`
-rather than restating either, so a rule change is reflected in the simulation
-automatically — that is why those two modules are kept free of D1 and network
-imports. Do not give the simulator its own copy of a condition.
-
-A companion, `scripts/compare-entries.ts` (`pnpm --filter api compare-entries -- --symbols 133690.KS`), pits entry rules against each other on CAGR/MDD/Sharpe/win rate/entry lag/exposure/trade count with the exit held constant. It forces `position = 0` when generating signals, because `WARN_BUY_001` carries a `position === 0` condition that would otherwise let it fire once and never again against a sell rule that only halves a holding — that normalisation exists to compare entry timing, and does not change production.
-
-Read its output with the entry-controlled column ("규칙 효과"), not the
-whole-period hold: a rules strategy is out of the market until its first signal,
-so comparing it to a hold that started on day one mostly measures time in market.
-Measured over 2021-06 onward, the rules cost roughly 30%p against holding on
-names that trended up and saved roughly 15-40%p on names that fell — they cap
-both tails, so the net depends on what is in the book.
-
-## External automation depending on this API
-
-Five scheduled jobs run **outside this repo**, on the operator's own machine (`~/gokkan-keeper-automation/`, launchd-based, not part of this codebase or its deploys):
-- **Weekly** (Saturdays): reads **all** Judgment Diary entries whose title contains "메가트렌드 후보군" and belong to the current quarter (a mid-quarter addition gets its own new entry, e.g. title suffixed "- K-뷰티 글로벌 밸류체인 편입", rather than editing the original — edits would rewrite the historical record of what was decided when), unions their `assets` fields (`{type, tickerOrName}[]`, deduped) into the ticker list, pulls indicator series via `GET /positions/indicators/series`, and posts a report to Discord via `POST /automation/discord-notify`. Implements the "megatrend candidate pool" investment process from the README's judgment philosophy. Its RSI overbought/oversold thresholds come from `GET /settings` (`weekly_report_rsi_overbought`/`_oversold`, editable on the `/alerts` page) rather than being hardcoded in the prompt. Also always includes a fixed crypto watchlist (BTC-USD/ETH-USD/DOGE-USD) hardcoded in the prompt template, independent of the quarterly candidate rotation. KR tickers are stored in `assets` with the Yahoo suffix already applied (e.g. `257720.KQ`) since this job's indicator calls don't pass a `market` param.
-- **Quarterly** (Jan/Apr/Jul/Oct 1st): researches candidate megatrends and registers a new Judgment Diary entry (`action: WATCH`) with `assets` populated, authenticated via `X-API-Secret`.
-- **Annual** (mid-August): registers a separate Judgment Diary entry summarizing the National Pension Service's (국민연금) latest disclosed domestic/overseas equity holdings, title pattern "{연도}년 {분기}분기 국민연금 보유종목 동향" (deliberately distinct from the megatrend title pattern so the weekly job's title match doesn't pick it up). Runs yearly, not quarterly, because NPS only discloses stock-level holdings once a year (year-end snapshot, published the following Q3) despite having separate lighter quarterly/monthly aggregate disclosures.
-- **Weekly** (Saturdays, 10 min after the candidate report): `toss-sync.mjs` — a plain deterministic Node script (not an LLM agent; this is mechanical ETL, not research/judgment) that pulls the operator's real Toss Securities brokerage account (holdings + cash, in both USD and KRW — cash can sit in either) via the official Toss OpenAPI (`https://openapi.tossinvest.com`, OAuth2 client-credentials) and upserts Positions + a Snapshot into the "비상금 (토스)" granary via this app's own API. Toss's API is IP-allowlisted, which is why this specifically has to run from the operator's own machine rather than Cloudflare Workers (Workers has no fixed egress IP without an enterprise contract).
-- **Weekly** (Saturdays, 15 min after the candidate report): `upbit-sync.mjs` — same deterministic-ETL pattern as the Toss sync, but for the operator's real Upbit crypto holdings (BTC/ETH/DOGE — the same three coins the weekly candidate report and alert engine already track by symbol). Auth is a self-signed JWT (HS256, access key + nonce) per Upbit's API, no npm dependency needed. Updates the same BTC-USD/ETH-USD/DOGE-USD Positions in the "코인" granary that were originally created as 0-qty alert-engine placeholders, plus a Snapshot (holdings value + KRW cash).
-
-Practical implication for this repo: **`assets` on Judgment Diary entries, `GET /positions/indicators/series`, and `POST /automation/discord-notify` are a real external contract**, not unused surface — don't remove or change their shapes without accounting for that. `POST /automation/discord-notify` intentionally requires `X-API-Secret` specifically (checked in the handler, not just the generic auth middleware) so it can't be triggered by a logged-in browser session.
+Deploy migrations 0017–0020 before this API. D1 write guards protect calendar dates,
+amounts, flags and serialized arrays even for direct SQL. Granary currency is locked
+once snapshots, cash flows or positions exist. New cash-flow writes use integer
+minor units; preserve legacy REAL valuations and nullable exact-money fields.
+Position source identities are optional, immutable pairs; never deduplicate by symbol.
+Alert transitions and their outbox payloads must remain one D1 batch. Preserve retry
+leases and pending records during cleanup. Revisions contain private previous rows.
+Recovery and encrypted Gokkan-only backup commands are in DEVELOPMENT.md; never
+restore the shared production database as part of a routine coding change.

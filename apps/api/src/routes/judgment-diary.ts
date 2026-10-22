@@ -1,3 +1,4 @@
+import { internalError } from '../http/errors';
 import { Hono } from 'hono';
 import type { Env, Variables } from '../types';
 import { DBClient } from '../db/client';
@@ -5,6 +6,7 @@ import {
   CreateJudgmentDiaryEntrySchema,
   UpdateJudgmentDiaryEntrySchema,
   JUDGMENT_ACTIONS,
+  CalendarDateSchema,
   type JudgmentDiaryEntry,
 } from '@gokkan-keeper/shared';
 import { parseLimit } from '../utils/query';
@@ -24,6 +26,10 @@ judgmentDiaryRouter.get('/', async (c) => {
     ? actionQuery
     : undefined;
   const limit = parseLimit(c.req.query('limit'), 50, 200);
+
+  for (const value of [c.req.query('from'), c.req.query('to')]) {
+    if (value && !CalendarDateSchema.safeParse(value).success) return c.json({ error: 'Invalid calendar date' }, 400);
+  }
 
   const filters = {
     from: c.req.query('from') || undefined,
@@ -74,7 +80,7 @@ judgmentDiaryRouter.post('/', async (c) => {
     if (error.name === 'ZodError') {
       return c.json({ error: 'Validation error', details: error.errors }, 400);
     }
-    return c.json({ error: error.message || 'Internal server error' }, 500);
+    return internalError(c, error);
   }
 });
 
@@ -95,6 +101,6 @@ judgmentDiaryRouter.put('/:id', async (c) => {
     if (error.message?.includes('not found')) {
       return c.json({ error: error.message }, 404);
     }
-    return c.json({ error: error.message || 'Internal server error' }, 500);
+    return internalError(c, error);
   }
 });

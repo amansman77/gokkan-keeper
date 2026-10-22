@@ -36,7 +36,7 @@ export default function EditPosition() {
       }
     }
 
-    loadData();
+    void loadData();
   }, [id]);
 
   if (loading) {
@@ -79,7 +79,7 @@ export default function EditPosition() {
     setError(null);
     try {
       const updated = await updatePosition(id, data);
-      navigate(updated.granaryId ? `/granaries/${updated.granaryId}` : '/');
+      void navigate(updated.granaryId ? `/granaries/${updated.granaryId}` : '/');
     } catch (err: any) {
       setError(err.message || '포지션 수정에 실패했습니다.');
     } finally {

@@ -41,7 +41,7 @@ export default function EditGranary() {
         setLoading(false);
       }
     }
-    loadData();
+    void loadData();
   }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,7 +53,7 @@ export default function EditGranary() {
 
     try {
       const updated = await updateGranary(id, formData);
-      navigate(`/granaries/${updated.id}`);
+      void navigate(`/granaries/${updated.id}`);
     } catch (err: any) {
       setError(err.message || '곳간 수정에 실패했습니다.');
     } finally {

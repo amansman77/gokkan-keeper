@@ -5,27 +5,33 @@
   "scripts": {
     "dev": "wrangler dev",
     "build": "tsc --noEmit",
-    "deploy": "wrangler deploy --env production",
-    "deploy:preview": "wrangler deploy",
+    "deploy": "node ../../scripts/deploy.mjs api",
+    "deploy:preview": "node ../../scripts/deploy.mjs api preview",
     "migrate": "wrangler d1 migrations apply shared-db --remote",
     "migrate:local": "wrangler d1 migrations apply shared-db --local",
-    "typecheck": "tsc --noEmit",
-    "test:auth:integration": "bash ./scripts/auth-integration-test.sh",
-    "simulate": "tsx scripts/simulate.ts",
-    "compare-entries": "tsx scripts/compare-entries.ts",
-    "compare-exits": "tsx scripts/compare-exits.ts",
-    "lead-lag": "tsx scripts/lead-lag.ts",
-    "test-candidate": "tsx scripts/test-candidate.ts",
-    "test-tiering": "tsx scripts/test-tiering.ts"
+    "typecheck": "tsc --noEmit && pnpm run typecheck:scripts",
+    "test:auth:integration": "bash ./scripts/checks/auth-integration-test.sh",
+    "simulate": "tsx scripts/simulation/simulate.ts",
+    "compare-entries": "tsx scripts/simulation/compare-entries.ts",
+    "compare-exits": "tsx scripts/simulation/compare-exits.ts",
+    "lead-lag": "tsx scripts/simulation/lead-lag.ts",
+    "test-candidate": "tsx scripts/experiments/compare-candidate-entries.ts",
+    "test-tiering": "tsx scripts/experiments/compare-buy-sizing.ts",
+    "typecheck:scripts": "tsc --project tsconfig.scripts.json",
+    "test:boundaries": "pnpm --filter shared build && node --import tsx --test scripts/checks/*.test.ts",
+    "test:integration": "pnpm --filter shared build && node --import tsx --test scripts/checks/integration/*.test.ts"
   },
   "dependencies": {
     "@gokkan-keeper/shared": "workspace:*",
-    "hono": "^4.0.0"
+    "hono": "^4.13.13",
+    "jose": "^6"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260317.1",
-    "tsx": "^4.23.13",
-    "typescript": "^5.3.3",
-    "wrangler": "^4.76.0"
+    "@cloudflare/workers-types": "^5.20261008.1",
+    "esbuild": "^0.28.2",
+    "miniflare": "5.20261006.1-alpha",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.149.0"
   }
 }

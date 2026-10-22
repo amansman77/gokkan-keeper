@@ -10,6 +10,13 @@ Gokkan Keeper는
 개발 시 사용하는 정식 도메인 용어와 필드 의미는
 [Domain glossary](docs/DOMAIN_GLOSSARY.md)를 참고하세요.
 
+개발 문서는 역할에 따라 읽습니다:
+
+* [AGENTS.md](AGENTS.md): 코드 구조, 작업 규칙, 외부 API 계약
+* [DEVELOPMENT.md](DEVELOPMENT.md): 로컬 설정, Google 인증 설정, Cloudflare 배포
+* [Design system](docs/DESIGN_SYSTEM.md): 화면 색상과 타이포그래피 기준
+* [Auth integration test](docs/auth-integration-test.md): 인증 통합 검사 실행
+
 ## 🧭 What is Gokkan Keeper?
 
 **Gokkan Keeper(곶간 지기)** 는
@@ -66,7 +73,7 @@ Gokkan Keeper는 질문을 바꿉니다.
 곳간은 단순한 카테고리가 아니라
 “지켜야 할 역할”을 가진 단위입니다.
 
-### 2️⃣ 곶간 지기 (Keeper)
+### 2️⃣ 곶간 지기의 역할
 
 곶간 지기는:
 
@@ -134,7 +141,7 @@ Gokkan Keeper는
 구조를 드러내며,
 장기 생존을 우선하는 도구입니다.
 
-## 🧩 공개 기록과의 연결
+## 🧩 판단일지와의 연결
 
 Gokkan Keeper는
 개인 자산 기록 도구입니다.
@@ -153,7 +160,7 @@ Gokkan Keeper는
 * [x] Core data model
 * [x] Manual snapshot input
 * [x] Granary status summary
-* [x] 판단일지 및 공개 기록 (트랙레코드)
+* [x] 판단일지 및 공개 포트폴리오
 
 ## 📄 License
 

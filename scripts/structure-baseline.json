@@ -1,0 +1,244 @@
+{
+  "version": 1,
+  "sourceCommit": "27ddb71933142c7c1a92781647faf18436360aee",
+  "policy": "Reviewed residual findings only; never automatically expand exceptions. Remove resolved entries when refactoring.",
+  "exceptions": {
+    "apps/api/scripts/checks/fsc-quote-probe.mjs|complexity|Async function 'callOperation' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        17
+      ],
+      "reason": "Existing operational experiment/probe. No runtime growth allowed."
+    },
+    "apps/api/scripts/simulation/compare-exits.ts|max-statements|Function 'simulate' has too many statements (#). Maximum allowed is 50.": {
+      "values": [
+        61
+      ],
+      "reason": "Existing operational experiment/probe. No runtime growth allowed."
+    },
+    "apps/api/scripts/simulation/compare-exits.ts|complexity|Function 'simulate' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        26
+      ],
+      "reason": "Existing operational experiment/probe. No runtime growth allowed."
+    },
+    "apps/api/scripts/simulation/compare-exits.ts|max-depth|Blocks are nested too deeply (#). Maximum allowed is 4.": {
+      "values": [
+        7,
+        6,
+        5
+      ],
+      "reason": "Existing operational experiment/probe. No runtime growth allowed."
+    },
+    "apps/api/scripts/simulation/simulate.ts|complexity|Async function 'fetchDailyBars' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        17
+      ],
+      "reason": "Existing operational experiment/probe. No runtime growth allowed."
+    },
+    "apps/api/scripts/simulation/simulate.ts|complexity|Function 'simulateSymbol' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        20
+      ],
+      "reason": "Existing operational experiment/probe. No runtime growth allowed."
+    },
+    "apps/api/scripts/simulation/simulate.ts|max-depth|Blocks are nested too deeply (#). Maximum allowed is 4.": {
+      "values": [
+        5
+      ],
+      "reason": "Existing operational experiment/probe. No runtime growth allowed."
+    },
+    "apps/api/src/auth/automation.ts|complexity|Function 'callers' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        20
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/api/src/auth/automation.ts|complexity|Function 'permitsAutomation' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        19
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/api/src/auth/session.ts|complexity|Async function 'readSessionFromCookie' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        20
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/api/src/db/mappers.ts|complexity|Function 'transformPosition' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        19
+      ],
+      "reason": "Existing explicit field mapping; preserve null/undefined and persistence semantics. Review separately."
+    },
+    "apps/api/src/db/repositories/judgment-diary-repository.ts|complexity|Async method 'createJudgmentDiaryEntry' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        22
+      ],
+      "reason": "Existing explicit field mapping; preserve null/undefined and persistence semantics. Review separately."
+    },
+    "apps/api/src/db/repositories/judgment-diary-repository.ts|complexity|Async method 'updateJudgmentDiaryEntry' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        46
+      ],
+      "reason": "Existing explicit field mapping; preserve null/undefined and persistence semantics. Review separately."
+    },
+    "apps/api/src/db/repositories/position-repository.ts|complexity|Async method 'createPosition' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        22
+      ],
+      "reason": "Existing explicit field mapping; preserve null/undefined and persistence semantics. Review separately."
+    },
+    "apps/api/src/db/repositories/position-repository.ts|complexity|Async method 'updatePosition' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        35
+      ],
+      "reason": "Existing explicit field mapping; preserve null/undefined and persistence semantics. Review separately."
+    },
+    "apps/api/src/routes/settings.ts|complexity|Async arrow function has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        16
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/api/src/services/alert-engine.ts|complexity|Function 'indicatorLog' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        23
+      ],
+      "reason": "Existing explicit field mapping; preserve null/undefined and persistence semantics. Review separately."
+    },
+    "apps/api/src/services/alert-engine.ts|complexity|Function 'buildIndicatorFields' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        26
+      ],
+      "reason": "Existing explicit field mapping; preserve null/undefined and persistence semantics. Review separately."
+    },
+    "apps/api/src/services/consulting-request.ts|max-params|Async function 'sendDiscordNotification' has too many parameters (#). Maximum allowed is 5.": {
+      "values": [
+        7
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/api/src/services/market-indices.ts|complexity|Async function 'fetchIndexWeeklySeries' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        17
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/api/src/services/market-indices.ts|complexity|Async function 'fetchIndexQuote' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        22
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/api/src/services/public-portfolio.ts|max-lines-per-function|Async function 'buildPublicPortfolioResponse' has too many lines (#). Maximum allowed is 100.": {
+      "values": [
+        112
+      ],
+      "reason": "Existing JSX screen outside the prioritized refactor. No size growth allowed."
+    },
+    "apps/api/src/services/public-portfolio.ts|complexity|Arrow function has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        18
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/api/src/services/quote-cache.ts|complexity|Function 'normalizeCachedQuote' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        17
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/api/src/services/technical-indicators.ts|complexity|Async function 'fetchOhlcvRows' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        22
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/api/src/services/technical-indicators.ts|max-params|Async function 'getTechnicalIndicatorSeries' has too many parameters (#). Maximum allowed is 5.": {
+      "values": [
+        6
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/web/server/worker.ts|max-depth|Blocks are nested too deeply (#). Maximum allowed is 4.": {
+      "values": [
+        5,
+        5
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/web/src/App.tsx|max-lines-per-function|Function 'AppContent' has too many lines (#). Maximum allowed is 100.": {
+      "values": [
+        124
+      ],
+      "reason": "Existing JSX screen outside the prioritized refactor. No size growth allowed."
+    },
+    "apps/web/src/components/AlertThresholdManager.tsx|max-lines-per-function|Function 'AlertThresholdManager' has too many lines (#). Maximum allowed is 100.": {
+      "values": [
+        163
+      ],
+      "reason": "Existing JSX screen outside the prioritized refactor. No size growth allowed."
+    },
+    "apps/web/src/components/JudgmentDiaryForm.tsx|max-lines-per-function|Function 'JudgmentDiaryForm' has too many lines (#). Maximum allowed is 100.": {
+      "values": [
+        102
+      ],
+      "reason": "Existing JSX screen outside the prioritized refactor. No size growth allowed."
+    },
+    "apps/web/src/components/TechnicalIndicators.tsx|complexity|Function 'TechnicalIndicators' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        17
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/web/src/components/consulting/ConsultingRequestForm.tsx|max-lines-per-function|Function 'ConsultingRequestForm' has too many lines (#). Maximum allowed is 100.": {
+      "values": [
+        122
+      ],
+      "reason": "Existing JSX screen outside the prioritized refactor. No size growth allowed."
+    },
+    "apps/web/src/pages/Dashboard.tsx|max-lines-per-function|Function 'Dashboard' has too many lines (#). Maximum allowed is 100.": {
+      "values": [
+        113
+      ],
+      "reason": "Existing JSX screen outside the prioritized refactor. No size growth allowed."
+    },
+    "apps/web/src/pages/EditGranary.tsx|max-lines-per-function|Function 'EditGranary' has too many lines (#). Maximum allowed is 100.": {
+      "values": [
+        174
+      ],
+      "reason": "Existing JSX screen outside the prioritized refactor. No size growth allowed."
+    },
+    "apps/web/src/pages/EditPosition.tsx|complexity|Function 'EditPosition' has a complexity of #. Maximum allowed is 15.": {
+      "values": [
+        16
+      ],
+      "reason": "Existing runtime branching outside the prioritized refactor. No complexity/depth/parameter growth allowed."
+    },
+    "apps/web/src/pages/JudgmentDiaryDetail.tsx|max-lines-per-function|Function 'JudgmentDiaryDetail' has too many lines (#). Maximum allowed is 100.": {
+      "values": [
+        179
+      ],
+      "reason": "Existing JSX screen outside the prioritized refactor. No size growth allowed."
+    },
+    "apps/web/src/pages/NewCashFlow.tsx|max-lines-per-function|Function 'NewCashFlow' has too many lines (#). Maximum allowed is 100.": {
+      "values": [
+        137
+      ],
+      "reason": "Existing JSX screen outside the prioritized refactor. No size growth allowed."
+    },
+    "apps/web/src/pages/NewGranary.tsx|max-lines-per-function|Function 'NewGranary' has too many lines (#). Maximum allowed is 100.": {
+      "values": [
+        103
+      ],
+      "reason": "Existing JSX screen outside the prioritized refactor. No size growth allowed."
+    },
+    "apps/web/src/pages/PublicPortfolio.tsx|max-lines-per-function|Function 'PublicPortfolio' has too many lines (#). Maximum allowed is 100.": {
+      "values": [
+        203
+      ],
+      "reason": "Existing JSX screen outside the prioritized refactor. No size growth allowed."
+    }
+  }
+}

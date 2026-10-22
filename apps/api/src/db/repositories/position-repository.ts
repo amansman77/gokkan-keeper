@@ -1,13 +1,31 @@
+import type { PositionRow, SqlValue } from '../rows';
 import type { D1Database } from '@cloudflare/workers-types';
 import type {
   CreatePosition,
   Position,
-  PublicPortfolioResponse,
   UpdatePosition,
 } from '@gokkan-keeper/shared';
-import type { Env } from '../../types';
-import { buildPublicPortfolioResponse } from '../../services/public-portfolio';
 import { transformPosition } from '../mappers';
+
+export interface PublicPortfolioRow {
+  id: string;
+  granary_id: string | null;
+  granary_name: string | null;
+  granary_currency: string | null;
+  price_currency?: string | null;
+  market: string | null;
+  name: string;
+  symbol: string;
+  asset_type: string | null;
+  quantity: number | null;
+  avg_cost: number | null;
+  current_value: number | null;
+  profit_loss: number | null;
+  profit_loss_percent: number | null;
+  public_thesis: string | null;
+  public_order: number | null;
+  last_public_update: string | null;
+}
 
 export class PositionRepository {
   constructor(private readonly db: D1Database) {}
@@ -15,12 +33,12 @@ export class PositionRepository {
   async getPositions(granaryId?: string): Promise<Position[]> {
     const result = granaryId
       ? await this.db
-          .prepare('SELECT * FROM gk_positions WHERE granary_id = ? ORDER BY updated_at DESC')
+          .prepare('SELECT * FROM gk_positions WHERE granary_id = ? ORDER BY updated_at DESC, id DESC')
           .bind(granaryId)
-          .all<any>()
+          .all<PositionRow>()
       : await this.db
-          .prepare('SELECT * FROM gk_positions ORDER BY updated_at DESC')
-          .all<any>();
+          .prepare('SELECT * FROM gk_positions ORDER BY updated_at DESC, id DESC')
+          .all<PositionRow>();
 
     return (result.results || []).map(transformPosition);
   }
@@ -29,7 +47,7 @@ export class PositionRepository {
     const result = await this.db
       .prepare('SELECT * FROM gk_positions WHERE id = ?')
       .bind(id)
-      .first<any>();
+      .first<PositionRow>();
     return result ? transformPosition(result) : null;
   }
 
@@ -43,8 +61,9 @@ export class PositionRepository {
           id, granary_id, name, symbol, market, asset_type,
           quantity, avg_cost, current_value, weight_percent, target_weight_percent,
           profit_loss, profit_loss_percent, note,
-          is_public, public_thesis, public_order, last_public_update, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          is_public, public_thesis, public_order, last_public_update, created_at, updated_at, price_currency, source, source_record_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(source, source_record_id) WHERE source IS NOT NULL AND source_record_id IS NOT NULL DO NOTHING
       `)
       .bind(
         id,
@@ -67,10 +86,16 @@ export class PositionRepository {
         data.isPublic ? now : null,
         now,
         now,
+        data.priceCurrency ?? null,
+        data.source ?? null,
+        data.sourceRecordId ?? null,
       )
       .run();
 
-    const position = await this.getPositionById(id);
+    const stored = data.source && data.sourceRecordId
+      ? await this.db.prepare('SELECT * FROM gk_positions WHERE source = ? AND source_record_id = ?').bind(data.source, data.sourceRecordId).first<PositionRow>()
+      : null;
+    const position = stored ? transformPosition(stored) : await this.getPositionById(id);
     if (!position) throw new Error('Failed to create position');
     return position;
   }
@@ -80,10 +105,10 @@ export class PositionRepository {
     if (!existing) throw new Error('Position not found');
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: SqlValue[] = [];
     let publicFieldsChanged = false;
 
-    const updateField = (field: string, value: any) => {
+    const updateField = (field: string, value: SqlValue) => {
       updates.push(`${field} = ?`);
       values.push(value);
     };
@@ -91,6 +116,7 @@ export class PositionRepository {
     if (data.granaryId !== undefined) updateField('granary_id', data.granaryId ?? null);
     if (data.name !== undefined) updateField('name', data.name);
     if (data.symbol !== undefined) updateField('symbol', data.symbol);
+    if (data.priceCurrency !== undefined) updateField('price_currency', data.priceCurrency ?? null);
     if (data.market !== undefined) updateField('market', data.market ?? null);
     if (data.assetType !== undefined) updateField('asset_type', data.assetType ?? null);
     if (data.quantity !== undefined) updateField('quantity', data.quantity ?? null);
@@ -132,7 +158,7 @@ export class PositionRepository {
     await this.db.prepare('DELETE FROM gk_positions WHERE id = ?').bind(id).run();
   }
 
-  async getPublicPortfolioEntries(env?: Env): Promise<PublicPortfolioResponse> {
+  async getPublicPortfolioRows(): Promise<PublicPortfolioRow[]> {
     const result = await this.db
       .prepare(`
         SELECT
@@ -140,6 +166,7 @@ export class PositionRepository {
           p.granary_id,
           g.currency AS granary_currency,
           p.market,
+          p.price_currency,
           p.name,
           p.symbol,
           p.asset_type,
@@ -155,10 +182,10 @@ export class PositionRepository {
         FROM gk_positions p
         LEFT JOIN gk_granaries g ON p.granary_id = g.id
         WHERE p.is_public = 1
-        ORDER BY p.public_order ASC, p.updated_at DESC
+        ORDER BY p.public_order ASC, p.updated_at DESC, p.id DESC
       `)
-      .all<any>();
+      .all<PublicPortfolioRow>();
 
-    return buildPublicPortfolioResponse(result.results || [], env, this.db);
+    return result.results || [];
   }
 }
