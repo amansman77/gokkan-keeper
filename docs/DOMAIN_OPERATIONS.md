@@ -34,6 +34,39 @@ Measured over 2021-06 onward, the rules cost roughly 30%p against holding on
 names that trended up and saved roughly 15-40%p on names that fell — they cap
 both tails, so the net depends on what is in the book.
 
+### Portfolio backtests
+
+`apps/api/scripts/simulation/portfolio-backtest.ts` (`pnpm --filter api portfolio-backtest`)
+asks what the per-symbol scripts cannot: what the rules do to the whole book. It
+trades index ETFs (not today's holdings, to avoid survivorship bias) in KRW with
+a starting balance and monthly contribution, next-session fills and costs, and
+splits 2008-2018 (choose) from 2019- (verify). `--sleeves A,B,...` swaps in an
+equal-weight stock basket, where a sleeve's signal trades only that sleeve.
+`robustness.ts` (`pnpm --filter api robustness -- --samples 300 --cache <dir>`)
+sweeps the trend filter's window, draws random baskets from an ex-ante pool
+(2010's large caps), adds the dot-com, 2011 Korean cyclical and 2015 Korean
+biotech regimes, and models the 22% overseas-gains tax. Both share
+`backtest-engine.ts` (data, accounting) and `backtest-strategies.ts`, which
+imports `RULES` rather than restating them. The live rules see raw quote OHLC,
+as production computes them, while valuation uses dividend-adjusted prices;
+alert actions are sized off the actual holding (SELL_001 sells half of what is
+held, BUY_001 adds a 25% unit), sale proceeds stay cash until a buy, each sleeve
+fills on its own exchange's next session, and tax is part of the return series.
+Two data traps are handled: Yahoo's `range=max` silently returns monthly bars,
+and `069500.KS` has no closes before 2009, so KOSPI is spliced in.
+
+Results as of 2026-10 (data to 2026-10-12; production alerts left unchanged):
+- Index core, 2008-: the alerts trail an annually rebalanced hold by ~3.3%p/yr
+  (11.1% vs 14.4% CAGR) while cutting MDD from -34% to -22%; buying the whole
+  sleeve back on BUY_001 recovers about a third of that gap.
+- Satellite stocks: a monthly 10-month-SMA full in/out filter looked better on
+  three hand-picked baskets, but across 300 random baskets it trades return for
+  drawdown (-1.7%p CAGR, +9%p MDD vs the alerts, better Sharpe in 70%). It wins
+  where a basket crashes and stays down (2021 hype names, dot-com) and loses
+  where volatile names whipsaw but end higher (2015-19 biotech: 1.6% vs 11.4%).
+  Its window (6-14 months) barely matters; the weekly MA40 variants are worse.
+  Treat it as crash insurance with a price, not a better rule.
+
 ## External automation depending on this API
 
 Five scheduled jobs run **outside this repo**, on the operator's own machine (`~/gokkan-keeper-automation/`, launchd-based, not part of this codebase or its deploys):

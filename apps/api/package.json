@@ -15,6 +15,8 @@
     "compare-entries": "tsx scripts/simulation/compare-entries.ts",
     "compare-exits": "tsx scripts/simulation/compare-exits.ts",
     "lead-lag": "tsx scripts/simulation/lead-lag.ts",
+    "portfolio-backtest": "tsx scripts/simulation/portfolio-backtest.ts",
+    "robustness": "tsx scripts/simulation/robustness.ts",
     "test-candidate": "tsx scripts/experiments/compare-candidate-entries.ts",
     "test-tiering": "tsx scripts/experiments/compare-buy-sizing.ts",
     "typecheck:scripts": "tsc --project tsconfig.scripts.json",
