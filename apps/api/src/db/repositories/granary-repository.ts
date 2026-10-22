@@ -1,3 +1,4 @@
+import type { GranaryRow, SqlValue, SnapshotRow } from '../rows';
 import type { D1Database } from '@cloudflare/workers-types';
 import type { CreateGranary, Granary, Snapshot, UpdateGranary } from '@gokkan-keeper/shared';
 import { transformGranary, transformSnapshot } from '../mappers';
@@ -7,8 +8,8 @@ export class GranaryRepository {
 
   async getAllGranaries(): Promise<Granary[]> {
     const result = await this.db
-      .prepare('SELECT * FROM gk_granaries ORDER BY created_at DESC')
-      .all<any>();
+      .prepare('SELECT * FROM gk_granaries ORDER BY created_at DESC, id DESC')
+      .all<GranaryRow>();
     return (result.results || []).map(transformGranary);
   }
 
@@ -18,20 +19,18 @@ export class GranaryRepository {
 
     const rankedSnapshots = await this.db
       .prepare(`
-        SELECT *
-        FROM (
-          SELECT
-            s.*,
-            ROW_NUMBER() OVER (PARTITION BY s.granary_id ORDER BY s.date DESC) AS snapshot_rank
-          FROM gk_snapshots s
+        SELECT s.*, CASE WHEN s.id = (
+          SELECT id FROM gk_snapshots WHERE granary_id = g.id ORDER BY date DESC LIMIT 1
+        ) THEN 1 ELSE 2 END AS snapshot_rank
+        FROM gk_granaries g JOIN gk_snapshots s ON s.id IN (
+          SELECT id FROM gk_snapshots WHERE granary_id = g.id ORDER BY date DESC LIMIT 2
         )
-        WHERE snapshot_rank <= 2
       `)
-      .all<any>();
+      .all<SnapshotRow & { snapshot_rank: number }>();
 
     const snapshotsByGranary = new Map<string, { latestSnapshot?: Snapshot; previousSnapshot?: Snapshot }>();
     for (const row of rankedSnapshots.results || []) {
-      const granaryId = row.granary_id as string;
+      const granaryId = row.granary_id;
       const existing = snapshotsByGranary.get(granaryId) ?? {};
       const snapshot = transformSnapshot(row);
       if (row.snapshot_rank === 1) existing.latestSnapshot = snapshot;
@@ -50,7 +49,7 @@ export class GranaryRepository {
     const result = await this.db
       .prepare('SELECT * FROM gk_granaries WHERE id = ?')
       .bind(id)
-      .first<any>();
+      .first<GranaryRow>();
     return result ? transformGranary(result) : null;
   }
 
@@ -89,7 +88,7 @@ export class GranaryRepository {
     if (!existing) throw new Error('Granary not found');
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: SqlValue[] = [];
     let publicFieldsChanged = false;
 
     if (data.name !== undefined) {
@@ -148,7 +147,7 @@ export class GranaryRepository {
         ORDER BY last_snapshot_date ASC NULLS FIRST
         LIMIT 1
       `)
-      .first<any>();
+      .first<GranaryRow & { last_snapshot_date: string | null }>();
 
     if (!result) return null;
 

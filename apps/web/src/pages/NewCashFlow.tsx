@@ -36,7 +36,7 @@ export default function NewCashFlow() {
         ...formData,
         memo: formData.memo || undefined,
       });
-      navigate(granaryIdParam ? `/granaries/${granaryIdParam}` : '/dashboard');
+      void navigate(granaryIdParam ? `/granaries/${granaryIdParam}` : '/dashboard');
     } catch (err: any) {
       setError(err.message || '입출금 기록 등록에 실패했습니다.');
       setLoading(false);

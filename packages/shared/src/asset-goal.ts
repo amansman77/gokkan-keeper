@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CalendarDateSchema } from './calendar-date';
 import { GRANARY_PURPOSES } from './constants';
 
 /**
@@ -36,7 +37,7 @@ export const AssetGoalPlanSchema = z.object({
   targetAnnualReturn: z.number().min(-0.5).max(1).optional(),
   /** Starting point the expected/target paths are measured from. */
   baseline: z
-    .object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), amount: z.number().min(0) })
+    .object({ date: CalendarDateSchema, amount: z.number().min(0) })
     .optional(),
 });
 

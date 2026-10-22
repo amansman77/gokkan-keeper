@@ -4,3 +4,6 @@ export * from './constants';
 export * from './utils';
 
 export * from './asset-goal';
+export * from './proxy-attestation';
+export * from './calendar-date';
+export * from './money';

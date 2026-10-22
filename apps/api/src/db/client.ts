@@ -12,7 +12,6 @@ import type {
   JudgmentDiaryEntry,
   JudgmentDiaryListFilters,
   Position,
-  PublicPortfolioResponse,
   Snapshot,
   UpdateAlertThreshold,
   UpdateCashFlow,
@@ -21,10 +20,9 @@ import type {
   UpdatePosition,
   UpdateSnapshot,
 } from '@gokkan-keeper/shared';
-import type { Env } from '../types';
 import { GranaryRepository } from './repositories/granary-repository';
 import { JudgmentDiaryRepository } from './repositories/judgment-diary-repository';
-import { PositionRepository } from './repositories/position-repository';
+import { PositionRepository, type PublicPortfolioRow } from './repositories/position-repository';
 import { SnapshotRepository } from './repositories/snapshot-repository';
 import { AlertLogRepository } from './repositories/alert-log-repository';
 import type { AlertLogEntry } from './repositories/alert-log-repository';
@@ -125,8 +123,8 @@ export class DBClient {
     return this.positions.deletePosition(id);
   }
 
-  getPublicPortfolioEntries(env?: Env): Promise<PublicPortfolioResponse> {
-    return this.positions.getPublicPortfolioEntries(env);
+  getPublicPortfolioRows(): Promise<PublicPortfolioRow[]> {
+    return this.positions.getPublicPortfolioRows();
   }
 
   getJudgmentDiaryEntries(filters: JudgmentDiaryListFilters = {}): Promise<JudgmentDiaryEntry[]> {

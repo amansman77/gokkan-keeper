@@ -1,3 +1,4 @@
+import { internalError } from '../http/errors';
 import { Hono } from 'hono';
 import type { Env } from '../types';
 import { DBClient } from '../db/client';
@@ -56,7 +57,7 @@ snapshotsRouter.post('/', async (c) => {
     if (error.message?.includes('already exists')) {
       return c.json({ error: error.message }, 409);
     }
-    return c.json({ error: error.message || 'Internal server error' }, 500);
+    return internalError(c, error);
   }
 });
 
@@ -74,19 +75,6 @@ snapshotsRouter.put('/:id', async (c) => {
       return c.json({ error: 'Snapshot not found' }, 404);
     }
     
-    // If date is being updated, check for unique constraint
-    if (validated.date && validated.date !== existing.date) {
-      // Check if another snapshot exists with the same granary_id and date
-      const checkResult = await c.env.DB
-        .prepare('SELECT id FROM gk_snapshots WHERE granary_id = ? AND date = ? AND id != ?')
-        .bind(existing.granaryId, validated.date, id)
-        .first();
-      
-      if (checkResult) {
-        return c.json({ error: 'Snapshot already exists for this granary and date' }, 409);
-      }
-    }
-    
     const snapshot = await db.updateSnapshot(id, validated);
     
     return c.json(snapshot);
@@ -97,6 +85,6 @@ snapshotsRouter.put('/:id', async (c) => {
     if (error.message?.includes('already exists')) {
       return c.json({ error: error.message }, 409);
     }
-    return c.json({ error: error.message || 'Internal server error' }, 500);
+    return internalError(c, error);
   }
 });

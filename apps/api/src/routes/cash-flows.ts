@@ -1,3 +1,4 @@
+import { internalError } from '../http/errors';
 import { Hono } from 'hono';
 import type { Env } from '../types';
 import { DBClient } from '../db/client';
@@ -32,7 +33,8 @@ cashFlowsRouter.post('/', async (c) => {
     if (error.name === 'ZodError') {
       return c.json({ error: 'Validation error', details: error.errors }, 400);
     }
-    return c.json({ error: error.message || 'Internal server error' }, 500);
+    if (error instanceof RangeError) return c.json({ error: error.message }, 400);
+    return internalError(c, error);
   }
 });
 
@@ -51,7 +53,8 @@ cashFlowsRouter.patch('/:id', async (c) => {
     if (error.message?.includes('not found')) {
       return c.json({ error: error.message }, 404);
     }
-    return c.json({ error: error.message || 'Internal server error' }, 500);
+    if (error instanceof RangeError) return c.json({ error: error.message }, 400);
+    return internalError(c, error);
   }
 });
 

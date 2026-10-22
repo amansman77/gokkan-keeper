@@ -45,8 +45,7 @@ export default function AlertThresholdManager() {
   }
 
   useEffect(() => {
-    loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void loadAll();
   }, []);
 
   async function handleCreate(e: React.FormEvent) {

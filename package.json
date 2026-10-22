@@ -6,20 +6,49 @@
   "scripts": {
     "dev": "pnpm --filter web dev & pnpm --filter api dev",
     "build": "pnpm --filter shared build && pnpm --filter web build && pnpm --filter api build",
-    "deploy:prod": "pnpm build && pnpm --filter api run deploy && pnpm --filter web run deploy",
-    "deploy:prod:api": "pnpm --filter api run deploy",
-    "deploy:prod:web": "pnpm --filter web run deploy",
+    "deploy:prod": "node scripts/deploy.mjs all",
+    "deploy:prod:api": "node scripts/deploy.mjs api",
+    "deploy:prod:web": "node scripts/deploy.mjs web",
     "typecheck": "pnpm --filter shared build && pnpm --filter shared typecheck && pnpm --filter web typecheck && pnpm --filter api typecheck",
-    "setup": "nvm install 18.20.0 && nvm use && corepack enable && corepack prepare pnpm@latest --activate && pnpm install && pnpm --filter shared build",
+    "setup": "nvm install && nvm use && corepack enable && corepack prepare pnpm@10.7.0 --activate && pnpm install && pnpm --filter shared build",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist packages/*/dist",
-    "migrate:local": "cd apps/api && pnpm migrate:local"
+    "migrate:local": "cd apps/api && pnpm migrate:local",
+    "lint": "eslint . --max-warnings 0 && bash -n apps/api/scripts/checks/auth-integration-test.sh",
+    "audit:dependencies": "node scripts/check-dependencies.mjs",
+    "check": "pnpm typecheck && pnpm lint && pnpm check:structure && pnpm test && pnpm test:browser && pnpm audit:dependencies",
+    "test:boundaries": "pnpm --filter shared build && node --test scripts/*.test.mjs && pnpm --filter api test:boundaries",
+    "test": "node scripts/run-tests.mjs",
+    "test:integration": "pnpm --filter shared build && pnpm --filter api test:integration",
+    "test:browser": "pnpm --filter shared build && VITE_GOOGLE_CLIENT_ID=fixture.apps.googleusercontent.com VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA VITE_API_BASE_URL=/api pnpm --filter web exec vite build --outDir ../../test-results/web-browser-fixture && PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
+    "test:coverage": "pnpm --filter shared build && c8 --all --src=apps/api/src --src=packages/shared/src --include=\"apps/api/src/auth/session.ts\" --include=\"apps/api/src/services/alert-rules.ts\" --include=\"apps/api/src/services/technical-indicators.ts\" --include=\"apps/api/src/services/market-price.ts\" --include=\"apps/api/src/services/yahoo-finance.ts\" --include=\"apps/api/src/services/fsc-stock-price.ts\" --include=\"apps/api/src/services/quote-cache.ts\" --include=\"packages/shared/src/utils.ts\" --include=\"apps/api/src/auth/google.ts\" --include=\"apps/api/src/auth/automation.ts\" --include=\"apps/api/src/http/origins.ts\" --include=\"apps/api/src/middleware/security.ts\" --include=\"apps/api/src/services/turnstile.ts\" --include=\"apps/api/src/services/image-validation.ts\" --include=\"apps/api/src/db/repositories/security-repository.ts\" --include=\"packages/shared/src/proxy-attestation.ts\" --check-coverage --lines=70 --branches=65 --functions=65 --reporter=text --reporter=lcov --reporter=html --reporter=json-summary --reports-dir=coverage/api pnpm --filter api exec node --import tsx --test scripts/checks/*.test.ts",
+    "setup:test": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium",
+    "smoke:prod": "node scripts/production-smoke.mjs",
+    "check:structure": "node scripts/check-structure.mjs"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "typescript": "^5.3.3"
+    "@eslint/js": "^10.0.0",
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^22.20.5",
+    "c8": "^12.0.0",
+    "eslint": "^10.12.0",
+    "globals": "^16.5.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.1"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "pnpm": ">=8.0.0"
+    "node": ">=22.12.0",
+    "pnpm": ">=10.7.0"
+  },
+  "packageManager": "pnpm@10.7.0",
+  "pnpm": {
+    "overrides": {
+      "miniflare>sharp": "^0.35.5",
+      "xcode>uuid": "^11.1.1",
+      "tailwindcss>postcss-selector-parser": "^7.1.6",
+      "postcss-nested>postcss-selector-parser": "^7.1.6"
+    },
+    "patchedDependencies": {
+      "braces@3.0.3": "patches/braces@3.0.3.patch"
+    }
   }
 }

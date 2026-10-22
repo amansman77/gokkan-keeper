@@ -7,7 +7,7 @@ SESSION_SECRET=replace-with-a-long-random-secret
 # Optional: further pin the allowed Google account to its stable subject ID.
 # ALLOWED_SUB=google-account-subject
 
-# Required only when invoking operational /alerts/run/* endpoints.
+# Legacy automation compatibility key; retire after migrating external jobs.
 API_SECRET=replace-with-an-operational-secret
 
 # Optional integrations.
@@ -15,3 +15,11 @@ DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxx/yyy
 FSC_STOCK_API_SERVICE_KEY=your-stock-api-key
 FSC_STOCK_API_BASE_URL=https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService
 FSC_SECURITIES_PRODUCT_API_BASE_URL=https://apis.data.go.kr/1160100/service/GetSecuritiesProductInfoService
+
+# Optional per-job credentials; each secret must contain at least 32 characters.
+# AUTOMATION_API_KEYS=[{"id":"weekly-report","secret":"replace-with-a-long-random-job-secret","scopes":["indicators:read","settings:read","discord:notify"]}]
+
+# Consulting requires a Turnstile widget secret. Use Cloudflare test keys only locally.
+# TURNSTILE_SECRET_KEY=replace-with-widget-secret
+# Same server-only value on API and Pages, at least 32 characters (production proxy).
+# PROXY_AUTH_SECRET=replace-with-an-independent-long-random-secret

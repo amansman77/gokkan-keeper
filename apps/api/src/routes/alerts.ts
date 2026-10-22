@@ -1,3 +1,4 @@
+import { internalError } from '../http/errors';
 import { Hono } from 'hono';
 import type { Env } from '../types';
 import { runAlertEngine } from '../services/alert-engine';
@@ -14,6 +15,7 @@ alertsRouter.get('/', async (c) => {
 });
 
 alertsRouter.post('/run/:mode', async (c) => {
+  if (!c.get('authViaApiSecret')) return c.json({ error: 'Unauthorized' }, 401);
   const mode = c.req.param('mode');
   if (mode !== 'daily' && mode !== 'weekly') {
     return c.json({ error: 'mode must be daily or weekly' }, 400);
@@ -22,6 +24,6 @@ alertsRouter.post('/run/:mode', async (c) => {
     const result = await runAlertEngine(c.env, mode);
     return c.json({ ok: true, ...result });
   } catch (error: any) {
-    return c.json({ error: error.message || 'Internal server error' }, 500);
+    return internalError(c, error);
   }
 });
