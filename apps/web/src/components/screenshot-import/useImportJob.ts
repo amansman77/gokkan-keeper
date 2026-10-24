@@ -6,11 +6,21 @@ import { encodeScreenshot } from './encode';
 const POLL_MS = 3000;
 const message = (error: unknown, fallback: string) => (error instanceof Error && error.message) || fallback;
 
-/** Drives one screenshot import: upload → wait for the Mac OCR job → review → apply. */
-export function useImportJob(granaryId: string | undefined) {
+/**
+ * Drives one screenshot import: upload → wait for the Mac OCR job → review →
+ * apply. The job id lives in the URL (`?job=`), so a refresh or a return later
+ * — the job survives 24h while the Mac is off — reopens the same job.
+ */
+export function useImportJob(granaryId: string | undefined, jobId: string | null, onJobId: (id: string | null) => void) {
   const [job, setJob] = useState<ImportJob | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId || job?.id === jobId) return;
+    getImport(jobId).then((loaded) => (loaded.granaryId === granaryId ? setJob(loaded) : onJobId(null)))
+      .catch(() => onJobId(null)); // expired or unknown: start over
+  }, [jobId, job?.id, granaryId, onJobId]);
 
   const waiting = job?.status === 'queued' || job?.status === 'processing';
   useEffect(() => {
@@ -27,6 +37,7 @@ export function useImportJob(granaryId: string | undefined) {
     try {
       setBusy('작업을 만드는 중…');
       const created = await createImport(granaryId);
+      onJobId(created.id);
       for (const [index, file] of files.entries()) {
         setBusy(`스크린샷 올리는 중… (${index + 1}/${files.length})`);
         await uploadImportImage(created.id, index + 1, await encodeScreenshot(file));
@@ -37,7 +48,7 @@ export function useImportJob(granaryId: string | undefined) {
     } finally {
       setBusy(null);
     }
-  }, [granaryId]);
+  }, [granaryId, onJobId]);
 
   const run = useCallback(async (label: string, action: () => Promise<ImportJob>) => {
     setError(null);
@@ -56,6 +67,6 @@ export function useImportJob(granaryId: string | undefined) {
     apply: (options: ApplyImport) => job && run('반영하는 중…', () => applyImport(job.id, options)),
     discard: () => job && run('취소하는 중…', () => discardImport(job.id)),
     retry: () => job && run('다시 제출하는 중…', () => submitImport(job.id)),
-    reset: () => { setJob(null); setError(null); },
+    reset: () => { setJob(null); setError(null); onJobId(null); },
   };
 }

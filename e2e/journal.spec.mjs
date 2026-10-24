@@ -214,6 +214,9 @@ test('screenshot import uploads, waits for the OCR worker, shows checks and appl
   const cash = { seq: 2, width: 1206, height: 2622, lines: [...chrome, l([141, 868, 320, 915], '당일현금'), l([142, 1243, 329, 1286], 'D+2 현금'), l([797, 1240, 1057, 1289], '6,000원')] };
   expect((await page.request.post(`${api}/imports/${leased.id}/ocr`, { headers: worker, data: { pages: [holdings, cash] } })).status()).toBe(204);
 
+  // the job id is in the URL, so a reload reopens the same job
+  await expect(page).toHaveURL(/\/import\?job=[0-9a-f-]+$/);
+  await page.reload();
   await expect(page.getByText(/종목 1개의 손익 합계가 화면 합계/)).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole('cell', { name: '파두' })).toBeVisible();
   await page.getByRole('button', { name: '곳간에 반영', exact: true }).click();
