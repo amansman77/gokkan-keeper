@@ -41,9 +41,8 @@ export function permitsAutomation(caller: Pick<Caller, 'scopes'>, pathname: stri
   const path = pathname.replace(/^\/api\/positions(?=\/|$)/, '/positions');
   const has = (scope: Scope) => caller.scopes.includes(scope);
   if (method === 'GET') {
-    if (/^\/positions\/indicators(?:\/series)?$/.test(path)) return has('indicators:read');
-    // public index/FX quotes: toss-sync needs USD/KRW, the weekly report shows indices
-    if (path === '/market-indices') return has('indicators:read');
+    // includes public index/FX quotes: toss-sync needs USD/KRW, the weekly report shows indices
+    if (/^(?:\/positions\/indicators(?:\/series)?|\/market-indices)$/.test(path)) return has('indicators:read');
     if (path === '/settings') return has('settings:read');
     if (/^\/(granaries|positions|snapshots)(?:\/[0-9a-f-]{36})?$/.test(path)) return has('portfolio:read');
     return false;
