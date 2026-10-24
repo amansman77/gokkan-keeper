@@ -6,6 +6,7 @@ settings:
 
 overrides:
   miniflare>sharp: ^0.35.5
+  miniflare>undici: ^7.30.1
   xcode>uuid: ^11.1.1
   tailwindcss>postcss-selector-parser: ^7.1.6
   postcss-nested>postcss-selector-parser: ^7.1.6
@@ -142,8 +143,8 @@ importers:
   packages/shared:
     dependencies:
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.6
+        version: 4.6.7
     devDependencies:
       typescript:
         specifier: ^5.9.3
@@ -2291,8 +2292,8 @@ packages:
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
 
-  undici@7.29.1:
-    resolution: {integrity: sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==}
+  undici@7.30.1:
+    resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
     engines: {node: '>=20.18.1'}
 
   unenv@2.0.0-rc.24:
@@ -2486,8 +2487,8 @@ packages:
   youch@4.1.0-beta.10:
     resolution: {integrity: sha512-rLfVLB4FgQneDr0dv1oddCVZmKjcJ6yX6mS4pU82Mq/Dt9a3cLZQ62pDBL4AUO+uVrCvtWz3ZFUL2HFAFJ/BXQ==}
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+  zod@4.6.7:
+    resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -4281,7 +4282,7 @@ snapshots:
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       sharp: 0.35.5(@types/node@22.20.5)
-      undici: 7.29.1
+      undici: 7.30.1
       workerd: 1.20261006.1
       ws: 8.21.0
       youch: 4.1.0-beta.10
@@ -4294,7 +4295,7 @@ snapshots:
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       sharp: 0.35.5(@types/node@26.6.4)
-      undici: 7.29.1
+      undici: 7.30.1
       workerd: 1.20261006.1
       ws: 8.21.0
       youch: 4.1.0-beta.10
@@ -4897,7 +4898,7 @@ snapshots:
   undici-types@8.9.0:
     optional: true
 
-  undici@7.29.1: {}
+  undici@7.30.1: {}
 
   unenv@2.0.0-rc.24:
     dependencies:
@@ -5101,6 +5102,6 @@ snapshots:
       cookie: 1.1.1
       youch-core: 0.3.3
 
-  zod@3.25.76: {}
+  zod@4.6.7: {}
 
   zwitch@2.0.4: {}

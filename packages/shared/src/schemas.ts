@@ -13,6 +13,11 @@ import {
   CASH_FLOW_TYPES,
 } from './constants';
 
+// zod 4 compiles object parsers with `new Function` unless told not to. The
+// web app's CSP forbids eval (and Workers reject it), so the attempt shows up
+// as a CSP violation in the browser; the interpreted path is fast enough here.
+z.config({ jitless: true });
+
 export const GranarySchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(100),
@@ -155,12 +160,16 @@ const PositionInputSchema = z.object({
   profitLoss: z.number().finite().nullable().optional(),
   profitLossPercent: z.number().finite().nullable().optional(),
   note: z.string().max(1000).nullable().optional(),
-  isPublic: z.boolean().optional().default(false),
+  isPublic: z.boolean().optional(),
   publicThesis: z.string().max(300).nullable().optional(),
-  publicOrder: z.number().finite().int().min(0).optional().default(0),
+  publicOrder: z.number().finite().int().min(0).optional(),
 });
 
+// Defaults live only on create schemas: zod 4 keeps applying `.default()`
+// inside `.partial()`, so a PATCH of one field would reset the defaulted ones.
 export const CreatePositionSchema = PositionInputSchema.extend({
+  isPublic: z.boolean().optional().default(false),
+  publicOrder: z.number().finite().int().min(0).optional().default(0),
   source: z.string().trim().min(1).max(60).optional(),
   sourceRecordId: z.string().trim().min(1).max(200).optional(),
 }).refine((data) => !!data.source === !!data.sourceRecordId, 'source and sourceRecordId must be provided together');
@@ -256,7 +265,9 @@ export const CreateJudgmentDiaryEntrySchema = z.object({
   nextAction: z.string().max(5000).nullable().optional(),
 });
 
-export const UpdateJudgmentDiaryEntrySchema = JudgmentDiaryEntrySchema.partial().omit({
+export const UpdateJudgmentDiaryEntrySchema = JudgmentDiaryEntrySchema.extend({
+  disclaimerVisible: z.boolean(),
+}).partial().omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -294,15 +305,19 @@ export const AlertThresholdSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
-export const CreateAlertThresholdSchema = z.object({
+const AlertThresholdInputSchema = z.object({
   symbol: z.string().min(1).max(30),
   label: z.string().min(1).max(60),
   direction: z.enum(['below', 'above']),
   threshold: z.number().finite(),
+  enabled: z.boolean().optional(),
+});
+
+export const CreateAlertThresholdSchema = AlertThresholdInputSchema.extend({
   enabled: z.boolean().optional().default(true),
 });
 
-export const UpdateAlertThresholdSchema = CreateAlertThresholdSchema.partial();
+export const UpdateAlertThresholdSchema = AlertThresholdInputSchema.partial();
 
 export type AlertThreshold = z.infer<typeof AlertThresholdSchema>;
 export type CreateAlertThreshold = z.infer<typeof CreateAlertThresholdSchema>;

@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CalendarDateSchema, toMinorUnits, CreatePositionSchema, UpdatePositionSchema } from '@gokkan-keeper/shared';
+import {
+  CalendarDateSchema, toMinorUnits, CreatePositionSchema, UpdatePositionSchema,
+  CreateAlertThresholdSchema, UpdateAlertThresholdSchema, UpdateJudgmentDiaryEntrySchema,
+} from '@gokkan-keeper/shared';
 
 void test('Gregorian dates distinguish century leap years and money rejects fractional minor units and overflow', () => {
   for (const date of ['2000-02-29', '2024-02-29', '2026-12-31']) assert.ok(CalendarDateSchema.safeParse(date).success);
@@ -16,4 +19,11 @@ void test('sync identities are paired on creation and cannot be changed through 
   assert.ok(!CreatePositionSchema.safeParse({ ...position, source: 'fixture' }).success);
   assert.ok(CreatePositionSchema.safeParse({ ...position, source: 'fixture', sourceRecordId: 'account:lot' }).success);
   assert.deepEqual(UpdatePositionSchema.parse({ source: 'replace', sourceRecordId: 'replace', quantity: 2 }), { quantity: 2 });
+});
+void test('partial updates never fill in create-time defaults', () => {
+  assert.deepEqual(CreatePositionSchema.parse({ name: 'Fixture', symbol: 'TEST' }), { name: 'Fixture', symbol: 'TEST', isPublic: false, publicOrder: 0 });
+  assert.deepEqual(UpdatePositionSchema.parse({ quantity: 2 }), { quantity: 2 });
+  assert.equal(CreateAlertThresholdSchema.parse({ symbol: 'KRW=X', label: 'fx', direction: 'above', threshold: 1 }).enabled, true);
+  assert.deepEqual(UpdateAlertThresholdSchema.parse({ threshold: 2 }), { threshold: 2 });
+  assert.deepEqual(UpdateJudgmentDiaryEntrySchema.parse({ title: 'edit' }), { title: 'edit' });
 });

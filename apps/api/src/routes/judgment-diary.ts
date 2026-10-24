@@ -78,7 +78,7 @@ judgmentDiaryRouter.post('/', async (c) => {
     return c.json(entry, 201);
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation error', details: error.errors }, 400);
+      return c.json({ error: 'Validation error', details: error.issues }, 400);
     }
     return internalError(c, error);
   }
@@ -96,7 +96,7 @@ judgmentDiaryRouter.put('/:id', async (c) => {
     return c.json(entry);
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation error', details: error.errors }, 400);
+      return c.json({ error: 'Validation error', details: error.issues }, 400);
     }
     if (error.message?.includes('not found')) {
       return c.json({ error: error.message }, 404);
