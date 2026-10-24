@@ -24,6 +24,8 @@ async function fetchJson<T>(endpoint: string, options: RequestInit = {}, config:
           : `HTTP error! status: ${response.status}`;
       throw new Error(message);
     }
+    // 204 carries no body; callers of such endpoints type the result as void
+    if (response.status === 204) return undefined as T;
     return response.json();
   } catch (error: unknown) {
     if (config.networkErrorMessage && error instanceof TypeError && error.message.includes('fetch')) {
