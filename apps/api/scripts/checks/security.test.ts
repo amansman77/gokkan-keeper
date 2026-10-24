@@ -29,6 +29,9 @@ void test('scoped key validation fails closed and domain permissions stay bounde
   assert.equal(permitsAutomation(caller, '/snapshots', 'POST'), true);
   assert.equal(permitsAutomation(caller, '/cash-flows', 'POST'), false);
   assert.equal(permitsAutomation(caller, '/settings', 'GET'), false);
+  assert.equal(permitsAutomation(caller, '/market-indices', 'GET'), false);
+  assert.equal(permitsAutomation({ scopes: ['indicators:read'] }, '/market-indices', 'GET'), true);
+  assert.equal(permitsAutomation({ scopes: ['indicators:read'] }, '/market-indices', 'POST'), false);
   assert.equal(permitsAutomation(caller, '/judgment-diary/id', 'PUT'), false);
   assert.equal(await authenticateAutomation('wrong', configured), null);
   assert.equal(await authenticateAutomation('x'.repeat(1025), configured), null);
