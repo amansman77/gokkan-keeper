@@ -12,6 +12,7 @@ import { authRouter } from './routes/auth';
 import { automationRouter } from './routes/automation';
 import { cashFlowsRouter } from './routes/cash-flows';
 import { granariesRouter } from './routes/granaries';
+import { importsRouter } from './routes/imports';
 import { judgmentDiaryRouter } from './routes/judgment-diary';
 import { marketIndicesRouter } from './routes/market-indices';
 import { positionsRouter } from './routes/positions';
@@ -40,6 +41,7 @@ function registerProtectedRoutes(app: Hono<{ Bindings: Env }>): void {
   app.route(API_ROUTE_PATHS.settings, settingsRouter);
   app.route(API_ROUTE_PATHS.automation, automationRouter);
   app.route(API_ROUTE_PATHS.cashFlows, cashFlowsRouter);
+  app.route(API_ROUTE_PATHS.imports, importsRouter);
 }
 
 /** Compose the HTTP application separately from the Worker runtime entry point. */

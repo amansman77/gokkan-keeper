@@ -5,7 +5,8 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 // Ephemeral/authentication data must not resurrect on a data restore.
-const excluded = new Set(['gk_sessions', 'gk_security_rate_limits', 'gk_security_audit_log', 'gk_quote_cache']);
+// import jobs and images are transient screenshot data and never belong in a backup
+const excluded = new Set(['gk_sessions', 'gk_security_rate_limits', 'gk_security_audit_log', 'gk_quote_cache', 'gk_import_jobs', 'gk_import_images']);
 const identifier = (name) => {
   if (!/^gk_[a-z_]+$/.test(name)) throw new Error('Unexpected table identifier');
   return `"${name}"`;

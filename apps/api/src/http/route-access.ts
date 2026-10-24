@@ -26,6 +26,7 @@ export const API_ROUTE_PATHS = {
   settings: '/settings',
   automation: '/automation',
   cashFlows: '/cash-flows',
+  imports: '/imports',
 } as const;
 
 function isPathOrDescendant(pathname: string, root: string): boolean {

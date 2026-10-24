@@ -7,3 +7,4 @@ export * from './asset-goal';
 export * from './proxy-attestation';
 export * from './calendar-date';
 export * from './money';
+export * from './screenshot-import';
