@@ -35,6 +35,17 @@ const SELECT_JOB = `
   SELECT j.*, (SELECT COUNT(*) FROM gk_import_images i WHERE i.job_id = j.id) AS image_count, a.account_suffix
   FROM gk_import_jobs j LEFT JOIN gk_import_accounts a ON a.granary_id = j.granary_id`;
 
+/** Everything one approved import writes, applied in a single D1 batch. */
+export interface ApplyPlan {
+  jobId: string;
+  granaryId: string;
+  updates: { positionId: string; quantity: number; avgCost: number }[];
+  creates: { key: string; name: string; symbol: string; market: string | null; assetType: string | null; quantity: number; avgCost: number; currency: string }[];
+  zeroed: string[];
+  snapshot: { date: string; totalAmount: number; availableBalance: number; profitLoss: number; memo: string };
+  accountSuffix: string | null;
+}
+
 export class ImportRepository {
   constructor(private readonly db: D1Database) {}
 
@@ -91,6 +102,40 @@ export class ImportRepository {
       this.db.prepare('DELETE FROM gk_import_images WHERE job_id IN (SELECT id FROM gk_import_jobs WHERE expires_at < ?)').bind(now),
       this.db.prepare('DELETE FROM gk_import_jobs WHERE expires_at < ?').bind(now),
     ]);
+  }
+
+  /**
+   * All-or-nothing apply. The first statement claims the job with a fresh
+   * token only if it is still `parsed`; every later statement runs only while
+   * that token is in place, so a concurrent or repeated apply writes nothing.
+   * Created positions carry a source identity, so they can never duplicate.
+   */
+  async applyPlan(plan: ApplyPlan): Promise<boolean> {
+    const token = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const guard = 'EXISTS (SELECT 1 FROM gk_import_jobs WHERE id = ? AND apply_token = ?)';
+    const g = [plan.jobId, token];
+    const db = this.db;
+    await db.batch([
+      db.prepare("UPDATE gk_import_jobs SET apply_token = ?, updated_at = ? WHERE id = ? AND status = 'parsed' AND apply_token IS NULL").bind(token, now, plan.jobId),
+      ...plan.updates.map((u) => db.prepare(`UPDATE gk_positions SET quantity = ?, avg_cost = ?, updated_at = ? WHERE id = ? AND granary_id = ? AND ${guard}`)
+        .bind(u.quantity, u.avgCost, now, u.positionId, plan.granaryId, ...g)),
+      ...plan.zeroed.map((id) => db.prepare(`UPDATE gk_positions SET quantity = 0, updated_at = ? WHERE id = ? AND granary_id = ? AND ${guard}`)
+        .bind(now, id, plan.granaryId, ...g)),
+      ...plan.creates.map((p) => db.prepare(`INSERT INTO gk_positions (id, granary_id, name, symbol, market, asset_type, quantity, avg_cost, is_public, public_order, created_at, updated_at, price_currency, source, source_record_id)
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, 'screenshot-import', ? WHERE ${guard}
+        ON CONFLICT(source, source_record_id) WHERE source IS NOT NULL AND source_record_id IS NOT NULL DO NOTHING`)
+        .bind(crypto.randomUUID(), plan.granaryId, p.name, p.symbol, p.market, p.assetType, p.quantity, p.avgCost, now, now, p.currency, p.key, ...g)),
+      db.prepare(`INSERT INTO gk_snapshots (id, granary_id, date, total_amount, available_balance, profit_loss, memo, created_at)
+        SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE ${guard}
+        ON CONFLICT(granary_id, date) DO UPDATE SET total_amount = excluded.total_amount, available_balance = excluded.available_balance, profit_loss = excluded.profit_loss, memo = excluded.memo`)
+        .bind(crypto.randomUUID(), plan.granaryId, plan.snapshot.date, plan.snapshot.totalAmount, plan.snapshot.availableBalance, plan.snapshot.profitLoss, plan.snapshot.memo, now, ...g),
+      ...(plan.accountSuffix ? [db.prepare(`INSERT INTO gk_import_accounts (granary_id, broker, account_suffix, created_at) SELECT ?, 'samsung', ?, ? WHERE ${guard} ON CONFLICT(granary_id) DO NOTHING`)
+        .bind(plan.granaryId, plan.accountSuffix, now, ...g)] : []),
+      db.prepare("UPDATE gk_import_jobs SET status = 'applied', updated_at = ? WHERE id = ? AND apply_token = ?").bind(now, plan.jobId, token),
+    ]);
+    const row = await db.prepare('SELECT status, apply_token FROM gk_import_jobs WHERE id = ?').bind(plan.jobId).first<{ status: string; apply_token: string | null }>();
+    return row?.status === 'applied' && row.apply_token === token;
   }
 
   async linkAccount(granaryId: string, suffix: string): Promise<void> {

@@ -58,10 +58,7 @@ function sortRows(input: ReconcileInput, warnings: ImportWarning[]): Sorted {
   for (const h of reading.holdings) {
     const p = matched.get(h);
     const quantity = quantityOf(h, p);
-    if (quantity === null) {
-      warnings.push({ code: 'new_holding', detail: `${h.name}의 보유수량을 읽지 못했어요. 그 종목이 보이는 화면을 다시 올려주세요` });
-      continue;
-    }
+    if (quantity === null) continue; // reported by the 'quantities' check
     const imported = toImported(h, quantity);
     out.holdings.push(imported);
     if (!p) { out.newHoldings.push({ holding: imported, suggestion: suggestSymbol(h, input.otherPositions) }); continue; }
@@ -77,6 +74,11 @@ export function reconcile(input: ReconcileInput): ImportResult {
   const warnings = [...reading.warnings];
   const checks: ImportCheck[] = [...reading.checks, accountCheck(reading.accountSuffixes, input.linkedAccountSuffix)];
   const sorted = sortRows(input, warnings);
+  const unread = reading.holdings.length - sorted.holdings.length;
+  // a row without a quantity cannot be applied, and leaving it out would understate the snapshot
+  checks.push(unread
+    ? { code: 'quantities', passed: false, detail: `보유수량을 읽지 못한 종목이 ${unread}개 있어요. 그 종목이 보이는 화면을 다시 올려주세요` }
+    : { code: 'quantities', passed: true, detail: '모든 종목의 보유수량을 읽었어요' });
   const missingPositions = input.positions
     .filter((p) => (p.quantity ?? 0) > 0 && !sorted.matchedIds.has(p.id))
     .map((p) => ({ positionId: p.id, name: p.name, quantity: p.quantity ?? 0 }));

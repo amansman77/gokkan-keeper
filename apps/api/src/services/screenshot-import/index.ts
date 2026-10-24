@@ -1,4 +1,4 @@
-import type { ApplyImport, ImportJob, ImportProposal, ImportResult, OcrSubmission, Position } from '@gokkan-keeper/shared';
+import type { ApplyImport, ImportJob, ImportResult, OcrSubmission } from '@gokkan-keeper/shared';
 import type { DBClient } from '../../db/client';
 import type { ImportRepository } from '../../db/repositories/import-repository';
 import { mergePages } from './merge';
@@ -39,36 +39,32 @@ async function previousBefore(db: DBClient, granaryId: string, date: string) {
 
 export class ImportNotApplicable extends Error {}
 
-export async function applyResult(db: DBClient, imports: ImportRepository, job: ImportJob, options: ApplyImport): Promise<void> {
+export async function applyResult(imports: ImportRepository, job: ImportJob, options: ApplyImport): Promise<void> {
   const result = job.result;
   const proposal = result?.proposal;
   if (job.status !== 'parsed' || !result || !proposal) throw new ImportNotApplicable('판독이 끝난 작업만 반영할 수 있어요');
   const failed = result.checks.filter((c) => !c.passed);
   if (failed.length) throw new ImportNotApplicable(`검증을 통과하지 못했어요: ${failed.map((c) => c.detail).join(' / ')}`);
-
-  for (const change of proposal.changes) await db.updatePosition(change.positionId, change.after);
-  for (const index of options.createNew ?? []) await createNew(db, job.granaryId, proposal.newHoldings[index], result.currency);
-  if (options.zeroMissing) for (const m of proposal.missingPositions) await db.updatePosition(m.positionId, { quantity: 0 });
-
-  const { snapshot } = proposal;
-  const memo = `스크린샷 판독 (주식 평가금액 ${snapshot.marketValue.toLocaleString('ko-KR')})`;
-  const fields = { totalAmount: snapshot.totalAmount, availableBalance: snapshot.availableBalance, profitLoss: snapshot.profitLoss, memo };
-  const sameDay = (await db.getSnapshotsByGranaryId(job.granaryId, 5)).find((s) => s.date === snapshot.date);
-  if (sameDay) await db.updateSnapshot(sameDay.id, fields);
-  else await db.createSnapshot({ granaryId: job.granaryId, date: snapshot.date, ...fields });
-
-  if (result.accountSuffix) await imports.linkAccount(job.granaryId, result.accountSuffix);
-  await imports.setStatus(job.id, 'applied');
-}
-
-type NewHolding = ImportProposal['newHoldings'][number];
-
-async function createNew(db: DBClient, granaryId: string, entry: NewHolding | undefined, currency: 'KRW' | 'USD'): Promise<Position | null> {
-  if (!entry?.suggestion) return null;
-  const { holding, suggestion } = entry;
-  return db.createPosition({
-    granaryId, name: suggestion.name, symbol: suggestion.symbol, market: suggestion.market, assetType: suggestion.assetType,
-    quantity: holding.quantity, avgCost: Math.round(holding.avgCost * (currency === 'KRW' ? 1 : 10_000)) / (currency === 'KRW' ? 1 : 10_000),
-    priceCurrency: currency, isPublic: false, publicOrder: 0,
+  const costScale = result.currency === 'KRW' ? 1 : 10_000;
+  const creates = (options.createNew ?? []).flatMap((index) => {
+    const entry = proposal.newHoldings[index];
+    if (!entry?.suggestion) return [];
+    const { holding, suggestion } = entry;
+    return [{
+      key: `${job.id}:${index}`, name: suggestion.name, symbol: suggestion.symbol, market: suggestion.market, assetType: suggestion.assetType,
+      quantity: holding.quantity, avgCost: Math.round(holding.avgCost * costScale) / costScale, currency: result.currency,
+    }];
   });
+  const { snapshot } = proposal;
+  const applied = await imports.applyPlan({
+    jobId: job.id, granaryId: job.granaryId, creates,
+    updates: proposal.changes.map((c) => ({ positionId: c.positionId, ...c.after })),
+    zeroed: options.zeroMissing ? proposal.missingPositions.map((m) => m.positionId) : [],
+    snapshot: {
+      date: snapshot.date, totalAmount: snapshot.totalAmount, availableBalance: snapshot.availableBalance, profitLoss: snapshot.profitLoss,
+      memo: `스크린샷 판독 (주식 평가금액 ${snapshot.marketValue.toLocaleString('ko-KR')})`,
+    },
+    accountSuffix: job.linkedAccountSuffix ? null : result.accountSuffix,
+  });
+  if (!applied) throw new ImportNotApplicable('이미 반영했거나 반영 중인 작업이에요');
 }

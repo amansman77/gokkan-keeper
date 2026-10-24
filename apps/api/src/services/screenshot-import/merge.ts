@@ -93,9 +93,13 @@ function totalChecks(
     : Math.abs(plSum - totals.profitLoss) <= tolerance
       ? { code: 'profit_loss_total', passed: true, detail: `종목 ${rows.length}개의 손익 합계가 화면 합계 ${fmt(totals.profitLoss, currency)}와 같아요` }
       : { code: 'profit_loss_total', passed: false, detail: `종목 손익 합계 ${fmt(plSum, currency)}가 화면 합계 ${fmt(totals.profitLoss, currency)}와 ${fmt(Math.abs(plSum - totals.profitLoss), currency)} 달라요. 빠진 스크린샷이나 잘못 읽은 종목이 있어요` });
+  // the overseas screen prints a market-value total; without it, omitted rows
+  // whose profits and losses cancel would slip past the profit/loss check
   if (totals.marketValue !== null) {
     const ok = Math.abs(mvSum - totals.marketValue) <= tolerance;
     checks.push({ code: 'market_value_total', passed: ok, detail: ok ? `평가금액 합계 ${fmt(mvSum, currency)}가 화면 합계와 같아요` : `평가금액 합계 ${fmt(mvSum, currency)}가 화면 합계 ${fmt(totals.marketValue, currency)}와 달라요` });
+  } else if (currency === 'USD') {
+    checks.push({ code: 'market_value_total', passed: false, detail: '화면 상단의 주식평가금액 합계를 읽지 못했어요' });
   }
   checks.push(cash === null
     ? { code: 'cash_present', passed: false, detail: currency === 'KRW' ? '예수금 화면이 없어요' : '외화잔고(예수금) 화면이 없어요' }

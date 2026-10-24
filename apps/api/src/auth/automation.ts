@@ -21,7 +21,9 @@ function callers(env: Env): Caller[] {
   }
   // Compatibility for existing jobs. It no longer grants owner settings,
   // cash-flow, granary writes, exports, or diary rewriting privileges.
-  if (env.API_SECRET) result.push({ id: 'legacy', secret: env.API_SECRET, scopes: [...SCOPES] });
+  // imports:process reads the owner's private screenshots, so it is granted only
+  // to a dedicated key in AUTOMATION_API_KEYS, never to the shared legacy secret.
+  if (env.API_SECRET) result.push({ id: 'legacy', secret: env.API_SECRET, scopes: SCOPES.filter((scope) => scope !== 'imports:process') });
   return result;
 }
 

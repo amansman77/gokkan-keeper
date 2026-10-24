@@ -7,6 +7,8 @@ CREATE TABLE gk_import_jobs (
  result_json TEXT CHECK(result_json IS NULL OR json_valid(result_json)),
  error TEXT,
  lease_until INTEGER NOT NULL DEFAULT 0,
+ -- set by the one apply that wins; every write of that apply is conditioned on it
+ apply_token TEXT,
  created_at TEXT NOT NULL,
  updated_at TEXT NOT NULL,
  expires_at TEXT NOT NULL

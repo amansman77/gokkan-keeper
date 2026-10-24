@@ -5,8 +5,8 @@ import { readKrw, readPercent, readUsd } from '../../src/services/screenshot-imp
 import { mergePages } from '../../src/services/screenshot-import/merge';
 import { reconcile, type ReconcileInput } from '../../src/services/screenshot-import/reconcile';
 import { applyResult, ImportNotApplicable } from '../../src/services/screenshot-import';
-import { permitsAutomation } from '../../src/auth/automation';
-import type { DBClient } from '../../src/db/client';
+import { authenticateAutomation, permitsAutomation } from '../../src/auth/automation';
+import type { Env } from '../../src/types';
 import type { ImportRepository } from '../../src/db/repositories/import-repository';
 import { krCashPage, krHoldingsPage, usCashPage, usHoldingsPage, type FixtureRow } from './screenshot-fixtures';
 
@@ -64,7 +64,7 @@ void test('a missing screenshot fails the total check and the result cannot be a
   const result = reconcile(input(reading));
   assert.equal(result.checks.find((c) => c.code === 'profit_loss_total')?.passed, false);
   const job = { id: 'j', granaryId: 'g', status: 'parsed', result } as ImportJob;
-  await assert.rejects(applyResult({} as DBClient, {} as ImportRepository, job, {}), ImportNotApplicable);
+  await assert.rejects(applyResult({} as ImportRepository, job, {}), ImportNotApplicable);
 });
 
 const US_ROWS: FixtureRow[] = [
@@ -88,6 +88,14 @@ void test('overseas rows match by ticker, recover a dropped quantity from cost b
   assert.equal(result.holdings.find((h) => h.ticker === 'VYM')?.quantity, 1);
   assert.equal(result.proposal?.unchanged, 2);
   assert.equal(result.proposal?.snapshot.totalAmount, 1454.08);
+});
+
+void test('a quantity that cannot be read or recovered blocks the import', () => {
+  const rows: FixtureRow[] = [{ name: '대한전선', quantity: null, marketValue: '189,900', profitLoss: '-53,514', percent: '-21.98%' }];
+  const result = reconcile(input(mergePages([krHoldingsPage(1, ACCOUNT, '-53.514원', rows), krCashPage(2, ACCOUNT, '1')], 'KRW')));
+  assert.equal(result.checks.find((c) => c.code === 'quantities')?.passed, false);
+  const usd = mergePages([usHoldingsPage(1, ACCOUNT, { profitLoss: '1.27uso', marketValue: '' }, US_ROWS.slice(0, 1)), usCashPage(2, ACCOUNT, '1')], 'USD');
+  assert.equal(usd.checks.find((c) => c.code === 'market_value_total')?.passed, false);
 });
 
 void test('account and currency guards: mixed, mismatched or foreign-currency screens are flagged', () => {
@@ -120,4 +128,11 @@ void test('only the imports:process scope reaches the OCR worker routes, and nev
     assert.equal(permitsAutomation(worker, path, method), false, `${method} ${path}`);
   }
   assert.equal(permitsAutomation({ scopes: ['snapshots:sync'] }, '/imports/next', 'GET'), false);
+});
+
+void test('the shared legacy API secret never carries the screenshot scope', async () => {
+  const legacy = await authenticateAutomation('fixture-legacy-secret-for-scope-check', { API_SECRET: 'fixture-legacy-secret-for-scope-check' } as Env);
+  assert.ok(legacy);
+  assert.equal(permitsAutomation(legacy, '/imports/next', 'GET'), false);
+  assert.equal(permitsAutomation(legacy, '/snapshots', 'POST'), true);
 });

@@ -51,7 +51,7 @@ export interface ImportedHolding {
   pages: number[];
 }
 
-export type ImportCheckCode = 'profit_loss_total' | 'market_value_total' | 'account' | 'cash_present';
+export type ImportCheckCode = 'profit_loss_total' | 'market_value_total' | 'account' | 'cash_present' | 'quantities';
 
 export interface ImportCheck {
   code: ImportCheckCode;

@@ -86,7 +86,7 @@ importsRouter.post('/:id/apply', async (c) => {
   const options = ApplyImportSchema.safeParse(await c.req.json().catch(() => ({})));
   if (!options.success) return c.json({ error: 'Validation error', details: options.error.issues }, 400);
   try {
-    await applyResult(new DBClient(c.env.DB), repo(c), job, options.data);
+    await applyResult(repo(c), job, options.data);
     return c.json(await repo(c).getJob(job.id));
   } catch (error) {
     if (error instanceof ImportNotApplicable) return c.json({ error: error.message }, 409);
