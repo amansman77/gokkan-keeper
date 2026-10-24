@@ -191,3 +191,33 @@ test('asset goal editor saves milestone and assumptions then reloads persisted s
   expect(plan.monthlyContribution).toBe(1500000);
   expect(plan.milestones[0].amount).toBe(200000000);
 });
+test('screenshot import uploads, waits for the OCR worker, shows checks and applies the reviewed result', async ({ page }) => {
+  await login(page, '/dashboard');
+  const api = 'http://localhost:18787';
+  const granary = await (await page.request.post(`${api}/granaries`, { headers: { Origin: 'http://localhost:5173' }, data: { name: 'Screenshot fixture', purpose: '가계', currency: 'KRW' } })).json();
+  await page.request.post(`${api}/positions`, { headers: { Origin: 'http://localhost:5173' }, data: { granaryId: granary.id, name: '파두', symbol: '440110', quantity: 1, avgCost: 10460 } });
+  await page.goto(`/granaries/${granary.id}/import`);
+  await page.getByLabel(/스크린샷/).setInputFiles({ name: 'balance.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==', 'base64') });
+  await page.getByRole('button', { name: '판독 시작', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '판독을 기다리는 중이에요' })).toBeVisible();
+
+  // play the Mac OCR worker with its scoped key
+  const worker = { 'X-API-Secret': 'fixture-only-ocr-worker-key-32-bytes-min' };
+  const leased = await (await page.request.get(`${api}/imports/next`, { headers: worker })).json();
+  const l = (box, text) => ({ box, text, conf: 0.99 });
+  const chrome = [l([106, 362, 857, 405], '0000001234-01 [종합(비대면)] 고객'), l([80, 493, 530, 540], '주식잔고 실현손익')];
+  const holdings = { seq: 1, width: 1206, height: 2622, lines: [...chrome,
+    l([78, 795, 260, 854], '평가손익'), l([511, 782, 1123, 857], '73.080원 349.33%'),
+    l([168, 1072, 287, 1110], '종목명'), l([588, 1113, 707, 1152], '수익률'), l([946, 1111, 1097, 1152], '평가금액'),
+    l([34, 1217, 197, 1264], '파두'), l([645, 1225, 810, 1263], '73,080'), l([1157, 1221, 1184, 1261], '2'),
+    l([630, 1288, 809, 1322], '349.33%'), l([1013, 1284, 1184, 1327], '94,000'), l([77, 2311, 199, 2343], 'KOSPI')] };
+  const cash = { seq: 2, width: 1206, height: 2622, lines: [...chrome, l([141, 868, 320, 915], '당일현금'), l([142, 1243, 329, 1286], 'D+2 현금'), l([797, 1240, 1057, 1289], '6,000원')] };
+  expect((await page.request.post(`${api}/imports/${leased.id}/ocr`, { headers: worker, data: { pages: [holdings, cash] } })).status()).toBe(204);
+
+  await expect(page.getByText(/종목 1개의 손익 합계가 화면 합계/)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('cell', { name: '파두' })).toBeVisible();
+  await page.getByRole('button', { name: '곳간에 반영', exact: true }).click();
+  await expect(page.getByText('곳간에 반영했어요.')).toBeVisible();
+  const snapshots = await (await page.request.get(`${api}/snapshots?granaryId=${granary.id}`)).json();
+  expect(snapshots[0]).toMatchObject({ totalAmount: 100000, availableBalance: 6000, profitLoss: 73080 });
+});

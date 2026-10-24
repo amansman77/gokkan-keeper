@@ -13,6 +13,7 @@ const Alerts = lazy(() => import('./pages/Alerts'));
 const GranaryDetail = lazy(() => import('./pages/GranaryDetail'));
 const NewGranary = lazy(() => import('./pages/NewGranary'));
 const EditGranary = lazy(() => import('./pages/EditGranary'));
+const ImportScreenshots = lazy(() => import('./pages/ImportScreenshots'));
 const NewSnapshot = lazy(() => import('./pages/NewSnapshot'));
 const NewCashFlow = lazy(() => import('./pages/NewCashFlow'));
 const EditSnapshot = lazy(() => import('./pages/EditSnapshot'));
@@ -56,6 +57,7 @@ export const PRIVATE_ROUTES: readonly AppRouteDefinition[] = [
   { path: '/alerts', component: Alerts },
   { path: '/granaries/:id', component: GranaryDetail },
   { path: '/granaries/:id/edit', component: EditGranary },
+  { path: '/granaries/:id/import', component: ImportScreenshots },
   { path: '/granaries/new', component: NewGranary },
   { path: '/snapshots/new', component: NewSnapshot },
   { path: '/cash-flows/new', component: NewCashFlow },

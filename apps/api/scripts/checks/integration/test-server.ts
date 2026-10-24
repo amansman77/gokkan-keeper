@@ -8,7 +8,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pagesWorker from '../../../../web/server/worker';
 const proxySecret = 'fixture-only-proxy-secret-at-least-32-bytes';
-const { mf, credential } = await createHarness(18787, true, { PROXY_AUTH_SECRET: proxySecret });
+// a scoped OCR-worker key, so browser tests can play the Mac job's part
+export const OCR_WORKER_FIXTURE_KEY = 'fixture-only-ocr-worker-key-32-bytes-min';
+const { mf, credential } = await createHarness(18787, true, { PROXY_AUTH_SECRET: proxySecret, AUTOMATION_API_KEYS: JSON.stringify([{ id: 'ocr-import', secret: OCR_WORKER_FIXTURE_KEY, scopes: ['imports:process'] }]) });
 // Loopback-only fixture token bridge. Never bundled in the production Worker.
 const fixtureServer = createServer((request, response) => {
   if (request.url !== '/credential') { response.writeHead(404).end(); return; }
