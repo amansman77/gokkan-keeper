@@ -49,7 +49,10 @@ export const browserRequestPolicy = createMiddleware<AppEnv>(async (c, next) => 
 
 export const requestBodyLimit = createMiddleware<AppEnv>(async (c, next) => {
   const consulting = ['/public/consulting-request', '/api/public/consulting-request'].includes(c.req.path);
-  return bodyLimit({ maxSize: (consulting ? 11 : 1) * 1024 * 1024, onError: (ctx) => ctx.json({ error: 'Request body too large' }, 413) })(c, next);
+  // one base64 screenshot per request; the route enforces its own 1.5MB image cap
+  const importImage = c.req.method === 'PUT' && /^\/imports\/[0-9a-f-]{36}\/images\/\d{1,2}$/.test(c.req.path);
+  const maxSize = consulting ? 11 * 1024 * 1024 : importImage ? 2_200_000 : 1024 * 1024;
+  return bodyLimit({ maxSize, onError: (ctx) => ctx.json({ error: 'Request body too large' }, 413) })(c, next);
 });
 
 export const abuseProtection = createMiddleware<AppEnv>(async (c, next) => {

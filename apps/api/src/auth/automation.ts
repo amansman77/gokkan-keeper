@@ -1,6 +1,6 @@
 import type { Env } from '../types';
 
-const SCOPES = ['portfolio:read', 'positions:sync', 'snapshots:sync', 'diary:publish', 'indicators:read', 'settings:read', 'discord:notify', 'alerts:run'] as const;
+const SCOPES = ['portfolio:read', 'positions:sync', 'snapshots:sync', 'diary:publish', 'indicators:read', 'settings:read', 'discord:notify', 'alerts:run', 'imports:process'] as const;
 type Scope = typeof SCOPES[number];
 interface Caller { id: string; secret: string; scopes: Scope[]; expiresAt?: string }
 
@@ -21,7 +21,9 @@ function callers(env: Env): Caller[] {
   }
   // Compatibility for existing jobs. It no longer grants owner settings,
   // cash-flow, granary writes, exports, or diary rewriting privileges.
-  if (env.API_SECRET) result.push({ id: 'legacy', secret: env.API_SECRET, scopes: [...SCOPES] });
+  // imports:process reads the owner's private screenshots, so it is granted only
+  // to a dedicated key in AUTOMATION_API_KEYS, never to the shared legacy secret.
+  if (env.API_SECRET) result.push({ id: 'legacy', secret: env.API_SECRET, scopes: SCOPES.filter((scope) => scope !== 'imports:process') });
   return result;
 }
 
@@ -37,19 +39,29 @@ export async function authenticateAutomation(header: string, env: Env): Promise<
   return null;
 }
 
+const UUID = '[0-9a-f-]{36}';
+/**
+ * Every request an automation key may make: method, exact path pattern, and
+ * the scope that grants it. Anything not listed is refused.
+ */
+const AUTOMATION_ROUTES: ReadonlyArray<[methods: readonly string[], path: RegExp, scope: Scope]> = [
+  // includes public index/FX quotes: toss-sync needs USD/KRW, the weekly report shows indices
+  [['GET'], /^(?:\/positions\/indicators(?:\/series)?|\/market-indices)$/, 'indicators:read'],
+  [['GET'], /^\/settings$/, 'settings:read'],
+  [['GET'], new RegExp(`^/(granaries|positions|snapshots)(?:/${UUID})?$`), 'portfolio:read'],
+  [['POST'], /^\/automation\/discord-notify$/, 'discord:notify'],
+  [['POST'], /^\/alerts\/run\/(daily|weekly)$/, 'alerts:run'],
+  [['POST'], /^\/judgment-diary$/, 'diary:publish'],
+  [['POST'], /^\/positions$/, 'positions:sync'],
+  [['PATCH', 'DELETE'], new RegExp(`^/positions/${UUID}$`), 'positions:sync'],
+  [['POST'], /^\/snapshots$/, 'snapshots:sync'],
+  [['PUT'], new RegExp(`^/snapshots/${UUID}$`), 'snapshots:sync'],
+  // the Mac OCR worker: lease a job, read its images, report the OCR result
+  [['GET'], new RegExp(`^/imports/(?:next|${UUID}/images/\\d{1,2})$`), 'imports:process'],
+  [['POST'], new RegExp(`^/imports/${UUID}/(?:ocr|fail)$`), 'imports:process'],
+];
+
 export function permitsAutomation(caller: Pick<Caller, 'scopes'>, pathname: string, method: string): boolean {
   const path = pathname.replace(/^\/api\/positions(?=\/|$)/, '/positions');
-  const has = (scope: Scope) => caller.scopes.includes(scope);
-  if (method === 'GET') {
-    // includes public index/FX quotes: toss-sync needs USD/KRW, the weekly report shows indices
-    if (/^(?:\/positions\/indicators(?:\/series)?|\/market-indices)$/.test(path)) return has('indicators:read');
-    if (path === '/settings') return has('settings:read');
-    if (/^\/(granaries|positions|snapshots)(?:\/[0-9a-f-]{36})?$/.test(path)) return has('portfolio:read');
-    return false;
-  }
-  if (path === '/automation/discord-notify' && method === 'POST') return has('discord:notify');
-  if (/^\/alerts\/run\/(daily|weekly)$/.test(path) && method === 'POST') return has('alerts:run');
-  if (path === '/judgment-diary' && method === 'POST') return has('diary:publish');
-  if ((path === '/positions' && method === 'POST') || (/^\/positions\/[0-9a-f-]{36}$/.test(path) && ['PATCH', 'DELETE'].includes(method))) return has('positions:sync');
-  return ((path === '/snapshots' && method === 'POST') || (/^\/snapshots\/[0-9a-f-]{36}$/.test(path) && method === 'PUT')) && has('snapshots:sync');
+  return AUTOMATION_ROUTES.some(([methods, pattern, scope]) => methods.includes(method) && pattern.test(path) && caller.scopes.includes(scope));
 }
