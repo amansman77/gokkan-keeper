@@ -52,7 +52,7 @@ snapshotsRouter.post('/', async (c) => {
     return c.json(snapshot, 201);
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation error', details: error.errors }, 400);
+      return c.json({ error: 'Validation error', details: error.issues }, 400);
     }
     if (error.message?.includes('already exists')) {
       return c.json({ error: error.message }, 409);
@@ -80,7 +80,7 @@ snapshotsRouter.put('/:id', async (c) => {
     return c.json(snapshot);
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation error', details: error.errors }, 400);
+      return c.json({ error: 'Validation error', details: error.issues }, 400);
     }
     if (error.message?.includes('already exists')) {
       return c.json({ error: error.message }, 409);

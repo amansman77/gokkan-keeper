@@ -99,7 +99,7 @@ granariesRouter.post('/', async (c) => {
     return c.json(granary, 201);
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation error', details: error.errors }, 400);
+      return c.json({ error: 'Validation error', details: error.issues }, 400);
     }
     return internalError(c, error);
   }
@@ -124,7 +124,7 @@ granariesRouter.put('/:id', async (c) => {
     return c.json(granary);
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation error', details: error.errors }, 400);
+      return c.json({ error: 'Validation error', details: error.issues }, 400);
     }
     if (error instanceof Error && error.message.includes('granary_currency_locked')) {
       return c.json({ error: '기록이 있는 곳간의 통화는 변경할 수 없습니다. 새 통화의 곳간을 만들어 주세요.' }, 409);
