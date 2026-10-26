@@ -3,7 +3,7 @@
  * services/alert-rules, never restated, so "현행 알람" always measures what
  * production would say.
  */
-import { RULES, type AlertRuleContext } from '../../src/services/alert-rules';
+import { RULES, type AlertRule, type AlertRuleContext } from '../../src/services/alert-rules';
 import { aggregateWeekly, computeIndicatorsFromRows } from '../../src/services/technical-indicators';
 import { day, onlySleeves, rebalance, type Adjust, type Asset, type Strategy, type Weights } from './backtest-engine';
 
@@ -138,14 +138,23 @@ export function liveAlerts(
   base: Weights,
   pre: Map<string, AlertPre>,
   buyStep = 0.25,
-  opts: { name?: string; buyRuleId?: string; sellKeep?: number } = {},
+  opts: { name?: string; buyRuleId?: string; sellKeep?: number; sellRule?: AlertRule; fires?: { buy: number; sell: number } } = {},
 ): Strategy {
   const buy = RULES.find((r) => r.ruleId === (opts.buyRuleId ?? 'BUY_001'))!;
-  const sell = RULES.find((r) => r.ruleId === 'SELL_001')!;
+  // a candidate sell rule is passed in, never added to RULES, until it wins
+  const sell = opts.sellRule ?? RULES.find((r) => r.ruleId === 'SELL_001')!;
   const sellKeep = opts.sellKeep ?? 0.5;
   const out = new Set<string>();
   const was = new Map<string, boolean>();
   const weights = () => Object.fromEntries(Object.entries(base).map(([s, w]) => [s, out.has(s) ? 0 : w]));
+  /** event transition: true only the week a rule's condition newly holds */
+  const fires = (r: AlertRule, snap: AlertRuleContext) => {
+    const key = `${snap.symbol}:${r.ruleId}`;
+    const met = r.condition(snap);
+    const fired = met && !(was.get(key) ?? false);
+    was.set(key, met);
+    return fired;
+  };
   return {
     name: opts.name ?? (buyStep >= 1 ? '①b 알람, 매수 시 전량 복귀' : '① 현행 알람 (BUY_001/SELL_001)'),
     decide(i, ctx) {
@@ -157,12 +166,8 @@ export function liveAlerts(
         const dl = p.dailyByDay.get(ctx.cal[i]);
         if (!wk || !dl) continue;
         const snap: AlertRuleContext = { symbol: sym, name: sym, heldQuantity: ctx.heldValue(sym) > 0 ? 1 : 0, weekly: wk, daily: dl };
-        for (const r of [buy, sell]) {
-          const key = `${sym}:${r.ruleId}`;
-          const met = r.condition(snap);
-          const fired = met && !(was.get(key) ?? false);
-          was.set(key, met);
-          if (!fired) continue;
+        for (const r of [buy, sell].filter((rule) => fires(rule, snap))) {
+          if (opts.fires) opts.fires[r === buy ? 'buy' : 'sell']++;
           adjust[sym] = r === buy ? { add: buyStep, base: bw } : { keep: sellKeep };
           if (r === buy) out.delete(sym); else if (sellKeep === 0) out.add(sym);
         }
