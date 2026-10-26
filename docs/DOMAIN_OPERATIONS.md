@@ -66,6 +66,12 @@ Results as of 2026-10 (data to 2026-10-12; production alerts left unchanged):
   where volatile names whipsaw but end higher (2015-19 biotech: 1.6% vs 11.4%).
   Its window (6-14 months) barely matters; the weekly MA40 variants are worse.
   Treat it as crash insurance with a price, not a better rule.
+- SELL_001 needs the MA40 break and a falling MA40 in the same week, so a break
+  while MA40 still rises (ETN, 2026-10-16) never fires even if MA40 turns down
+  later. `scripts/experiments/compare-ma40-sell.ts` tested firing on the first
+  week both hold, in either order: across 300 random baskets it cost 1.9%p CAGR
+  in every one for 4.6%p less MDD, doubled sell signals (whipsaw on names that
+  recover), and won only in crash regimes (2021 hype, dot-com). SELL_001 was kept.
 
 ## External automation depending on this API
 
