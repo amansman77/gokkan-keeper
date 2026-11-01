@@ -14,7 +14,8 @@ const KRW = /^-?\d{1,3}(?:,\d{3})*$/;
 const USD = /^-?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?$/;
 
 function clean(raw: string): string {
-  return raw.replace(/[\s원]/g, '').replace(/(?:USD|usd|uso|US)$/i, '').replace(/^[−–]/, '-');
+  return raw.replace(/[\s원]/g, '')// the unit glued to dollar amounts OCRs as "USD", "uso", "usv"…
+    .replace(/U[S5][A-Z]?$/i, '').replace(/^[−–]/, '-');
 }
 
 /** Won amounts are whole numbers in comma groups; a period is a misread comma. */

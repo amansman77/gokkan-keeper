@@ -24,6 +24,7 @@ void test('OCR number readers repair only the misreads real screenshots showed',
   assert.equal(readKrw('12a'), null);
   assert.deepEqual(readUsd('347.72501'), { value: 347.725, repaired: true });
   assert.deepEqual(readUsd('-120.58uso'), { value: -120.58, repaired: false });
+  assert.deepEqual(readUsd('-107.38usv'), { value: -107.38, repaired: false });
   assert.deepEqual(readUsd('4,625.47USD'), { value: 4625.47, repaired: false });
   assert.equal(readPercent('-5.97%'), -5.97);
   assert.equal(readPercent('-597%'), null);
@@ -61,8 +62,13 @@ void test('domestic pages are merged by row numbers, checked against the header 
 
 void test('a missing screenshot fails the total check and the result cannot be applied', async () => {
   const reading = mergePages([krHoldingsPage(1, ACCOUNT, '-226.323원 -9.9%', KR_A), krCashPage(2, ACCOUNT, '9,951')], 'KRW');
-  const result = reconcile(input(reading));
+  const positions = [position({ id: 'p4', name: 'KODEX 인도Nifty50', symbol: '453810', quantity: 12, avgCost: 12980 })];
+  const lastSnapshot = { id: 's', granaryId: 'g', date: '2026-10-17', totalAmount: 600000, availableBalance: 9951 } as Snapshot;
+  const result = reconcile(input(reading, { positions, lastSnapshot }));
   assert.equal(result.checks.find((c) => c.code === 'profit_loss_total')?.passed, false);
+  // the left-out screen is not reported as a sale, nor as cash that went missing
+  assert.ok(result.warnings.some((w) => w.code === 'missing_position' && w.detail.includes('화면에 안 찍혔거나')));
+  assert.ok(!result.warnings.some((w) => w.code === 'unexplained_cash'));
   const job = { id: 'j', granaryId: 'g', status: 'parsed', result } as ImportJob;
   await assert.rejects(applyResult({} as ImportRepository, job, {}), ImportNotApplicable);
 });
@@ -118,12 +124,28 @@ void test('account and currency guards: mixed, mismatched or foreign-currency sc
 });
 
 void test('cash moved by unrecorded transfers is reported; recorded flows explain it', () => {
-  const reading = mergePages([krCashPage(1, ACCOUNT, '1,312,112')], 'KRW');
+  const reading = mergePages([krHoldingsPage(1, ACCOUNT, '-196.503원', KR_A), krCashPage(2, ACCOUNT, '1,312,112')], 'KRW');
+  const positions = [
+    position({ id: 'p1', name: '대한전선', symbol: '001440', quantity: 9, avgCost: 27046 }),
+    position({ id: 'p2', name: 'NHN벅스', symbol: '104200', quantity: 20, avgCost: 11431 }),
+    position({ id: 'p3', name: '파두', symbol: '440110', quantity: 1, avgCost: 10460 }),
+  ];
   const lastSnapshot = { id: 's', granaryId: 'g', date: '2026-09-27', totalAmount: 7366333, availableBalance: 2479603 } as Snapshot;
-  const unexplained = reconcile(input(reading, { lastSnapshot }));
+  const unexplained = reconcile(input(reading, { positions, lastSnapshot }));
   assert.ok(unexplained.warnings.some((w) => w.code === 'unexplained_cash' && w.detail.includes('1,167,491원')));
   const flows = [602984, 420288, 144219].map((amount, i) => ({ id: String(i), granaryId: 'g', date: '2026-10-13', type: 'WITHDRAWAL', amount }) as never);
-  assert.ok(!reconcile(input(reading, { lastSnapshot, flowsSinceLastSnapshot: flows })).warnings.some((w) => w.code === 'unexplained_cash'));
+  assert.ok(!reconcile(input(reading, { positions, lastSnapshot, flowsSinceLastSnapshot: flows })).warnings.some((w) => w.code === 'unexplained_cash'));
+});
+
+void test('holdings registered for the first time are not mistaken for purchases when cash did not move', () => {
+  const reading = mergePages([krHoldingsPage(1, ACCOUNT, '-196.503원', KR_A.slice(0, 2)), krCashPage(2, ACCOUNT, '9,951')], 'KRW');
+  const lastSnapshot = { id: 's', granaryId: 'g', date: '2026-10-24', totalAmount: 250000, availableBalance: 9951 } as Snapshot;
+  const result = reconcile(input(reading, { lastSnapshot }));
+  assert.equal(result.proposal?.newHoldings.length, 2);
+  assert.ok(!result.warnings.some((w) => w.code === 'unexplained_cash'));
+  // a real purchase, paid from cash, is explained by the same new holdings
+  const spent = reconcile(input(mergePages([krHoldingsPage(1, ACCOUNT, '-196.503원', KR_A.slice(0, 2)), krCashPage(2, ACCOUNT, '9,951')], 'KRW'), { lastSnapshot: { ...lastSnapshot, availableBalance: 9951 + 472335 } }));
+  assert.ok(!spent.warnings.some((w) => w.code === 'unexplained_cash'));
 });
 
 void test('only the imports:process scope reaches the OCR worker routes, and never owner routes', () => {
