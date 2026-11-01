@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { UI_TERMS } from '../lib/terminology';
 
 export default function GranaryAddMenu({ granaryId }: { granaryId: string }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -73,8 +74,8 @@ export default function GranaryAddMenu({ granaryId }: { granaryId: string }) {
             <span className="mt-1 block text-sm text-ink-muted">이 곳간에 보유 자산을 추가합니다.</span>
           </Link>
           <Link to={`/granaries/${granaryId}/import`} onClick={close} className="block rounded-lg border border-line p-4 hover:bg-accent-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
-            <span className="block font-semibold text-accent">스크린샷으로 맞추기</span>
-            <span className="mt-1 block text-sm text-ink-muted">증권사 잔고·예수금 화면으로 포지션과 스냅샷을 한 번에 맞춥니다.</span>
+            <span className="block font-semibold text-accent">{UI_TERMS.screenshotImport}</span>
+            <span className="mt-1 block text-sm text-ink-muted">증권사 잔고·예수금 화면으로 포지션을 추가·갱신하고 스냅샷까지 기록합니다.</span>
           </Link>
           <Link to={`/cash-flows/new?granaryId=${granaryId}`} onClick={close} className="block rounded-lg border border-line p-4 hover:bg-accent-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
             <span className="block font-semibold text-accent">입출금 추가</span>

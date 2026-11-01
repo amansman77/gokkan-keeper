@@ -6,6 +6,7 @@ export const UI_TERMS = {
   positionAverageCost: '평균 취득가',
   positionUnitPrice: '현재 단가',
   positionMarketValue: '총 평가금액',
+  screenshotImport: '스크린샷으로 포지션 추가',
 } as const;
 
 /** Mirrors currentValue's legacy rule, including a known quantity of zero. */
