@@ -83,7 +83,10 @@ export function reconcile(input: ReconcileInput): ImportResult {
     .filter((p) => (p.quantity ?? 0) > 0 && !sorted.matchedIds.has(p.id))
     .map((p) => ({ positionId: p.id, name: p.name, quantity: p.quantity ?? 0 }));
   for (const n of sorted.newHoldings) warnings.push({ code: 'new_holding', detail: `곳간에 없는 종목이에요: ${n.holding.name}${n.suggestion ? ` → ${n.suggestion.name}(${n.suggestion.symbol})로 등록할 수 있어요` : ' (직접 등록해주세요)'}` });
-  for (const m of missingPositions) warnings.push({ code: 'missing_position', detail: `곳간에는 있는데 화면에 없어요: ${m.name} ${m.quantity}주 (매도했나요?)` });
+  // with a failed total the likelier story is a screen left out, not a sale
+  const complete = checks.every((c) => c.passed);
+  const why = complete ? '매도했나요?' : '화면에 안 찍혔거나 매도했나요?';
+  for (const m of missingPositions) warnings.push({ code: 'missing_position', detail: `곳간에는 있는데 화면에 없어요: ${m.name} ${m.quantity}주 (${why})` });
 
   // the broker's own total avoids rounding drift from per-row decimals
   const marketValue = round(reading.totals.marketValue ?? sorted.holdings.reduce((s, h) => s + h.marketValue, 0), reading.currency);
@@ -94,7 +97,8 @@ export function reconcile(input: ReconcileInput): ImportResult {
       profitLoss: round(reading.totals.profitLoss ?? sorted.holdings.reduce((s, h) => s + h.profitLoss, 0), reading.currency),
     },
   };
-  const cashWarning = proposal && unexplainedCash(input, proposal);
+  // an incomplete reading makes every cash estimate wrong; the failed check already says so
+  const cashWarning = proposal && complete && unexplainedCash(input, proposal);
   if (cashWarning) warnings.push(cashWarning);
   return {
     currency: reading.currency, accountSuffix: reading.accountSuffixes[0] ?? null, holdings: sorted.holdings,
@@ -112,18 +116,21 @@ function accountCheck(seen: string[], linked: string | null): ImportCheck {
 /**
  * Cash should move only by trades and recorded deposits/withdrawals. Trade
  * cash is estimated from the change in cost basis; what remains beyond a
- * small allowance for dividends and fees is reported.
+ * small allowance for dividends and fees is reported. A new holding may be a
+ * purchase or one that was simply never recorded, so either reading clears it.
  */
 function unexplainedCash(input: ReconcileInput, proposal: ImportProposal): ImportWarning | null {
   const last = input.lastSnapshot;
   const currency = input.reading.currency;
   if (!last || last.availableBalance == null) return null;
   const avgCostById = new Map(input.positions.map((p) => [p.id, p.avgCost ?? 0]));
+  const newCost = proposal.newHoldings.reduce((s, n) => s + n.holding.quantity * n.holding.avgCost, 0);
   const costDelta = proposal.changes.reduce((s, c) => s + c.after.quantity * c.after.avgCost - (c.before.quantity ?? 0) * (c.before.avgCost ?? 0), 0)
-    + proposal.newHoldings.reduce((s, n) => s + n.holding.quantity * n.holding.avgCost, 0)
     - proposal.missingPositions.reduce((s, m) => s + m.quantity * (avgCostById.get(m.positionId) ?? 0), 0);
   const flows = input.flowsSinceLastSnapshot.reduce((s, f) => s + (f.type === 'DEPOSIT' ? f.amount : -f.amount), 0);
-  const gap = proposal.snapshot.availableBalance - (last.availableBalance - costDelta + flows);
+  const untracked = proposal.snapshot.availableBalance - (last.availableBalance - costDelta + flows);
+  const bought = untracked + newCost;
+  const gap = Math.abs(bought) < Math.abs(untracked) ? bought : untracked;
   const allowance = Math.max(currency === 'KRW' ? 30_000 : 30, last.totalAmount * 0.005);
   if (Math.abs(gap) <= allowance) return null;
   const direction = gap < 0 ? ['줄었어요', '출금'] : ['늘었어요', '입금'];
