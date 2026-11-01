@@ -90,6 +90,15 @@ void test('overseas rows match by ticker, recover a dropped quantity from cost b
   assert.equal(result.proposal?.snapshot.totalAmount, 1454.08);
 });
 
+void test('the header total is read even when the refresh icon sticks to its label', () => {
+  const page = usHoldingsPage(1, ACCOUNT, { profitLoss: '1.27uso', marketValue: '1,241.44USD' }, US_ROWS);
+  const label = page.lines.find((l) => l.text === '평가손익')!;
+  const glued = { ...page, lines: page.lines.map((l) => (l === label ? { ...l, text: '평가손익 C' } : l)) };
+  const reading = mergePages([glued, usCashPage(2, ACCOUNT, '212.64')], 'USD');
+  assert.equal(reading.totals.profitLoss, 1.27);
+  assert.ok(reading.checks.every((c) => c.passed), JSON.stringify(reading.checks));
+});
+
 void test('a quantity that cannot be read or recovered blocks the import', () => {
   const rows: FixtureRow[] = [{ name: '대한전선', quantity: null, marketValue: '189,900', profitLoss: '-53,514', percent: '-21.98%' }];
   const result = reconcile(input(mergePages([krHoldingsPage(1, ACCOUNT, '-53.514원', rows), krCashPage(2, ACCOUNT, '1')], 'KRW')));
