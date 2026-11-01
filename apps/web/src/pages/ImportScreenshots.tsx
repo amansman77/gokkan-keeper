@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { getGranary } from '../lib/api';
+import { UI_TERMS } from '../lib/terminology';
 import type { GranaryWithLatestSnapshot } from '../lib/types';
 import { ImportOutcome } from '../components/screenshot-import/ImportOutcome';
 import { ImportReview } from '../components/screenshot-import/ImportReview';
@@ -23,7 +24,7 @@ export default function ImportScreenshots() {
     <div className="gk-narrow gk-stack">
       <div>
         <Link to={back} className="text-sm text-accent hover:underline">← {granary?.name ?? '곳간'}</Link>
-        <h1 className="gk-page-title mt-2">스크린샷으로 맞추기</h1>
+        <h1 className="gk-page-title mt-2">{UI_TERMS.screenshotImport}</h1>
       </div>
       {error && <div className="gk-alert"><p className="text-danger text-sm">{error}</p></div>}
       {!job && !params.get('job') && <ImportUpload busy={busy} onUpload={(files) => void upload(files)} />}
