@@ -43,7 +43,8 @@ export interface HeaderTotals {
 }
 
 export function headerTotals(page: OcrPage, currency: 'KRW' | 'USD'): HeaderTotals {
-  const plLabel = firstLabel(page, /^평가손익$/);
+  // the refresh icon beside the overseas label reads as a stray glyph ("평가손익 C")
+  const plLabel = firstLabel(page, /^평가손익(?:\s+[^\d\s]{1,2})?$/);
   const plLine = plLabel && valueBeside(page, plLabel);
   // the won total shares its line with the percentage ("-287,463원 -5.97%")
   const plText = plLine ? (plLine.text.match(/-?[\d.,]+\s*원/)?.[0] ?? plLine.text.split(/\s+/)[0]) : null;
