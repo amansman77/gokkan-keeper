@@ -109,7 +109,7 @@ list in `app-routes.tsx` so authentication and SEO exposure stay aligned.
   Review `http/origins.ts` and `middleware/security.ts` when changing transport.
 - `API_SECRET` is not browser login. `AUTOMATION_API_KEYS` defines per-job scopes in `auth/automation.ts`. The legacy
   `API_SECRET` permits only existing automation operations, not arbitrary owner
-  writes or exports. Retire it after the five external jobs have separate keys.
+  writes or exports. Retire it after the external jobs have separate keys.
 - When adding public data, opt in explicitly at the query/DTO layer. Do not
   serialize private database records and remove fields afterward.
 - A request authenticated via the `X-API-Secret` header (rather than the
@@ -175,13 +175,13 @@ commands are experiments, not test suites.
   `WARN_*` observes, while `SELL_001`/`BUY_001` are actionable.
 - A `ruleId` rename needs a matching `gk_alert_rule_state` migration. Historical
   alert logs retain old IDs, so historical queries must account for both.
-- Five scheduled jobs live outside this repository. Preserve diary `assets`,
+- Scheduled jobs live outside this repository. Preserve diary `assets`,
   `GET /positions/indicators/series`, `POST /automation/discord-notify`, and
   positions/snapshots sync contracts. Discord automation requires a scoped
   `X-API-Secret` caller, not a browser session.
 
 Read [docs/DOMAIN_OPERATIONS.md](docs/DOMAIN_OPERATIONS.md) for rule history,
-simulation interpretation and the five external jobs before changing those areas.
+simulation interpretation and the external jobs before changing those areas.
 Large screens use domain folders under `apps/web/src/components`: `granary-detail`,
 `asset-goal`, `position-form`, and `snapshot-form`. Page files compose their parts;
 keep loading hooks, calculations, and field groups with their owning domain.
