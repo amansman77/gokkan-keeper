@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@gokkan-keeper/shared": "workspace:*",
-    "hono": "^4.13.13",
+    "hono": "^4.13.16",
     "jose": "^6"
   },
   "devDependencies": {
